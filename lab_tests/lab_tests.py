@@ -26,7 +26,7 @@ modular_reference_matrix, lattice_reference_matrix = data_preparer.get_probabili
 
 
 num_epochs = 20;
-"""
+#"""
 batch_sizes = [4 * (2 ** i) for i in range(6)]      # 4 to 128 in powers of two
 learning_rates = [i * 0.004 for i in range(1, 26)]   # .004 to .1 in increments of .004
 total_models = len(batch_sizes) * len(learning_rates)
@@ -61,7 +61,7 @@ for b_idx, batch_size in enumerate(batch_sizes):
         all_losses[b_idx][lr_idx] = losses
 
 np.savez("results/avgs-losses_bs_lr_20e_400h.npz", m_avgs=all_m_avgs, l_avgs=all_l_avgs, mpms=all_mpms, lpms=all_lpms, ngpms=all_gpms, losses=all_losses, batch_sizes=batch_sizes, learning_rates=learning_rates)
-"""
+#"""
 
 data = np.load("results/avgs-losses_bs_lr_20e_400h.npz", allow_pickle=True)
 all_m_avgs = data['m_avgs']
