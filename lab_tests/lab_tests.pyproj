@@ -22,12 +22,15 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="MultipleModels.py" />
     <Compile Include="DataPrep.py" />
-    <Compile Include="Evaluation.py" />
+    <Compile Include="PearsonEval.py" />
+    <Compile Include="RowWiseJSEval.py" />
     <Compile Include="lab_tests.py" />
     <Compile Include="NeuralNetwork.py" />
     <Compile Include="Output.py" />
     <Compile Include="StandardModel.py" />
+    <Compile Include="test_activations.py" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="data\" />
@@ -37,6 +40,7 @@
   <ItemGroup>
     <Content Include="data\cooc-jaccard-lat.csv" />
     <Content Include="data\cooc-jaccard-mod.csv" />
+    <Content Include="data\stimList_gencat_hydra_forAbe.js" />
     <Content Include="data\testPats_22dim_2cats_good.txt" />
     <Content Include="data\test_generated.txt" />
     <Content Include="data\training_generated.txt" />
