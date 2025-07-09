@@ -1,4 +1,4 @@
-import Evaluation
+import RowWiseJSEval
 import Output
 import StandardModel
 from torch import nn
@@ -60,26 +60,26 @@ def load_and_display_data(num_epochs, modular_reference_matrix, lattice_referenc
     print(f"Best loss: {best_loss} with batch size= {batch_sizes[b_idx_l]}, learning rate= {learning_rates[lr_idx_l]} after epoch {e_idx_l+1}\n")
     print(f"Best average JS similarity (modular): {best_m_avg} with batch size= {batch_sizes[b_idx_m_a]}, learning rate= {learning_rates[lr_idx_m_a]} after epoch {e_idx_m_a+1}")
 
-    normalized_m_matrix = Evaluation.matrix_row_normalize(all_mpms[b_idx_m_a][lr_idx_m_a][e_idx_m_a])
+    normalized_m_matrix = RowWiseJSEval.matrix_row_normalize(all_mpms[b_idx_m_a][lr_idx_m_a][e_idx_m_a])
     #print("\nProbability matrix at the best average similarity:\n")
     #Output.print_matrix(normalized_m_matrix)
     #print("\nRow-normalized reference matrix:\n")
-    #Output.print_matrix(Evaluation.matrix_row_normalize(modular_reference_matrix))
+    #Output.print_matrix(RowWiseJSEval.matrix_row_normalize(modular_reference_matrix))
 
     print(f"\nBest average JS similarity (lattice): {best_l_avg} with batch size= {batch_sizes[b_idx_l_a]}, learning rate= {learning_rates[lr_idx_l_a]} after epoch {e_idx_l_a+1}")
 
-    normalized_l_matrix = Evaluation.matrix_row_normalize(all_lpms[b_idx_l_a][lr_idx_l_a][e_idx_l_a])
+    normalized_l_matrix = RowWiseJSEval.matrix_row_normalize(all_lpms[b_idx_l_a][lr_idx_l_a][e_idx_l_a])
     #print("\nProbability matrix at the best average similarity:\n")
     #Output.print_matrix(normalized_l_matrix)
     #print("\nRow-normalized reference matrix:\n")
-    #Output.print_matrix(Evaluation.matrix_row_normalize(lattice_reference_matrix))
+    #Output.print_matrix(RowWiseJSEval.matrix_row_normalize(lattice_reference_matrix))
 
     Output.plot_matrices(normalized_m_matrix, modular_reference_matrix, normalized_l_matrix, lattice_reference_matrix, 
                          titles=("modular, learned", "modular, reference", "lattice, learned", "lattice, reference"))
 
-    Output.plot_matrix(Evaluation.matrix_row_normalize(all_gpms[b_idx_m_a][lr_idx_m_a][e_idx_m_a]), "Best average JS similarity (modular, whole matrix)")
-    Output.plot_matrix(Evaluation.matrix_row_normalize(all_gpms[b_idx_l_a][lr_idx_l_a][e_idx_l_a]), "Best average JS similarity (lattice, whole matrix)")
-    Output.plot_matrix(Evaluation.matrix_row_normalize(all_gpms[b_idx_l][lr_idx_l][e_idx_l]), "Best loss (whole matrix)")
+    Output.plot_matrix(RowWiseJSEval.matrix_row_normalize(all_gpms[b_idx_m_a][lr_idx_m_a][e_idx_m_a]), "Best average JS similarity (modular, whole matrix)")
+    Output.plot_matrix(RowWiseJSEval.matrix_row_normalize(all_gpms[b_idx_l_a][lr_idx_l_a][e_idx_l_a]), "Best average JS similarity (lattice, whole matrix)")
+    Output.plot_matrix(RowWiseJSEval.matrix_row_normalize(all_gpms[b_idx_l][lr_idx_l][e_idx_l]), "Best loss (whole matrix)")
 
     Output.plot_interactive_heatmap_discrete(all_m_avgs.tolist(), batch_sizes, learning_rates, num_epochs, title="Average JS Similarities (modular)")
     Output.plot_interactive_heatmap_discrete(all_l_avgs.tolist(), batch_sizes, learning_rates, num_epochs, title="Average JS Similarities (lattice)")

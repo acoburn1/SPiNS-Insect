@@ -25,7 +25,7 @@ def generate_hidden_distributions(model, num_features):
             corr, p = pearsonr(ha_base, ha_comp)
             base_correlations.append(corr)
         correlations.append(base_correlations)
-    return correlations
+    return np.array(correlations)
 def generate_hidden_activations(model, num_features):
     inputs = torch.eye(num_features, dtype=torch.float32)
     return model.get_hidden_activations(inputs).numpy()

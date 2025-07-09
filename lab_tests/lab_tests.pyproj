@@ -22,30 +22,34 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="MultipleModels.py" />
-    <Compile Include="DataPrep.py" />
-    <Compile Include="PearsonEval.py" />
-    <Compile Include="RowWiseJSEval.py" />
+    <Compile Include="Model\MultipleModels.py" />
+    <Compile Include="Prep\DataPrep.py" />
+    <Compile Include="Eval\PearsonEval.py" />
+    <Compile Include="Eval\RowWiseJSEval.py" />
     <Compile Include="lab_tests.py" />
-    <Compile Include="NeuralNetwork.py" />
-    <Compile Include="Output.py" />
-    <Compile Include="StandardModel.py" />
-    <Compile Include="test_activations.py" />
+    <Compile Include="Model\NeuralNetwork.py" />
+    <Compile Include="Output\Output.py" />
+    <Compile Include="Model\StandardModel.py" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="data\" />
-    <Folder Include="results\" />
-    <Folder Include="results\models\" />
+    <Folder Include="Data\" />
+    <Folder Include="Model\" />
+    <Folder Include="Eval\" />
+    <Folder Include="Output\" />
+    <Folder Include="Prep\" />
+    <Folder Include="Results\" />
+    <Folder Include="Results\Models\" />
+    <Folder Include="Results\Data\" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="data\cooc-jaccard-lat.csv" />
-    <Content Include="data\cooc-jaccard-mod.csv" />
-    <Content Include="data\stimList_gencat_hydra_forAbe.js" />
-    <Content Include="data\testPats_22dim_2cats_good.txt" />
-    <Content Include="data\test_generated.txt" />
-    <Content Include="data\training_generated.txt" />
-    <Content Include="data\trainPats_22dim_2cats_good.txt" />
-    <Content Include="results\avgs-losses_bs_lr_20e_400h.npz" />
+    <Content Include="Data\cooc-jaccard-lat.csv" />
+    <Content Include="Data\cooc-jaccard-mod.csv" />
+    <Content Include="Data\stimList_gencat_hydra_forAbe.js" />
+    <Content Include="Data\testPats_22dim_2cats_good.txt" />
+    <Content Include="Data\test_generated.txt" />
+    <Content Include="Data\training_generated.txt" />
+    <Content Include="Data\trainPats_22dim_2cats_good.txt" />
+    <Content Include="Results\Data\js_multiple_20e_22i_400h.npz" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
