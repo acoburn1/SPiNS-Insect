@@ -22,34 +22,71 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Data\Current\stimList_gencat_hydra_forAbe.py" />
+    <Compile Include="Prep\Copilot_Demos\example_data_usage.py" />
     <Compile Include="Model\MultipleModels.py" />
-    <Compile Include="Prep\DataPrep.py" />
+    <Compile Include="Prep\BaseConverter.py" />
+    <Compile Include="Prep\Copilot_Demos\convert_data_demo.py" />
+    <Compile Include="Prep\DataPreparer.py" />
+    <Compile Include="Prep\DataUtils.py" />
+    <Compile Include="Prep\FormatConverters.py" />
+    <Compile Include="Prep\Legacy\LegacyDataPrep.py" />
     <Compile Include="Eval\PearsonEval.py" />
     <Compile Include="Eval\RowWiseJSEval.py" />
     <Compile Include="lab_tests.py" />
     <Compile Include="Model\NeuralNetwork.py" />
-    <Compile Include="Output\Output.py" />
+    <Compile Include="Output\Legacy\LegacyOutput.py" />
     <Compile Include="Model\StandardModel.py" />
+    <Compile Include="Prep\__init__.py" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Data\" />
+    <Folder Include="Data\Current\" />
+    <Folder Include="Data\Old\" />
+    <Folder Include="Data\ReferenceMatrices\" />
     <Folder Include="Model\" />
     <Folder Include="Eval\" />
     <Folder Include="Output\" />
+    <Folder Include="Output\Legacy\" />
     <Folder Include="Prep\" />
+    <Folder Include="Prep\Legacy\" />
+    <Folder Include="Prep\Copilot_Demos\" />
     <Folder Include="Results\" />
     <Folder Include="Results\Models\" />
     <Folder Include="Results\Data\" />
+    <Folder Include="results\models\p_024lr_96bs_22i_400h\" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Data\cooc-jaccard-lat.csv" />
-    <Content Include="Data\cooc-jaccard-mod.csv" />
-    <Content Include="Data\stimList_gencat_hydra_forAbe.js" />
-    <Content Include="Data\testPats_22dim_2cats_good.txt" />
-    <Content Include="Data\test_generated.txt" />
-    <Content Include="Data\training_generated.txt" />
-    <Content Include="Data\trainPats_22dim_2cats_good.txt" />
+    <Content Include="Data\ReferenceMatrices\cooc-jaccard-lat.csv" />
+    <Content Include="Data\ReferenceMatrices\cooc-jaccard-mod.csv" />
+    <Content Include="Data\Current\stimList_gencat_hydra_forAbe.js" />
+    <Content Include="Data\Old\testPats_22dim_2cats_good.txt" />
+    <Content Include="Data\Old\test_generated.txt" />
+    <Content Include="Data\Old\training_generated.txt" />
+    <Content Include="Data\Old\trainPats_22dim_2cats_good.txt" />
+    <Content Include="Prep\README.md" />
     <Content Include="Results\Data\js_multiple_20e_22i_400h.npz" />
+    <Content Include="results\data\p_024lr_96bs_20e_22i_400h.npz" />
+    <Content Include="results\models\p_024lr_96bs_22i_400h\e1.pt" />
+    <Content Include="results\models\p_024lr_96bs_22i_400h\e10.pt" />
+    <Content Include="results\models\p_024lr_96bs_22i_400h\e11.pt" />
+    <Content Include="results\models\p_024lr_96bs_22i_400h\e12.pt" />
+    <Content Include="results\models\p_024lr_96bs_22i_400h\e13.pt" />
+    <Content Include="results\models\p_024lr_96bs_22i_400h\e14.pt" />
+    <Content Include="results\models\p_024lr_96bs_22i_400h\e15.pt" />
+    <Content Include="results\models\p_024lr_96bs_22i_400h\e16.pt" />
+    <Content Include="results\models\p_024lr_96bs_22i_400h\e17.pt" />
+    <Content Include="results\models\p_024lr_96bs_22i_400h\e18.pt" />
+    <Content Include="results\models\p_024lr_96bs_22i_400h\e19.pt" />
+    <Content Include="results\models\p_024lr_96bs_22i_400h\e2.pt" />
+    <Content Include="results\models\p_024lr_96bs_22i_400h\e20.pt" />
+    <Content Include="results\models\p_024lr_96bs_22i_400h\e3.pt" />
+    <Content Include="results\models\p_024lr_96bs_22i_400h\e4.pt" />
+    <Content Include="results\models\p_024lr_96bs_22i_400h\e5.pt" />
+    <Content Include="results\models\p_024lr_96bs_22i_400h\e6.pt" />
+    <Content Include="results\models\p_024lr_96bs_22i_400h\e7.pt" />
+    <Content Include="results\models\p_024lr_96bs_22i_400h\e8.pt" />
+    <Content Include="results\models\p_024lr_96bs_22i_400h\e9.pt" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

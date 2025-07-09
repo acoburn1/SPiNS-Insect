@@ -1,8 +1,9 @@
 from numpy import save
-from NeuralNetwork import NeuralNetwork
+from Model.NeuralNetwork import NeuralNetwork
 import torch
-import PearsonEval
-import RowWiseJSEval
+import os
+import Eval.PearsonEval as PearsonEval
+import Eval.RowWiseJSEval as RowWiseJSEval
 
 class StandardModel:
     def __init__(self, num_features, hidden_layer_size, batch_size, num_epochs, learning_rate, loss_fn):
@@ -16,7 +17,7 @@ class StandardModel:
         self.optimizer = torch.optim.Adam(self.model.parameters(), self.learning_rate)
 
     def train_eval_P(self, dataloader, modular_reference_matrix, lattice_reference_matrix, save_models=False, subfolder_name="unnamed_models", print_data=False):
-        losses, m_output_corrs, l_output_corrs, m_hidden_corrs, l_hidden_corrs = [], [], [], [], []
+        losses, m_output_corrs, l_output_corrs, m_hidden_corrs, l_hidden_corrs, output_matrices, hidden_matrices = [], [], [], [], [], [], []
         for epoch in range(self.num_epochs):
             total_loss = 0
             for batch_X, batch_Y in dataloader:
@@ -32,19 +33,28 @@ class StandardModel:
             m_hidden_corr = PearsonEval.test_and_compare_modular(self.model, self.num_features, modular_reference_matrix, hidden=True)
             l_hidden_corr = PearsonEval.test_and_compare_lattice(self.model, self.num_features, lattice_reference_matrix, hidden=True)
 
+            output_matrix = PearsonEval.generate_output_distributions(self.model, 2 * self.num_features)
+            hidden_matrix = RowWiseJSEval.matrix_row_normalize(PearsonEval.generate_hidden_distributions(self.model, 2 * self.num_features))
+
             m_output_corrs.append(m_output_corr)
             l_output_corrs.append(l_output_corr)
             m_hidden_corrs.append(m_hidden_corr)
             l_hidden_corrs.append(l_hidden_corr)
+
+            output_matrices.append(output_matrix)
+            hidden_matrices.append(hidden_matrix)
+
             losses.append(total_loss)
 
             if (save_models):
-                torch.save(self.model.state_dict(), f"results/models/{subfolder_name}/e{epoch+1}.pt")
+                model_dir = f"Results/Models/{subfolder_name}"
+                os.makedirs(model_dir, exist_ok=True)
+                torch.save(self.model.state_dict(), f"{model_dir}/e{epoch+1}.pt")
 
             if (print_data):
                 print(f"Epoch {epoch+1}/{self.num_epochs}, Loss: {total_loss:.7f}, Pearson correlation (modular): {m_output_corr:.3f}, Pearson correlation (lattice): {l_output_corr:.3f}")
 
-        return losses, m_output_corrs, l_output_corrs, m_hidden_corrs, l_hidden_corrs
+        return losses, m_output_corrs, l_output_corrs, m_hidden_corrs, l_hidden_corrs, output_matrices, hidden_matrices
     
 
     def test_model(self, raw_inputs):

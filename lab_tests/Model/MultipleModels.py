@@ -1,8 +1,10 @@
-import RowWiseJSEval
+import Eval.RowWiseJSEval as RowWiseJSEval
 import Output
-import StandardModel
+import Model.StandardModel
 from torch import nn
 import numpy as np
+
+### TODO: rewrite with new data loading logic
 
 def train_variety_and_save_data(data_preparer, num_epochs, num_features, hidden_layer_size, modular_reference_matrix, lattice_reference_matrix, filename):
     batch_sizes = [4 * (2 ** i) for i in range(6)]      # 4 to 128 in powers of two

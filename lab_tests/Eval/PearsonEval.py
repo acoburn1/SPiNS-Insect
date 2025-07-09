@@ -3,12 +3,12 @@ import torch
 import numpy as np
 
 
-def test_and_compare_modular(model, num_features, reference_matrix, hidden=False):                                                                                    ###             
-    output_matrix = generate_output_distributions(model, 2*num_features) if hidden == False else generate_hidden_distributions(model, 2*num_features)                                                                                 ###             
-    return flatten_and_eval(output_matrix[:num_features, :num_features], reference_matrix), output_matrix[:num_features, :num_features]   ### ASSUMING 0-10 mod & 11-21 lat
-def test_and_compare_lattice(model, num_features, reference_matrix, hidden=False):                                                                                    ###             
-    output_matrix = generate_output_distributions(model, 2*num_features) if hidden == False else generate_hidden_distributions(model, 2*num_features)                                                                                      ###             
-    return flatten_and_eval(output_matrix[num_features:, num_features:], reference_matrix), output_matrix[num_features:, num_features:]   ###            
+def test_and_compare_modular(model, num_features, reference_matrix, hidden=False):                                                                                            
+    output_matrix = generate_output_distributions(model, 2*num_features) if hidden == False else generate_hidden_distributions(model, 2*num_features)                                                                                         
+    return flatten_and_eval(output_matrix[:num_features, :num_features], reference_matrix), output_matrix[:num_features, :num_features]   
+def test_and_compare_lattice(model, num_features, reference_matrix, hidden=False):                                                                                     
+    output_matrix = generate_output_distributions(model, 2*num_features) if hidden == False else generate_hidden_distributions(model, 2*num_features)                                                                                             
+    return flatten_and_eval(output_matrix[num_features:, num_features:], reference_matrix), output_matrix[num_features:, num_features:]       
 def flatten_and_eval(m1, m2):
     corr, p = pearsonr(m1.flatten(), m2.flatten())
     return corr
