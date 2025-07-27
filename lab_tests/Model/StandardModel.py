@@ -4,6 +4,7 @@ import torch
 import os
 import Eval.PearsonEval as PearsonEval
 import Eval.RowWiseJSEval as RowWiseJSEval
+import Tests.RatioExemplar as RE
 
 class StandardModel:
     def __init__(self, num_features, hidden_layer_size, batch_size, num_epochs, learning_rate, loss_fn):
@@ -16,8 +17,7 @@ class StandardModel:
         self.loss_fn = loss_fn
         self.optimizer = torch.optim.Adam(self.model.parameters(), self.learning_rate)
 
-    def train_eval_P(self, dataloader, modular_reference_matrix, lattice_reference_matrix, save_models=False, subfolder_name="unnamed_models", print_data=False):
-        losses, m_output_corrs, l_output_corrs, m_hidden_corrs, l_hidden_corrs, output_matrices, hidden_matrices = [], [], [], [], [], [], []
+    def train(self, dataloader):
         for epoch in range(self.num_epochs):
             total_loss = 0
             for batch_X, batch_Y in dataloader:
@@ -28,46 +28,100 @@ class StandardModel:
                 self.optimizer.step()
                 total_loss += loss.item()
 
-            m_output_corr = PearsonEval.test_and_compare_modular(self.model, self.num_features, modular_reference_matrix, hidden=False)
-            l_output_corr = PearsonEval.test_and_compare_lattice(self.model, self.num_features, lattice_reference_matrix, hidden=False)
-            m_hidden_corr = PearsonEval.test_and_compare_modular(self.model, self.num_features, modular_reference_matrix, hidden=True)
-            l_hidden_corr = PearsonEval.test_and_compare_lattice(self.model, self.num_features, lattice_reference_matrix, hidden=True)
+    def train_eval_test_P(self, dataloader, modular_reference_matrix, lattice_reference_matrix, data_params, print_data=False, include_e0=False):
+        result_data = {
+            "losses": [],
+            "m_output_corrs": [],
+            "l_output_corrs": [],
+            "m_hidden_corrs": [],
+            "l_hidden_corrs": [],
+            "output_matrices": [],
+            "hidden_matrices": [],
+            "output_tests": [],
+            "hidden_tests": []
+        }
 
-            output_matrix = PearsonEval.generate_output_distributions(self.model, 2 * self.num_features)
-            hidden_matrix = PearsonEval.generate_hidden_distributions(self.model, 2 * self.num_features)
+        if include_e0:
+            initial_results = self._evaluate_model(modular_reference_matrix, lattice_reference_matrix, data_params)
+            
+            for key in result_data.keys():
+                if key == "losses":
+                    result_data[key].append(0)
+                else:
+                    eval_key = key[:-1] if key.endswith('s') else key[:-1]
+                    result_data[key].append(initial_results.get(eval_key, None))
 
-            m_output_corrs.append(m_output_corr)
-            l_output_corrs.append(l_output_corr)
-            m_hidden_corrs.append(m_hidden_corr)
-            l_hidden_corrs.append(l_hidden_corr)
+        for epoch in range(self.num_epochs):
+            total_loss = 0
+            for batch_X, batch_Y in dataloader:
+                pred = self.model(batch_X)
+                loss = self.loss_fn(pred, batch_Y)
+                self.optimizer.zero_grad()
+                loss.backward()
+                self.optimizer.step()
+                total_loss += loss.item()
 
-            output_matrices.append(output_matrix)
-            hidden_matrices.append(hidden_matrix)
+            epoch_results = self._evaluate_model(modular_reference_matrix, lattice_reference_matrix, data_params)
+            
+            for key in result_data.keys():
+                if key == "losses":
+                    result_data[key].append(total_loss)
+                else:
+                    eval_key = key[:-1] if key.endswith('s') else key[:-1]
+                    result_data[key].append(epoch_results.get(eval_key, None))
 
-            losses.append(total_loss)
+            if print_data and data_params.get("m_output_corrs", False) and data_params.get("l_output_corrs", False):
+                m_corr = epoch_results.get("m_output_corr", "N/A")
+                l_corr = epoch_results.get("l_output_corr", "N/A")
+                print(f"Epoch {epoch+1}/{self.num_epochs}, Loss: {total_loss:.7f}, Pearson correlation (modular): {m_corr:.3f}, Pearson correlation (lattice): {l_corr:.3f}")
 
-            if (save_models):
-                model_dir = f"Results/Models/{subfolder_name}"
-                os.makedirs(model_dir, exist_ok=True)
-                torch.save(self.model.state_dict(), f"{model_dir}/e{epoch+1}.pt")
+        if include_e0 and data_params.get("losses", False) and len(result_data["losses"]) > 1:
+            result_data["losses"][0] = result_data["losses"][1]
 
-            if (print_data):
-                print(f"Epoch {epoch+1}/{self.num_epochs}, Loss: {total_loss:.7f}, Pearson correlation (modular): {m_output_corr:.3f}, Pearson correlation (lattice): {l_output_corr:.3f}")
+        filtered_results = {}
+        for key, value in result_data.items():
+            if data_params.get(key, False):
+                filtered_results[key] = value
+        
+        return filtered_results
 
-        return losses, m_output_corrs, l_output_corrs, m_hidden_corrs, l_hidden_corrs, output_matrices, hidden_matrices
-    
+    def _evaluate_model(self, modular_reference_matrix, lattice_reference_matrix, data_params):
+        results = {}
+        
+        if data_params.get("m_output_corrs", False):
+            results["m_output_corr"] = PearsonEval.test_and_compare_modular(self.model, self.num_features, modular_reference_matrix, hidden=False)
+        
+        if data_params.get("l_output_corrs", False):
+            results["l_output_corr"] = PearsonEval.test_and_compare_lattice(self.model, self.num_features, lattice_reference_matrix, hidden=False)
+        
+        if data_params.get("m_hidden_corrs", False):
+            results["m_hidden_corr"] = PearsonEval.test_and_compare_modular(self.model, self.num_features, modular_reference_matrix, hidden=True)
+        
+        if data_params.get("l_hidden_corrs", False):
+            results["l_hidden_corr"] = PearsonEval.test_and_compare_lattice(self.model, self.num_features, lattice_reference_matrix, hidden=True)
+
+        if data_params.get("output_matrices", False):
+            results["output_matrix"] = PearsonEval.generate_output_distributions(self.model, 2 * self.num_features)
+        
+        if data_params.get("hidden_matrices", False):
+            results["hidden_matrix"] = PearsonEval.generate_hidden_distributions(self.model, 2 * self.num_features)
+
+        if data_params.get("output_tests", False):
+            results["output_test"] = RE.test_ratios(self.model, hidden=False)
+        
+        if data_params.get("hidden_tests", False):
+            results["hidden_test"] = RE.test_ratios(self.model, hidden=True)
+        
+        return results
 
     def test_model(self, raw_inputs):
         test_inputs = torch.tensor(raw_inputs, dtype=torch.float32)
         test_outputs = torch.sigmoid(self.model(test_inputs))
         return test_outputs.detach().numpy()
 
-
-
     ### not in use
 
     def train_eval_JS(self, dataloader, modular_reference_matrix, lattice_reference_matrix, print_data=False):
-
         losses, m_avgs, l_avgs, mpms, lpms, gpms = [], [], [], [], [], []
         for epoch in range(self.num_epochs):
             total_loss = 0
@@ -93,5 +147,4 @@ class StandardModel:
             if (print_data):
                 print(f"Epoch {epoch+1}/{self.num_epochs}, Loss: {total_loss:.7f}, Average row-wise JS similarity (modular): {m_avg:.3f}, Average row-wise JS similarity (lattice): {l_avg:.3f}")
         return losses, m_avgs, l_avgs, mpms, lpms, gpms
-    
 

@@ -3,15 +3,22 @@ import torch
 import numpy as np
 
 
-def test_and_compare_modular(model, num_features, reference_matrix, hidden=False):                                                                                            
+def test_and_compare_modular(model, num_features, reference_matrix, hidden=False):     
     output_matrix = generate_output_distributions(model, 2*num_features) if hidden == False else generate_hidden_distributions(model, 2*num_features)                                                                                         
-    return flatten_and_eval(output_matrix[:num_features, :num_features], reference_matrix)   
-def test_and_compare_lattice(model, num_features, reference_matrix, hidden=False):                                                                                     
+    return flatten_and_eval(output_matrix[:num_features, :num_features], reference_matrix, hidden)   
+def test_and_compare_lattice(model, num_features, reference_matrix, hidden=False): 
     output_matrix = generate_output_distributions(model, 2*num_features) if hidden == False else generate_hidden_distributions(model, 2*num_features)                                                                                             
-    return flatten_and_eval(output_matrix[num_features:, num_features:], reference_matrix)      
-def flatten_and_eval(m1, m2):
-    corr, p = pearsonr(m1.flatten(), m2.flatten())
+    return flatten_and_eval(output_matrix[num_features:, num_features:], reference_matrix, hidden)      
+def flatten_and_eval(m1, m2, triangle: bool=False):
+    corr, p = pearsonr(cut(m1, triangle), cut(m2, triangle))
     return corr
+def cut(m, triangle: bool):
+        m_cut = []
+        for i in range(len(m)):
+            for j in range(len(m[0])):
+                if (i < j if triangle else i != j):
+                    m_cut.append(m[i][j])
+        return m_cut
 def generate_output_distributions(model, num_features):
     inputs = torch.eye(num_features, dtype=torch.float32)
     with torch.no_grad():

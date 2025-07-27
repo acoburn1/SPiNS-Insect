@@ -6,6 +6,18 @@ from .BaseConverter import BaseDataConverter
 from .FormatConverters import TabDelimitedConverter, PythonListConverter
 
 
+class CSVConverter(BaseDataConverter):
+    """Concrete CSV converter that implements the abstract methods."""
+    
+    def load_training_data(self, filename: str) -> Tuple[List[List[int]], List[List[int]]]:
+        train_inputs, train_outputs, _ = self.load_from_csv(filename)
+        return train_inputs, train_outputs
+    
+    def load_testing_data(self, filename: str) -> List[List[int]]:
+        _, _, test_inputs = self.load_from_csv(filename)
+        return test_inputs
+
+
 class DataPreparer:
     
     def __init__(self, num_features: int = 11):
@@ -32,7 +44,7 @@ class DataPreparer:
     @classmethod
     def from_csv(cls, filename: str, num_features: int = 11) -> 'DataPreparer':
         preparer = cls(num_features)
-        converter = BaseDataConverter(num_features)
+        converter = CSVConverter(num_features)
         preparer.training_inputs, preparer.training_outputs, preparer.test_inputs = converter.load_from_csv(filename)
         return preparer
     
@@ -63,5 +75,5 @@ class DataPreparer:
         }
     
     def save_to_csv(self, filename: str):
-        converter = BaseDataConverter(self.num_features)
+        converter = CSVConverter(self.num_features)
         converter.save_to_csv(self.training_inputs, self.training_outputs, filename, self.test_inputs)

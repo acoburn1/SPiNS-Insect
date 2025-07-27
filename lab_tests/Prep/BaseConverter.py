@@ -21,8 +21,8 @@ class BaseDataConverter(ABC):
             writer = csv.writer(csvfile)
             
             header = ['type', 'trial_id']
-            header += [f'input_{i}' for i in range(self.num_features)]
-            header += [f'output_{i}' for i in range(self.num_features)]
+            header += [f'input_{i}' for i in range(2*self.num_features)]
+            header += [f'output_{i}' for i in range(2*self.num_features)]
             writer.writerow(header)
             
             for i, (inp, out) in enumerate(zip(inputs, outputs)):
@@ -31,7 +31,7 @@ class BaseDataConverter(ABC):
             
             if test_inputs:
                 for i, inp in enumerate(test_inputs):
-                    row = ['test', i + 1] + inp + [0] * self.num_features
+                    row = ['test', i + 1] + inp + [0] * 2*self.num_features
                     writer.writerow(row)
     
     def load_from_csv(self, filename: str) -> Tuple[List[List[int]], List[List[int]], List[List[int]]]:
@@ -40,8 +40,8 @@ class BaseDataConverter(ABC):
         with open(filename, 'r') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
-                inp = [int(row[f'input_{i}']) for i in range(self.num_features)]
-                out = [int(row[f'output_{i}']) for i in range(self.num_features)]
+                inp = [int(row[f'input_{i}']) for i in range(2*self.num_features)]
+                out = [int(row[f'output_{i}']) for i in range(2*self.num_features)]
                 
                 if row['type'] == 'train':
                     train_inputs.append(inp)
