@@ -1,11 +1,14 @@
-from scipy.stats import t
+from scipy.stats import t, ttest_rel
 import numpy as np
 import os
 import glob
 
 class StatsProducer:
-    def __init__(self, data_parameters, ci=0.95):
-        self.data_parameters = {k: v for k, v in data_parameters.items() if k not in ["hidden_matrices", "output_matrices"]}
+    def __init__(self, data_parameters=None, ci=0.95):
+        if data_parameters:
+            self.data_parameters = {k: v for k, v in data_parameters.items() if k not in ["hidden_matrices", "output_matrices"]}
+        else:
+            self.data_parameters = {}
         self.ci = ci
     
     def get_stats(self, data_dir):
@@ -26,6 +29,34 @@ class StatsProducer:
         
         return stats_objects
     
+    def get_difference_stats_with_ttest(self, modular_data, lattice_data, alpha=0.05):
+
+        if modular_data.shape != lattice_data.shape:
+            raise ValueError(f"Modular and lattice data must have same shape. Got {modular_data.shape} vs {lattice_data.shape}")
+        
+        difference_array = modular_data - lattice_data
+        stats_obj = self._get_epoch_stats(difference_array)
+        
+        # Perform paired t-test for each epoch
+        num_epochs = modular_data.shape[1]
+        significant = np.zeros(num_epochs, dtype=bool)
+        p_values = np.zeros(num_epochs)
+        
+        for epoch in range(num_epochs):
+            mod_epoch = modular_data[:, epoch]
+            lat_epoch = lattice_data[:, epoch]
+            
+            # Paired t-test: H0: modular_mean = lattice_mean
+            t_stat, p_value = ttest_rel(mod_epoch, lat_epoch)
+            p_values[epoch] = p_value
+            significant[epoch] = p_value < alpha
+        
+        return {
+            'stats': stats_obj,
+            'significant': significant,
+            'p_values': p_values
+        }
+    
     def _get_epoch_stats(self, data_array):
         num_epochs = data_array.shape[1]
         means = []
@@ -37,28 +68,28 @@ class StatsProducer:
         for epoch in range(num_epochs):
             epoch_data = data_array[:, epoch]
             stats = self._get_stats_object(epoch_data)
-            means.append(stats.means)
-            std_devs.append(stats.std_devs)
-            std_errs.append(stats.std_errs)
-            ci_lowers.append(stats.ci_lowers)
-            ci_uppers.append(stats.ci_uppers)
+            means.append(stats.mean)
+            std_devs.append(stats.std_dev)
+            std_errs.append(stats.std_err)
+            ci_lowers.append(stats.ci_lower)
+            ci_uppers.append(stats.ci_upper)
         
         return StatsObject(means, std_devs, std_errs, ci_lowers, ci_uppers)
 
     def _get_stats_object(self, data):
         mean = np.mean(data)
-        std_devs = np.std(data, ddof=1)
-        std_errs = std_devs / np.sqrt(data.shape[0])
+        std_dev = np.std(data, ddof=1)
+        std_err = std_dev / np.sqrt(data.shape[0])
         t_score = t.ppf((1 + self.ci) / 2, df=data.shape[0] - 1)
-        ci_lowers = mean - t_score * std_errs
-        ci_uppers = mean + t_score * std_errs
-        return StatsObject(mean, std_devs, std_errs, ci_lowers, ci_uppers)
+        ci_lower = mean - t_score * std_err
+        ci_upper = mean + t_score * std_err
+        return StatsObject(mean, std_dev, std_err, ci_lower, ci_upper)
 
 
 class StatsObject:
-    def __init__(self, means, std_devs, std_errs, ci_lowers, ci_uppers):
-        self.means = means
-        self.std_devs = std_devs
-        self.std_errs = std_errs
-        self.ci_lowers = ci_lowers
-        self.ci_uppers = ci_uppers
+    def __init__(self, mean, std_dev, std_err, ci_lower, ci_upper):
+        self.mean = mean
+        self.std_dev = std_dev
+        self.std_err = std_err
+        self.ci_lower = ci_lower
+        self.ci_upper = ci_upper
