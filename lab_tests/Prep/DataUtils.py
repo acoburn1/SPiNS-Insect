@@ -38,6 +38,7 @@ def generate_ratio_trials(csv_filename: str = None):
         reader = csv.DictReader(csvfile)
         for row in reader:
             ratio = row['ratio'].strip().strip("'")
+            sets = row['sets'].strip().strip("'")
             
             features = []
             for col in ['f1', 'f2', 'f3', 'f4', 'f5', 'f6']:
@@ -53,8 +54,12 @@ def generate_ratio_trials(csv_filename: str = None):
                 elif 201 <= feature <= 211:
                     binary_array[feature - 201 + 11] = 1
             
+            # Initialize nested structure if needed
             if ratio not in test_sets:
-                test_sets[ratio] = []
-            test_sets[ratio].append(binary_array)
+                test_sets[ratio] = {}
+            if sets not in test_sets[ratio]:
+                test_sets[ratio][sets] = []
+            
+            test_sets[ratio][sets].append(binary_array)
     
     return test_sets

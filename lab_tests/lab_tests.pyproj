@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>aa902ebc-feaa-4dd9-9bde-17fe7bf34fbd</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>lab_tests.py</StartupFile>
+    <StartupFile>program.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -24,6 +24,8 @@
   <ItemGroup>
     <Compile Include="Data\Current\stimList_gencat_hydra_forAbe.py" />
     <Compile Include="Output\CorrelationAnalyzer.py" />
+    <Compile Include="Output\RatioExemplarOutput.py" />
+    <Compile Include="Output\StatOutput.py" />
     <Compile Include="Prep\Copilot_Demos\example_data_usage.py" />
     <Compile Include="Model\MultipleModels.py" />
     <Compile Include="Prep\BaseConverter.py" />
@@ -34,11 +36,13 @@
     <Compile Include="Prep\Legacy\LegacyDataPrep.py" />
     <Compile Include="Eval\PearsonEval.py" />
     <Compile Include="Eval\RowWiseJSEval.py" />
-    <Compile Include="lab_tests.py" />
+    <Compile Include="program.py" />
     <Compile Include="Model\NeuralNetwork.py" />
     <Compile Include="Output\Legacy\LegacyOutput.py" />
     <Compile Include="Model\StandardModel.py" />
     <Compile Include="Prep\__init__.py" />
+    <Compile Include="Statistics\StatsProducer.py" />
+    <Compile Include="Tests\RatioExemplar.py" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Data\" />
@@ -47,6 +51,8 @@
     <Folder Include="Data\ReferenceMatrices\" />
     <Folder Include="Model\" />
     <Folder Include="Eval\" />
+    <Folder Include="Statistics\" />
+    <Folder Include="Tests\" />
     <Folder Include="Output\" />
     <Folder Include="Output\Legacy\" />
     <Folder Include="Prep\" />
@@ -54,13 +60,13 @@
     <Folder Include="Prep\Copilot_Demos\" />
     <Folder Include="Results\" />
     <Folder Include="results\Analysis\" />
-    <Folder Include="results\Analysis\plots\" />
     <Folder Include="Results\Models\" />
     <Folder Include="Results\Data\" />
     <Folder Include="results\models\p_024lr_96bs_22i_400h\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include=".gitignore" />
+    <Content Include="data\Current\stimList_gencat_hydra_forAbe.csv" />
     <Content Include="Data\ReferenceMatrices\cooc-jaccard-lat.csv" />
     <Content Include="Data\ReferenceMatrices\cooc-jaccard-mod.csv" />
     <Content Include="Data\Current\stimList_gencat_hydra_forAbe.js" />
@@ -69,11 +75,6 @@
     <Content Include="Data\Old\training_generated.txt" />
     <Content Include="Data\Old\trainPats_22dim_2cats_good.txt" />
     <Content Include="Prep\README.md" />
-    <Content Include="results\Analysis\correlation_summary.txt" />
-    <Content Include="results\Analysis\plots\correlation_trends_with_loss.png" />
-    <Content Include="results\Analysis\plots\peak_correlation_matrices.png" />
-    <Content Include="Results\Data\js_multiple_20e_22i_400h.npz" />
-    <Content Include="results\data\p_024lr_96bs_20e_22i_400h.npz" />
     <Content Include="results\models\p_024lr_96bs_22i_400h\e1.pt" />
     <Content Include="results\models\p_024lr_96bs_22i_400h\e10.pt" />
     <Content Include="results\models\p_024lr_96bs_22i_400h\e11.pt" />
@@ -114,6 +115,7 @@
     <Content Include="results\models\p_024lr_96bs_22i_400h\e7.pt" />
     <Content Include="results\models\p_024lr_96bs_22i_400h\e8.pt" />
     <Content Include="results\models\p_024lr_96bs_22i_400h\e9.pt" />
+    <Content Include="Data\Current\ratiotrials.csv" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

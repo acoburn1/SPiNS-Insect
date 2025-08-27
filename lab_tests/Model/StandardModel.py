@@ -37,8 +37,10 @@ class StandardModel:
             "l_hidden_corrs": [],
             "output_matrices": [],
             "hidden_matrices": [],
-            "output_tests": [],
-            "hidden_tests": []
+            "output_ratio_tests": [],
+            "hidden_ratio_tests": [],
+            "output_activation_tests": [],
+            "hidden_activation_tests": []
         }
 
         if include_e0:
@@ -106,11 +108,17 @@ class StandardModel:
         if data_params.get("hidden_matrices", False):
             results["hidden_matrix"] = PearsonEval.generate_hidden_distributions(self.model, 2 * self.num_features)
 
-        if data_params.get("output_tests", False):
-            results["output_test"] = RE.test_ratios(self.model, hidden=False)
+        if data_params.get("output_ratio_tests", False):
+            results["output_ratio_test"] = RE.test_ratios(self.model, hidden=False)
         
-        if data_params.get("hidden_tests", False):
-            results["hidden_test"] = RE.test_ratios(self.model, hidden=True)
+        if data_params.get("hidden_ratio_tests", False):
+            results["hidden_ratio_test"] = RE.test_ratios(self.model, hidden=True)
+        
+        if data_params.get("output_activation_tests", False):
+            results["output_activation_test"] = RE.test_activations(self.model, self.num_features, hidden=False)
+        
+        if data_params.get("hidden_activation_tests", False):
+            results["hidden_activation_test"] = RE.test_activations(self.model, self.num_features, hidden=True)
         
         return results
 

@@ -2,7 +2,7 @@ from DataConverter import TabDelimitedConverter, PythonListConverter, UnifiedDat
 import os
 
 
-def convert_tab_delimited_to_csv(input_file: str, output_file: str, num_features: int = 22):
+def convert_tab_delimited_to_csv(input_file: str, output_file: str, num_features: int = 11):
     """Convert tab-delimited format to CSV"""
     converter = TabDelimitedConverter(num_features)
     
@@ -15,7 +15,7 @@ def convert_tab_delimited_to_csv(input_file: str, output_file: str, num_features
     print(f"Training samples: {len(inputs)}")
 
 
-def convert_python_lists_to_csv(input_file: str, output_file: str, num_features: int = 22):
+def convert_python_lists_to_csv(input_file: str, output_file: str, num_features: int = 11):
     """Convert Python list format to CSV"""
     converter = PythonListConverter(num_features)
     
@@ -55,7 +55,7 @@ def demonstrate_unified_loader(csv_file: str):
 if __name__ == "__main__":
     # Define file paths
     data_dir = "../data"
-    tab_delimited_file = os.path.join(data_dir, "testPats_22dim_2cats_good.txt")
+    tab_delimited_file = os.path.join(data_dir, "testPats_11dim_2cats_good.txt")
     python_list_file = os.path.join(data_dir, "stimList_gencat_hydra_forAbe.py")
     
     csv_output_tab = "converted_tab_delimited.csv"

@@ -13,7 +13,7 @@ class StatsProducer:
     
     def get_stats(self, data_dir):
         npz_files = glob.glob(os.path.join(data_dir, "*.npz"))
-        stats_objects = {}
+        agg_stats_objects = {}
         
         for param in self.data_parameters.keys():
             if self.data_parameters[param]:
@@ -25,9 +25,9 @@ class StatsProducer:
                 
                 if param_data_list:
                     data_array = np.array(param_data_list)
-                    stats_objects[param] = self._get_epoch_stats(data_array)
+                    agg_stats_objects[param] = AggregateStatsObject(self._get_epoch_stats(data_array))
         
-        return stats_objects
+        return agg_stats_objects
     
     def get_difference_stats_with_ttest(self, modular_data, lattice_data, alpha=0.05):
 
@@ -35,7 +35,7 @@ class StatsProducer:
             raise ValueError(f"Modular and lattice data must have same shape. Got {modular_data.shape} vs {lattice_data.shape}")
         
         difference_array = modular_data - lattice_data
-        stats_obj = self._get_epoch_stats(difference_array)
+        agg_stats_obj = AggregateStatsObject(self._get_epoch_stats(difference_array))
         
         # Perform paired t-test for each epoch
         num_epochs = modular_data.shape[1]
@@ -52,29 +52,21 @@ class StatsProducer:
             significant[epoch] = p_value < alpha
         
         return {
-            'stats': stats_obj,
+            'stats': agg_stats_obj,
             'significant': significant,
             'p_values': p_values
         }
     
     def _get_epoch_stats(self, data_array):
+        stats_objects = []
         num_epochs = data_array.shape[1]
-        means = []
-        std_devs = []
-        std_errs = []
-        ci_lowers = []
-        ci_uppers = []
         
         for epoch in range(num_epochs):
             epoch_data = data_array[:, epoch]
             stats = self._get_stats_object(epoch_data)
-            means.append(stats.mean)
-            std_devs.append(stats.std_dev)
-            std_errs.append(stats.std_err)
-            ci_lowers.append(stats.ci_lower)
-            ci_uppers.append(stats.ci_upper)
+            stats_objects.append(stats)
         
-        return StatsObject(means, std_devs, std_errs, ci_lowers, ci_uppers)
+        return stats_objects
 
     def _get_stats_object(self, data):
         mean = np.mean(data)
@@ -85,7 +77,6 @@ class StatsProducer:
         ci_upper = mean + t_score * std_err
         return StatsObject(mean, std_dev, std_err, ci_lower, ci_upper)
 
-
 class StatsObject:
     def __init__(self, mean, std_dev, std_err, ci_lower, ci_upper):
         self.mean = mean
@@ -93,3 +84,18 @@ class StatsObject:
         self.std_err = std_err
         self.ci_lower = ci_lower
         self.ci_upper = ci_upper
+        
+class AggregateStatsObject:
+    def __init__(self, stats_objects):
+        self.means = []
+        self.std_devs = []
+        self.std_errs = []
+        self.ci_lowers = []
+        self.ci_uppers = []
+        
+        for stat_object in stats_objects:
+            self.means.append(stat_object.mean)
+            self.std_devs.append(stat_object.std_dev)
+            self.std_errs.append(stat_object.std_err)
+            self.ci_lowers.append(stat_object.ci_lower)
+            self.ci_uppers.append(stat_object.ci_upper)

@@ -135,7 +135,7 @@ def plot_s_curve(data_dir, hidden=True, save_dir="Results/Analysis/Plots/S-Curve
     for npz_file in npz_files:
         data = np.load(npz_file, allow_pickle=True)
         
-        test_data_key = 'hidden_tests' if hidden else 'output_tests'
+        test_data_key = 'hidden_ratio_tests' if hidden else 'output_ratio_tests'
         
         if test_data_key not in data:
             print(f"Warning: {test_data_key} not found in {npz_file}")
@@ -386,7 +386,7 @@ def plot_33s(data_dir, hidden=True, save_dir="Results/Analysis/Plots/3-3",
         print(f"No NPZ files found in directory: {data_dir}")
         return
     
-    test_data_key = 'hidden_tests' if hidden else 'output_tests'
+    test_data_key = 'hidden_ratio_tests' if hidden else 'output_ratio_tests'
     
     # First pass: determine available epochs and set names
     all_epochs = set()
@@ -612,7 +612,7 @@ def plot_33s_correlations(data_dir, hidden=True, save_dir="Results/Analysis/Plot
         print(f"No NPZ files found in directory: {data_dir}")
         return
     
-    test_data_key = 'hidden_tests' if hidden else 'output_tests'
+    test_data_key = 'hidden_ratio_tests' if hidden else 'output_ratio_tests'
     
     # First pass: determine available epochs and set names
     all_epochs = set()
@@ -866,7 +866,7 @@ def plot_33s_scatter(data_dir, hidden=True, save_dir="Results/Analysis/Plots/3-3
         print(f"No NPZ files found in directory: {data_dir}")
         return
     
-    test_data_key = 'hidden_tests' if hidden else 'output_tests'
+    test_data_key = 'hidden_ratio_tests' if hidden else 'output_ratio_tests'
     
     # First pass: determine available epochs and set names
     all_epochs = set()
@@ -1096,7 +1096,7 @@ def plot_scatter_models(data_dir, epoch, hidden=True, save_dir="Results/Analysis
         print(f"No NPZ files found in directory: {data_dir}")
         return
     
-    test_data_key = 'hidden_tests' if hidden else 'output_tests'
+    test_data_key = 'hidden_ratio_tests' if hidden else 'output_ratio_tests'
     
     # First pass: determine available set names
     all_set_names = set()
