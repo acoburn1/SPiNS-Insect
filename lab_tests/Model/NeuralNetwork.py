@@ -19,6 +19,7 @@ class NeuralNetwork(nn.Module):
         self.hidden_activations = None
         self._hook_handle = None
         self.first_h = first_h
+        self.one_h = one_h
 
     def forward(self, x):
         return self.decoder(self.encoder(x))
