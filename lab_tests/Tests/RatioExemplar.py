@@ -53,7 +53,7 @@ def test_activations(model, num_features, one_hot: bool=False):
     lat_results = results[num_features:] if one_hot else results["lat"]
     mod_avg = np.mean([np.mean(mod_result[:num_features]) - np.mean(mod_result[num_features:]) for mod_result in mod_results])
     lat_avg = np.mean([np.mean(lat_result[num_features:]) - np.mean(lat_result[:num_features]) for lat_result in lat_results])
-    return {"mod_avg": mod_avg, "lat_avg": lat_avg}
+    return {"mod_avg": mod_avg, "lat_avg": lat_avg, "mod_by_feature": np.mean(mod_results, axis=0), "lat_by_feature": np.mean(lat_results, axis=0)}
 
 def generate_exemplar_results(model, hidden: bool=False):
     results = {}

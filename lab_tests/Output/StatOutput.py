@@ -773,7 +773,7 @@ def plot_33s(data_dir, hidden=True, save_dir="Results/Analysis/Plots/3-3",
     ax.axhline(y=0.5, color='gray', linestyle='--', alpha=0.7)
     ax.axvline(x=3, color='gray', linestyle='--', alpha=0.7)
     
-    # Set up x-axis ticks
+    # X ticks formatting
     if display_epochs:
         min_epoch = min(display_epochs)
         max_epoch = max(display_epochs)
@@ -887,20 +887,17 @@ def plot_33s_correlations(data_dir, hidden=True, save_dir="Results/Analysis/Plot
             
         test_data = data[test_data_key]
         
-        # For this file, collect data for each set across epochs
-        file_data_by_set = {set_name: [] for set_name in all_set_names}
-        
-        for epoch_idx in epoch_range:
+        for i, epoch_idx in enumerate(epoch_range):
             if epoch_idx >= len(test_data):
                 for set_name in all_set_names:
-                    file_data_by_set[set_name].append(np.nan)
+                    set_data_across_files[set_name].append(np.nan)
                 continue
                 
             epoch_data = test_data[epoch_idx]
             
             if '3:3' not in epoch_data:
                 for set_name in all_set_names:
-                    file_data_by_set[set_name].append(np.nan)
+                    set_data_across_files[set_name].append(np.nan)
                 continue
                 
             ratio_data = epoch_data['3:3']
@@ -919,13 +916,9 @@ def plot_33s_correlations(data_dir, hidden=True, save_dir="Results/Analysis/Plot
                     total_trials = len(avg_mod_corr_per_trial)
                     mod_preference_rate = mod_preferred_trials / total_trials if total_trials > 0 else 0
                     
-                    file_data_by_set[set_name].append(mod_preference_rate)
+                    set_data_across_files[set_name].append(mod_preference_rate)
                 else:
-                    file_data_by_set[set_name].append(np.nan)
-        
-        # Add this file's data to the overall collection
-        for set_name in all_set_names:
-            set_data_across_files[set_name].append(file_data_by_set[set_name])
+                    set_data_across_files[set_name].append(np.nan)
     
     # Use StatsProducer to calculate statistics for each set
     stats_producer = StatsProducer(ci=0.95)
@@ -1310,6 +1303,194 @@ def plot_33s_scatter(data_dir, hidden=True, save_dir="Results/Analysis/Plots/3-3
     }
 
 def plot_scatter_models(data_dir, epoch, hidden=True, save_dir="Results/Analysis/Plots/scatter_models", show_plots=False, include_e0=False):
+    
+    os.makedirs(save_dir, exist_ok=True)
+    
+    npz_files = sorted(glob.glob(os.path.join(data_dir, "*.npz")))
+    
+    if not npz_files:
+        print(f"No NPZ files found in directory: {data_dir}")
+        return
+    
+    test_data_key = 'hidden_ratio_tests' if hidden else 'output_ratio_tests'
+    
+    # First pass: determine available set names
+    all_set_names = set()
+    
+    for npz_file in npz_files:
+        data = np.load(npz_file, allow_pickle=True)
+        
+        if test_data_key not in data:
+            print(f"Warning: {test_data_key} not found in {npz_file}")
+            continue
+        
+        test_data = data[test_data_key]
+        
+        # Check if epoch exists and has 3:3 data
+        if epoch < len(test_data):
+            epoch_data = test_data[epoch]
+            if '3:3' in epoch_data:
+                ratio_data = epoch_data['3:3']
+                all_set_names.update(ratio_data.keys())
+    
+    # Sort set names for consistency
+    all_set_names = sorted(list(all_set_names))
+    
+    print(f"Processing epoch {epoch}")
+    print(f"Available set names: {sorted(all_set_names)}")
+    
+    # Collect mod-lat differences per model for the specified epoch
+    mod_lat_diffs_per_model = []  # [model1_diff, model2_diff, ...]
+    model_names = []  # Keep track of model filenames
+    
+    for npz_file in npz_files:
+        data = np.load(npz_file, allow_pickle=True)
+        
+        if 'm_hidden_corrs' in data and 'l_hidden_corrs' in data:
+            mod_data = data['m_hidden_corrs']
+            lat_data = data['l_hidden_corrs']
+            
+            # Check if epoch exists in correlation data
+            if epoch < len(mod_data) and epoch < len(lat_data):
+                # Calculate mod-lat difference for this model at this epoch
+                model_diff = mod_data[epoch] - lat_data[epoch]
+                mod_lat_diffs_per_model.append(model_diff)
+                model_names.append(os.path.basename(npz_file))
+    
+    if not mod_lat_diffs_per_model:
+        print("Error: Could not load modular and lattice correlation data for the specified epoch")
+        return
+    
+    # Collect 3:3 ratio data per model for the specified epoch
+    # Sum modular preferred trials and total trials across all sets for each model
+    combined_model_data = []  # [model1_combined_mod_pref, model2_combined_mod_pref, ...]
+    valid_models = []  # Track which models have valid 3:3 data
+    
+    # Process each file (model)
+    for i, npz_file in enumerate(npz_files):
+        data = np.load(npz_file, allow_pickle=True)
+        
+        if test_data_key not in data:
+            continue
+            
+        test_data = data[test_data_key]
+        
+        # Check if epoch exists
+        if epoch >= len(test_data):
+            continue
+            
+        epoch_data = test_data[epoch]
+        
+        if '3:3' not in epoch_data:
+            continue
+            
+        ratio_data = epoch_data['3:3']
+        
+        # Sum modular preferred trials and total trials across all sets for this model
+        total_mod_preferred = 0
+        total_trials = 0
+        
+        for set_name in all_set_names:
+            if set_name in ratio_data:
+                set_data = ratio_data[set_name]
+                
+                mod_correlations = np.array(set_data["mod"])
+                lat_correlations = np.array(set_data["lat"])
+                
+                # Calculate preference for each trial in this set
+                avg_mod_corr_per_trial = np.mean(mod_correlations, axis=1)
+                avg_lat_corr_per_trial = np.mean(lat_correlations, axis=1)
+                
+                # Sum up the modular preferred trials and total trials for this set
+                set_mod_preferred = np.sum(avg_mod_corr_per_trial > avg_lat_corr_per_trial)
+                set_total_trials = len(avg_mod_corr_per_trial)
+                
+                total_mod_preferred += set_mod_preferred
+                total_trials += set_total_trials
+        
+        # Calculate overall preference rate if we have trials
+        if total_trials > 0:
+            combined_preference = total_mod_preferred / total_trials
+            combined_model_data.append(combined_preference)
+            valid_models.append(i)
+    
+    # Filter mod_lat_diffs to only include models with valid 3:3 data
+    if len(valid_models) != len(mod_lat_diffs_per_model):
+        filtered_diffs = [mod_lat_diffs_per_model[i] for i in valid_models if i < len(mod_lat_diffs_per_model)]
+        filtered_model_names = [model_names[i] for i in valid_models if i < len(model_names)]
+    else:
+        filtered_diffs = mod_lat_diffs_per_model
+        filtered_model_names = model_names
+    
+    # Ensure we have matching data
+    if len(filtered_diffs) != len(combined_model_data):
+        min_len = min(len(filtered_diffs), len(combined_model_data))
+        filtered_diffs = filtered_diffs[:min_len]
+        combined_model_data = combined_model_data[:min_len]
+        filtered_model_names = filtered_model_names[:min_len]
+    
+    # Prepare data for scatterplot
+    fig, ax = plt.subplots(figsize=(10, 8))
+    
+    if filtered_diffs and combined_model_data:
+        x_values = np.array(filtered_diffs)
+        y_values = np.array(combined_model_data)
+        
+        # Main scatter points (smaller dots)
+        ax.scatter(x_values, y_values, color='blue', s=30, alpha=0.7, zorder=3)
+        
+        # Calculate correlation
+        correlation, p_value = pearsonr(x_values, y_values)
+        
+        # Fit line for visualization
+        z = np.polyfit(x_values, y_values, 1)
+        p = np.poly1d(z)
+        
+        # Plot correlation line
+        x_line = np.linspace(min(x_values), max(x_values), 100)
+        y_line = p(x_line)
+        ax.plot(x_line, y_line, color='red', linewidth=2, alpha=0.8, label=f'r = {correlation:.3f}, p = {p_value:.3f}')
+        
+        print(f"Correlation: r = {correlation:.3f}, p = {p_value:.3f}")
+    
+    # Add reference lines
+    ax.axhline(y=0.5, color='gray', linestyle='--', alpha=0.7, linewidth=1, 
+               label='Chance Level (50%)')
+    ax.axvline(x=0, color='gray', linestyle='--', alpha=0.7, linewidth=1, 
+               label='No Mod-Lat Difference')
+    
+    # Formatting
+    ax.set_xlabel('Mod-Lat Correlation Difference', fontsize=12)
+    ax.set_ylabel('% Modular Response (3:3 Trials, All Sets Combined)', fontsize=12)
+    layer = 'Hidden' if hidden else 'Output'
+    epoch_display = epoch if include_e0 else epoch + 1
+    ax.set_title(f'3:3 Modular Response vs Mod-Lat Correlation by Model - {layer} (Epoch {epoch_display})', fontsize=14)
+    
+    ax.set_ylim(0, 1)
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc='best', fontsize=10)
+    
+    plt.tight_layout()
+    
+    layer_suffix = 'h' if hidden else 'o'
+    epoch_suffix = f"_e{epoch}" if include_e0 else f"_e{epoch+1}"
+    plt.savefig(f"{save_dir}/scatter_combined_{layer_suffix}{epoch_suffix}.png", dpi=300, bbox_inches='tight')
+    
+    if show_plots:
+        plt.show()
+    else:
+        plt.close()
+    
+    return {
+        'epoch': epoch,
+        'mod_lat_diffs': filtered_diffs,
+        'combined_model_data': combined_model_data,
+        'model_names': filtered_model_names,
+        'correlation': correlation if 'correlation' in locals() else None,
+        'p_value': p_value if 'p_value' in locals() else None
+    }
+
+def plot_scatter_models_by_set(data_dir, epoch, hidden=True, save_dir="Results/Analysis/Plots/scatter_models", show_plots=False, include_e0=False, separate_plots=True):
     os.makedirs(save_dir, exist_ok=True)
     
     npz_files = sorted(glob.glob(os.path.join(data_dir, "*.npz")))
@@ -1424,67 +1605,132 @@ def plot_scatter_models(data_dir, epoch, hidden=True, save_dir="Results/Analysis
         filtered_diffs = mod_lat_diffs_per_model
         filtered_model_names = model_names
     
-    # Prepare data for scatterplot
-    fig, ax = plt.subplots(figsize=(10, 8))
-    
     # Color map for different set names
     colors = ['blue', 'red', 'green', 'orange', 'purple', 'brown', 'pink', 'gray', 'olive', 'cyan']
     color_map = {set_name: colors[i % len(colors)] for i, set_name in enumerate(sorted(all_set_names))}
     
-    # For each set, plot points for each model
-    for set_name in sorted(all_set_names):
-        x_values = []  # mod-lat correlation values
-        y_values = []  # %mod response values
-        
-        for i, model_diff in enumerate(filtered_diffs):
-            if i < len(set_model_data[set_name]):
-                mod_pref_rate = set_model_data[set_name][i]
-                
-                # Only include if we have valid data (not NaN)
-                if not np.isnan(mod_pref_rate):
-                    x_values.append(model_diff)
-                    y_values.append(mod_pref_rate)
-        
-        if x_values and y_values:  # Only plot if we have data
-            color = color_map[set_name]
-            
-            # Main scatter points
-            ax.scatter(x_values, y_values, color=color, s=60, alpha=0.7, 
-                      label=set_name.replace('_', ' ').title(), zorder=3)
-            
-            # Add solid cross for average across all models for this set
-            avg_x = np.mean(x_values)
-            avg_y = np.mean(y_values)
-            ax.scatter(avg_x, avg_y, color=color, s=120, alpha=1.0, marker='+', 
-                      linewidth=3, zorder=4)
-    
-    # Add reference lines
-    ax.axhline(y=0.5, color='gray', linestyle='--', alpha=0.7, linewidth=1, 
-               label='Chance Level (50%)')
-    ax.axvline(x=0, color='gray', linestyle='--', alpha=0.7, linewidth=1, 
-               label='No Mod-Lat Difference')
-    
-    # Formatting
-    ax.set_xlabel('Mod-Lat Correlation Difference', fontsize=12)
-    ax.set_ylabel('% Modular Response (3:3 Trials)', fontsize=12)
     layer = 'Hidden' if hidden else 'Output'
     epoch_display = epoch if include_e0 else epoch + 1
-    ax.set_title(f'3:3 Modular Response vs Mod-Lat Correlation by Model - {layer} (Epoch {epoch_display})', fontsize=14)
-    
-    ax.set_ylim(0, 1)
-    ax.grid(True, alpha=0.3)
-    ax.legend(loc='best', fontsize=10)
-    
-    plt.tight_layout()
-    
     layer_suffix = 'h' if hidden else 'o'
     epoch_suffix = f"_e{epoch}" if include_e0 else f"_e{epoch+1}"
-    plt.savefig(f"{save_dir}/scatter_{layer_suffix}{epoch_suffix}.png", dpi=300, bbox_inches='tight')
     
-    if show_plots:
-        plt.show()
+    if separate_plots:
+        # Create separate plots for each set
+        for set_name in sorted(all_set_names):
+            fig, ax = plt.subplots(figsize=(10, 8))
+            
+            x_values = []  # mod-lat correlation values
+            y_values = []  # %mod response values
+            
+            for i, model_diff in enumerate(filtered_diffs):
+                if i < len(set_model_data[set_name]):
+                    mod_pref_rate = set_model_data[set_name][i]
+                    
+                    # Only include if we have valid data (not NaN)
+                    if not np.isnan(mod_pref_rate):
+                        x_values.append(model_diff)
+                        y_values.append(mod_pref_rate)
+            
+            if x_values and y_values:  # Only plot if we have data
+                color = color_map[set_name]
+                
+                # Main scatter points
+                ax.scatter(x_values, y_values, color=color, s=60, alpha=0.7, zorder=3)
+                
+                # Calculate correlation
+                correlation, p_value = pearsonr(x_values, y_values)
+                
+                # Fit line for visualization
+                z = np.polyfit(x_values, y_values, 1)
+                p = np.poly1d(z)
+                
+                # Plot correlation line
+                x_line = np.linspace(min(x_values), max(x_values), 100)
+                y_line = p(x_line)
+                ax.plot(x_line, y_line, color='red', linewidth=2, alpha=0.8, 
+                       label=f'r = {correlation:.3f}, p = {p_value:.3f}')
+                
+                print(f"{set_name}: Correlation: r = {correlation:.3f}, p = {p_value:.3f}")
+            
+            # Add reference lines
+            ax.axhline(y=0.5, color='gray', linestyle='--', alpha=0.7, linewidth=1, 
+                       label='Chance Level (50%)')
+            ax.axvline(x=0, color='gray', linestyle='--', alpha=0.7, linewidth=1, 
+                       label='No Difference')
+            
+            # Formatting
+            ax.set_xlabel('Structure Learning Difference', fontsize=12)
+            ax.set_ylabel('Mod vs. Lat Generalization', fontsize=12)
+            ax.set_title(f'{set_name.replace("_", " ").title()} - {layer} (Epoch {epoch_display})', fontsize=14)
+            
+            ax.set_ylim(0, 1)
+            ax.grid(True, alpha=0.3)
+            ax.legend(loc='best', fontsize=10)
+            
+            plt.tight_layout()
+            
+            # Save with set name
+            safe_set_name = set_name.replace(' ', '_').replace('/', '_')
+            plt.savefig(f"{save_dir}/scatter_{safe_set_name}_{layer_suffix}{epoch_suffix}.png", dpi=300, bbox_inches='tight')
+            
+            if show_plots:
+                plt.show()
+            else:
+                plt.close()
     else:
-        plt.close()
+        # Original combined plot
+        fig, ax = plt.subplots(figsize=(10, 8))
+        
+        # For each set, plot points for each model
+        for set_name in sorted(all_set_names):
+            x_values = []  # mod-lat correlation values
+            y_values = []  # %mod response values
+            
+            for i, model_diff in enumerate(filtered_diffs):
+                if i < len(set_model_data[set_name]):
+                    mod_pref_rate = set_model_data[set_name][i]
+                    
+                    # Only include if we have valid data (not NaN)
+                    if not np.isnan(mod_pref_rate):
+                        x_values.append(model_diff)
+                        y_values.append(mod_pref_rate)
+            
+            if x_values and y_values:  # Only plot if we have data
+                color = color_map[set_name]
+                
+                # Main scatter points
+                ax.scatter(x_values, y_values, color=color, s=60, alpha=0.7, 
+                          label=set_name.replace('_', ' ').title(), zorder=3)
+                
+                # Add solid cross for average across all models for this set
+                avg_x = np.mean(x_values)
+                avg_y = np.mean(y_values)
+                ax.scatter(avg_x, avg_y, color=color, s=120, alpha=1.0, marker='+', 
+                          linewidth=3, zorder=4)
+        
+        # Add reference lines
+        ax.axhline(y=0.5, color='gray', linestyle='--', alpha=0.7, linewidth=1, 
+                   label='Chance Level (50%)')
+        ax.axvline(x=0, color='gray', linestyle='--', alpha=0.7, linewidth=1, 
+                   label='No Difference')
+        
+        # Formatting
+        ax.set_xlabel('Structure Learning Difference', fontsize=12)
+        ax.set_ylabel('Mod vs. Lat Generalization', fontsize=12)
+        ax.set_title(f'3:3 Combined - {layer} (Epoch {epoch_display})', fontsize=14)
+        
+        ax.set_ylim(0, 1)
+        ax.grid(True, alpha=0.3)
+        ax.legend(loc='best', fontsize=10)
+        
+        plt.tight_layout()
+        
+        plt.savefig(f"{save_dir}/scatter_combined_{layer_suffix}{epoch_suffix}.png", dpi=300, bbox_inches='tight')
+        
+        if show_plots:
+            plt.show()
+        else:
+            plt.close()
     
     return {
         'set_names': all_set_names,
@@ -1492,4 +1738,452 @@ def plot_scatter_models(data_dir, epoch, hidden=True, save_dir="Results/Analysis
         'mod_lat_diffs': filtered_diffs,
         'set_model_data': set_model_data,
         'model_names': filtered_model_names
+    }
+
+def plot_scatter_activation_tests(data_dir, epoch, hidden=True, save_dir="Results/Analysis/Plots/scatter_activation", show_plots=False, include_e0=False, separate_plots=True):
+    """
+    Create scatter plots of modular preference vs activation strength (mod and lat separately).
+    Each dot represents a model, y-axis is %mod response, x-axis is activation strength.
+    """
+    os.makedirs(save_dir, exist_ok=True)
+    
+    npz_files = sorted(glob.glob(os.path.join(data_dir, "*.npz")))
+    
+    if not npz_files:
+        print(f"No NPZ files found in directory: {data_dir}")
+        return
+    
+    test_data_key = 'hidden_ratio_tests' if hidden else 'output_ratio_tests'
+    activation_data_key = 'output_activation_exemplar_tests'  # Always use output activation tests
+    
+    # First pass: determine available set names
+    all_set_names = set()
+    
+    for npz_file in npz_files:
+        data = np.load(npz_file, allow_pickle=True)
+        
+        if test_data_key not in data:
+            continue
+        
+        test_data = data[test_data_key]
+        
+        # Check if epoch exists and has 3:3 data
+        if epoch < len(test_data):
+            epoch_data = test_data[epoch]
+            if '3:3' in epoch_data:
+                ratio_data = epoch_data['3:3']
+                all_set_names.update(ratio_data.keys())
+    
+    # Sort set names for consistency
+    all_set_names = sorted(list(all_set_names))
+    
+    print(f"Processing epoch {epoch}")
+    print(f"Available set names: {sorted(all_set_names)}")
+    
+    # Collect activation test data per model for the specified epoch
+    mod_activation_per_model = []  # [model1_mod_avg, model2_mod_avg, ...]
+    lat_activation_per_model = []  # [model1_lat_avg, model2_lat_avg, ...]
+    model_names = []
+    
+    for npz_file in npz_files:
+        data = np.load(npz_file, allow_pickle=True)
+        
+        if activation_data_key in data and data[activation_data_key] is not None:
+            activation_data = data[activation_data_key]
+            
+            # Check if epoch exists in activation data
+            if epoch < len(activation_data):
+                epoch_activation = activation_data[epoch]
+                
+                if isinstance(epoch_activation, dict) and 'mod_avg' in epoch_activation and 'lat_avg' in epoch_activation:
+                    mod_activation_per_model.append(epoch_activation['mod_avg'])
+                    lat_activation_per_model.append(epoch_activation['lat_avg'])
+                    model_names.append(os.path.basename(npz_file))
+    
+    if not mod_activation_per_model or not lat_activation_per_model:
+        print("Error: Could not load activation test data for the specified epoch")
+        return
+    
+    # Collect 3:3 ratio data per model per set for the specified epoch
+    # Structure: {set_name: [model1_mod_pref, model2_mod_pref, ...]}
+    set_model_data = {set_name: [] for set_name in all_set_names}
+    valid_models = []  # Track which models have valid 3:3 data
+    
+    # Process each file (model)
+    for i, npz_file in enumerate(npz_files):
+        data = np.load(npz_file, allow_pickle=True)
+        
+        if test_data_key not in data:
+            continue
+            
+        test_data = data[test_data_key]
+        
+        # Check if epoch exists
+        if epoch >= len(test_data):
+            continue
+            
+        epoch_data = test_data[epoch]
+        
+        if '3:3' not in epoch_data:
+            continue
+            
+        ratio_data = epoch_data['3:3']
+        model_has_data = False
+        
+        for set_name in all_set_names:
+            if set_name in ratio_data:
+                set_data = ratio_data[set_name]
+                
+                mod_correlations = np.array(set_data["mod"])
+                lat_correlations = np.array(set_data["lat"])
+                
+                # Calculate preference rate per trial
+                avg_mod_corr_per_trial = np.mean(mod_correlations, axis=1)
+                avg_lat_corr_per_trial = np.mean(lat_correlations, axis=1)
+                
+                mod_preferred_trials = np.sum(avg_mod_corr_per_trial > avg_lat_corr_per_trial)
+                total_trials = len(avg_mod_corr_per_trial)
+                mod_preference_rate = mod_preferred_trials / total_trials if total_trials > 0 else 0
+                
+                set_model_data[set_name].append(mod_preference_rate)
+                model_has_data = True
+            else:
+                set_model_data[set_name].append(np.nan)
+        
+        if model_has_data:
+            valid_models.append(i)
+    
+    # Filter activation data to only include models with valid 3:3 data
+    if len(valid_models) != len(mod_activation_per_model):
+        filtered_mod_activations = [mod_activation_per_model[i] for i in valid_models if i < len(mod_activation_per_model)]
+        filtered_lat_activations = [lat_activation_per_model[i] for i in valid_models if i < len(lat_activation_per_model)]
+        filtered_model_names = [model_names[i] for i in valid_models if i < len(model_names)]
+    else:
+        filtered_mod_activations = mod_activation_per_model
+        filtered_lat_activations = lat_activation_per_model
+        filtered_model_names = model_names
+    
+    layer = 'Hidden' if hidden else 'Output'
+    epoch_display = epoch if include_e0 else epoch + 1
+    layer_suffix = 'h' if hidden else 'o'
+    epoch_suffix = f"_e{epoch}" if include_e0 else f"_e{epoch+1}"
+
+    colors = ['blue', 'red', 'green', 'orange', 'purple', 'brown', 'pink', 'gray', 'olive', 'cyan']
+    color_map = {set_name: colors[i % len(colors)] for i, set_name in enumerate(sorted(all_set_names))}
+    
+    # Create plots for both modular and lattice activations
+    for activation_type, activation_data in [('mod', filtered_mod_activations), ('lat', filtered_lat_activations)]:
+        
+        if separate_plots:
+            # Create separate plots for each set
+            for set_name in sorted(all_set_names):
+                fig, ax = plt.subplots(figsize=(10, 8))
+                
+                x_values = []  # activation strength values
+                y_values = []  # %mod response values
+                
+                for i, activation_strength in enumerate(activation_data):
+                    if i < len(set_model_data[set_name]):
+                        mod_pref_rate = set_model_data[set_name][i]
+                        
+                        # Only include if we have valid data (not NaN)
+                        if not np.isnan(mod_pref_rate):
+                            x_values.append(activation_strength)
+                            y_values.append(mod_pref_rate)
+                
+                if x_values and y_values:  # Only plot if we have data
+                    color = color_map[set_name]
+                    
+                    # Main scatter points
+                    ax.scatter(x_values, y_values, color=color, s=60, alpha=0.7, zorder=3)
+                    
+                    # Calculate correlation
+                    correlation, p_value = pearsonr(x_values, y_values)
+                    
+                    # Fit line for visualization
+                    z = np.polyfit(x_values, y_values, 1)
+                    p = np.poly1d(z)
+                    
+                    # Plot correlation line
+                    x_line = np.linspace(min(x_values), max(x_values), 100)
+                    y_line = p(x_line)
+                    ax.plot(x_line, y_line, color='red', linewidth=2, alpha=0.8, 
+                           label=f'r = {correlation:.3f}, p = {p_value:.3f}')
+                    
+                    print(f"{set_name} vs {activation_type}: Correlation: r = {correlation:.3f}, p = {p_value:.3f}")
+                
+                # Add reference line
+                ax.axhline(y=0.5, color='gray', linestyle='--', alpha=0.7, linewidth=1, 
+                           label='Chance Level (50%)')
+                
+                # Formatting
+                activation_label = 'Modular Category Strength' if activation_type == 'mod' else 'Lattice Category Strength'
+                ax.set_xlabel(activation_label, fontsize=12)
+                ax.set_ylabel('Mod vs. Lat Generalization', fontsize=12)
+                ax.set_title(f'{set_name.replace("_", " ").title()} vs {activation_label} - {layer} (Epoch {epoch_display})', fontsize=14)
+                
+                ax.set_ylim(0, 1)
+                ax.grid(True, alpha=0.3)
+                ax.legend(loc='best', fontsize=10)
+                
+                plt.tight_layout()
+                
+                # Save with set name and activation type
+                safe_set_name = set_name.replace(' ', '_').replace('/', '_')
+                plt.savefig(f"{save_dir}/scatter_activation_{safe_set_name}_{activation_type}_{layer_suffix}{epoch_suffix}.png", dpi=300, bbox_inches='tight')
+                
+                if show_plots:
+                    plt.show()
+                else:
+                    plt.close()
+        else:
+            # Combined plot for all sets
+            fig, ax = plt.subplots(figsize=(10, 8))
+            
+            # For each set, plot points for each model
+            for set_name in sorted(all_set_names):
+                x_values = []  # activation strength values
+                y_values = []  # %mod response values
+                
+                for i, activation_strength in enumerate(activation_data):
+                    if i < len(set_model_data[set_name]):
+                        mod_pref_rate = set_model_data[set_name][i]
+                        
+                        # Only include if we have valid data (not NaN)
+                        if not np.isnan(mod_pref_rate):
+                            x_values.append(activation_strength)
+                            y_values.append(mod_pref_rate)
+                
+                if x_values and y_values:  # Only plot if we have data
+                    color = color_map[set_name]
+                    
+                    # Main scatter points
+                    ax.scatter(x_values, y_values, color=color, s=60, alpha=0.7, 
+                              label=set_name.replace('_', ' ').title(), zorder=3)
+                    
+                    # Add solid cross for average across all models for this set
+                    avg_x = np.mean(x_values)
+                    avg_y = np.mean(y_values)
+                    ax.scatter(avg_x, avg_y, color=color, s=120, alpha=1.0, marker='+', 
+                              linewidth=3, zorder=4)
+        
+        # Formatting
+        activation_label = 'Modular Category Strength' if activation_type == 'mod' else 'Lattice Category Strength'
+        ax.set_xlabel(activation_label, fontsize=12)
+        ax.set_ylabel('Mod vs. Lat Generalization', fontsize=12)
+        ax.set_title(f'3:3 Combined vs {activation_label} - {layer} (Epoch {epoch_display})', fontsize=14)
+        
+        ax.set_ylim(0, 1)
+        ax.grid(True, alpha=0.3)
+        ax.legend(loc='best', fontsize=10)
+        
+        plt.tight_layout()
+        
+        plt.savefig(f"{save_dir}/scatter_activation_combined_{activation_type}_{layer_suffix}{epoch_suffix}.png", dpi=300, bbox_inches='tight')
+        
+        if show_plots:
+            plt.show()
+        else:
+            plt.close()
+    
+    return {
+        'set_names': all_set_names,
+        'epoch': epoch,
+        'mod_activations': filtered_mod_activations,
+        'lat_activations': filtered_lat_activations,
+        'set_model_data': set_model_data,
+        'model_names': filtered_model_names
+    }
+
+def plot_activation_vs_correlation(data_dir, epoch, category='mod', hidden=True, save_dir="Results/Analysis/Plots/activation_correlation", show_plots=False, include_e0=False, separate_plots=True):
+    import os, glob
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy.stats import pearsonr
+
+    os.makedirs(save_dir, exist_ok=True)
+    npz_files = sorted(glob.glob(os.path.join(data_dir, "*.npz")))
+    if not npz_files:
+        print(f"No NPZ files found in directory: {data_dir}")
+        return
+
+    activation_data_key = 'output_activation_exemplar_tests'
+    correlation_key = ('m_hidden_corrs' if hidden else 'm_output_corrs') if category == 'mod' else ('l_hidden_corrs' if hidden else 'l_output_corrs')
+
+    activation_per_model = []
+    correlation_per_model = []
+    model_names = []
+
+    for npz_file in npz_files:
+        data = np.load(npz_file, allow_pickle=True)
+        if (activation_data_key in data and data[activation_data_key] is not None and
+            correlation_key in data and data[correlation_key] is not None):
+
+            activation_data = data[activation_data_key]
+            correlation_data = data[correlation_key]
+
+            if epoch < len(activation_data) and epoch < len(correlation_data):
+                epoch_activation = activation_data[epoch]
+                epoch_correlation = correlation_data[epoch]
+
+                if isinstance(epoch_activation, dict) and 'mod_avg' in epoch_activation and 'lat_avg' in epoch_activation:
+                    activation_value = epoch_activation['mod_avg'] if category == 'mod' else epoch_activation['lat_avg']
+                    activation_per_model.append(activation_value)
+                    correlation_per_model.append(float(epoch_correlation))
+                    model_names.append(os.path.basename(npz_file))
+
+    if not activation_per_model or not correlation_per_model:
+        print("Error: Could not load activation test data and correlation data for the specified epoch")
+        return
+
+    layer = 'Hidden' if hidden else 'Output'
+    epoch_display = epoch if include_e0 else epoch + 1
+    layer_suffix = 'h' if hidden else 'o'
+    epoch_suffix = f"_e{epoch}" if include_e0 else f"_e{epoch+1}"
+    category_label = 'Modular' if category == 'mod' else 'Lattice'
+
+    fig, ax = plt.subplots(figsize=(10, 8))
+    x_values = np.array(activation_per_model, dtype=float)
+    y_values = np.array(correlation_per_model, dtype=float)
+
+    ax.scatter(x_values, y_values, s=60, alpha=0.7, zorder=3)
+
+    if len(x_values) >= 2 and np.all(np.isfinite(x_values)) and np.all(np.isfinite(y_values)):
+        r, pval = pearsonr(x_values, y_values)
+        z = np.polyfit(x_values, y_values, 1)
+        p = np.poly1d(z)
+        x_line = np.linspace(np.min(x_values), np.max(x_values), 100)
+        y_line = p(x_line)
+        ax.plot(x_line, y_line, linewidth=2, alpha=0.8, label=f'r = {r:.3f}, p = {pval:.3f}')
+
+    ax.set_xlabel(f'{category_label} Category Strength', fontsize=12)
+    ax.set_ylabel('Structure Learning', fontsize=12)
+    ax.set_title(f'{category_label} Correlation vs Activation - {layer} (Epoch {epoch_display})', fontsize=14)
+    ax.set_ylim(0, 1)
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc='best', fontsize=10)
+    plt.tight_layout()
+
+    plt.savefig(f"{save_dir}/activation_vs_corr_{category}_{layer_suffix}{epoch_suffix}.png", dpi=300, bbox_inches='tight')
+    if show_plots:
+        plt.show()
+    else:
+        plt.close()
+
+    return {
+        'epoch': epoch,
+        'category': category,
+        'activations': activation_per_model,
+        'correlations': correlation_per_model,
+        'model_names': model_names
+    }
+
+
+def plot_feature_activation_over_epochs(data_dir, category='mod', save_dir="Results/Analysis/Plots/activation_by_feature_over_epochs", show_plots=False, include_e0=False):
+    import os, glob
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    os.makedirs(save_dir, exist_ok=True)
+    npz_files = sorted(glob.glob(os.path.join(data_dir, "*.npz")))
+    if not npz_files:
+        print(f"No NPZ files found in directory: {data_dir}")
+        return
+
+    activation_key = 'output_activation_exemplar_tests'
+    all_epoch_feature_values = []
+    max_epochs = 0
+
+    # figure out max epochs
+    for f in npz_files:
+        d = np.load(f, allow_pickle=True)
+        if activation_key in d and d[activation_key] is not None:
+            max_epochs = max(max_epochs, len(d[activation_key]))
+
+    if max_epochs == 0:
+        print("No activation data found.")
+        return
+
+    # collect mean per feature across models
+    for e in range(max_epochs):
+        epoch_feature_vals = []
+        for f in npz_files:
+            d = np.load(f, allow_pickle=True)
+            if activation_key in d and d[activation_key] is not None and e < len(d[activation_key]):
+                entry = d[activation_key][e]
+                if isinstance(entry, dict) and 'mod_by_feature' in entry and 'lat_by_feature' in entry:
+                    vec = np.array(entry['mod_by_feature'] if category == 'mod' else entry['lat_by_feature'], dtype=float)
+                    if vec.shape[0] == 22 and np.all(np.isfinite(vec)):
+                        epoch_feature_vals.append(vec)
+        if epoch_feature_vals:
+            all_epoch_feature_values.append(np.nanmean(np.stack(epoch_feature_vals, axis=0), axis=0))
+        else:
+            all_epoch_feature_values.append(np.full(22, np.nan))
+
+    feature_by_epoch = np.stack(all_epoch_feature_values, axis=0)
+    epochs = np.arange(max_epochs) if include_e0 else np.arange(1, max_epochs + 1)
+
+    fig, ax = plt.subplots(figsize=(12, 7))
+
+    # define colors
+    mod_color = (0.1, 0.2, 0.8)   # blue-ish
+    lat_color = (0.9, 0.4, 0.1)   # orange-ish
+
+    # indices
+    mod_core = {0, 1, 2}
+    lat_core = {11, 12, 13}
+    mod_all = range(0, 11)
+    lat_all = range(11, 22)
+
+    # plot mod periphery
+    for i in mod_all:
+        if i not in mod_core:
+            ax.plot(
+                epochs, feature_by_epoch[:, i],
+                color=mod_color, linewidth=1.0, alpha=0.4,
+                label="Mod Periphery" if i == 3 else None
+            )
+    # plot mod core
+    for i in mod_core:
+        ax.plot(
+            epochs, feature_by_epoch[:, i],
+            color=mod_color, linewidth=2.0, alpha=1.0,
+            label="Mod Core" if i == 0 else None
+        )
+
+    # plot lat periphery
+    for i in lat_all:
+        if i not in lat_core:
+            ax.plot(
+                epochs, feature_by_epoch[:, i],
+                color=lat_color, linewidth=1.0, alpha=0.4,
+                label="Lat Periphery" if i == 14 else None
+            )
+    # plot lat core
+    for i in lat_core:
+        ax.plot(
+            epochs, feature_by_epoch[:, i],
+            color=lat_color, linewidth=2.0, alpha=1.0,
+            label="Lat Core" if i == 11 else None
+        )
+
+    ax.set_xlabel("Epoch")
+    ax.set_ylabel("Activation Strength")
+    ax.set_title(f"Activation Strength per Feature over Epochs ({'Mod' if category=='mod' else 'Lat'} exemplar baseline)")
+    ax.legend(loc='best', fontsize=9)
+    ax.grid(True, alpha=0.3)
+    plt.tight_layout()
+
+    out_path = os.path.join(save_dir, f"activation_by_feature_over_epochs_{category}{'_e0' if include_e0 else ''}.png")
+    plt.savefig(out_path, dpi=300, bbox_inches='tight')
+    if show_plots:
+        plt.show()
+    else:
+        plt.close()
+
+    return {
+        "category": category,
+        "epochs": epochs.tolist(),
+        "feature_by_epoch": feature_by_epoch.tolist(),
+        "save_path": out_path
     }
