@@ -3,7 +3,7 @@ from Model.NeuralNetwork import NeuralNetwork
 import torch
 import os
 import Eval.PearsonEval as PearsonEval
-import Eval.RowWiseJSEval as RowWiseJSEval
+import Eval.Outdated.RowWiseJSEval as RowWiseJSEval
 import Tests.RatioExemplar as RE
 
 class StandardModel:

@@ -22,7 +22,7 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Data\Current\stimList_gencat_hydra_forAbe.py" />
+    <Compile Include="Data\Current\stimList_gencat_hydra.py" />
     <Compile Include="Eval\PCA.py" />
     <Compile Include="Output\Outdated\CorrelationAnalyzer.py" />
     <Compile Include="Output\PCAOutput.py" />
@@ -67,10 +67,15 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include=".gitignore" />
-    <Content Include="data\Current\stimList_gencat_hydra_forAbe.csv" />
+    <Content Include="Data\Current\stimList_gencat_hydra_alt_sol.csv" />
+    <Content Include="data\Current\stimList_gencat_hydra_alt.csv" />
+    <Content Include="Data\Current\stimList_gencat_hydra_alt-lat.py" />
+    <Content Include="Data\Current\stimList_gencat_hydra.csv" />
+    <Content Include="data\Current\stimList_gencat_hydra_sol.csv" />
+    <Content Include="Data\ReferenceMatrices\cooc-jaccard-lat-alt.csv" />
     <Content Include="Data\ReferenceMatrices\cooc-jaccard-lat.csv" />
     <Content Include="Data\ReferenceMatrices\cooc-jaccard-mod.csv" />
-    <Content Include="Data\Current\stimList_gencat_hydra_forAbe.js" />
+    <Content Include="Data\Current\stimList_gencat_hydra.js" />
     <Content Include="Data\Old\testPats_22dim_2cats_good.txt" />
     <Content Include="Data\Old\test_generated.txt" />
     <Content Include="Data\Old\training_generated.txt" />

@@ -20,8 +20,8 @@ def convert_tab_delimited_to_csv(input_file: str, output_file: str, num_features
     inputs, outputs = converter.load_training_data(input_file)
     converter.save_to_csv(inputs, outputs, output_file)
 
-def convert_python_lists_to_csv(input_file: str, output_file: str, num_features: int=11):
-    converter = PythonListConverter(num_features)
+def convert_python_lists_to_csv(input_file: str, output_file: str, num_features: int=11, alt: bool = False, sol: bool = False):
+    converter = PythonListConverter(num_features, alt=alt, sol=sol)
     train_inputs, train_outputs, test_inputs = converter.load_from_python_file(input_file)
     converter.save_to_csv(train_inputs, train_outputs, output_file, test_inputs)
 

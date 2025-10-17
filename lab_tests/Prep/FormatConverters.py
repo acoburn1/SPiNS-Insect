@@ -33,18 +33,31 @@ class TabDelimitedConverter(BaseDataConverter):
 
 
 class PythonListConverter(BaseDataConverter):
-    def __init__(self, num_features: int = 11):
+    def __init__(self, num_features: int = 11, alt: bool = False, sol: bool = False):
         super().__init__(num_features)
+        self.alt = alt
+        self.sol = sol
     
     def _convert_trial_to_vector(self, trial: List, is_lattice: bool = False) -> List[int]:
         vector = [0] * 2*self.num_features
-        features = trial[2:7]
+        features = trial[2:6] if is_lattice and self.alt else trial[2:7]
         
         for feature in features:
             if is_lattice:
                 vector[feature - 1 + self.num_features] = 1
             else:
                 vector[feature - 1] = 1
+        
+        return vector
+
+    def _convert_output_to_vector(self, trial: List, is_lattice: bool = False) -> List[int]:
+        vector = [0] * 2*self.num_features
+        feature = trial[6] if is_lattice and self.alt else trial[7]
+        
+        if is_lattice:
+            vector[feature - 1 + self.num_features] = 1
+        else:
+            vector[feature - 1] = 1
         
         return vector
     
@@ -54,12 +67,12 @@ class PythonListConverter(BaseDataConverter):
         for trial in mod_trials:
             vector = self._convert_trial_to_vector(trial, is_lattice=False)
             inputs.append(vector)
-            outputs.append(vector)
+            outputs.append(vector if not self.sol else self._convert_output_to_vector(trial, is_lattice=False)) 
         
         for trial in lat_trials:
             vector = self._convert_trial_to_vector(trial, is_lattice=True)
             inputs.append(vector)
-            outputs.append(vector)
+            outputs.append(vector if not self.sol else self._convert_output_to_vector(trial, is_lattice=True)) 
         
         return inputs, outputs
     

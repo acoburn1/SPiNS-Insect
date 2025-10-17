@@ -1,14 +1,13 @@
 ﻿import os, glob
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.stats import pearsonr
-from Eval.PCA import get_pcns_mod_lat   # import directly
+from scipy.stats import pearsonr, t
+from Eval.PCA import get_pcns_mod_lat
 
 def plot_generalization_vs_dimensionality_diff(
     data_dir,
     epoch,
     num_features=11,
-    hidden=True,
     save_dir="Results/Analysis/Plots/scatter_dimensionality",
     show_plots=False,
     include_e0=False
@@ -27,7 +26,7 @@ def plot_generalization_vs_dimensionality_diff(
         print(f"No NPZ files found in {data_dir}")
         return
 
-    test_data_key = 'hidden_ratio_tests' if hidden else 'output_ratio_tests'
+    test_data_key = 'hidden_ratio_tests'
     activation_key = 'hidden_activations'   # assumed key
 
     kdiff_per_model = []
@@ -74,7 +73,7 @@ def plot_generalization_vs_dimensionality_diff(
         return
 
     # --- Plot ---
-    layer = 'Hidden' if hidden else 'Output'
+    layer = 'Hidden'
     epoch_display = epoch if include_e0 else epoch + 1
     fig, ax = plt.subplots(figsize=(10, 8))
 
@@ -109,4 +108,214 @@ def plot_generalization_vs_dimensionality_diff(
         "kdiff": kdiff_per_model,
         "generalization": mod_pref_per_model,
         "save_path": out_path
+    }
+
+
+def plot_k95_bars_epoch(
+    data_dir,
+    epoch,
+    num_features=11,
+    save_dir="Results/Analysis/Plots/PCA/k95_bars",
+    show_plots=False,
+    include_e0=False,
+    ci=0.95
+):
+    """
+    Compute average k95 for modular and lattice subsets across models at a given epoch
+    and plot a bar chart with confidence intervals.
+
+    Returns dict with raw values, means, CI bounds, and save path.
+    """
+    os.makedirs(save_dir, exist_ok=True)
+
+    npz_files = sorted(glob.glob(os.path.join(data_dir, "*.npz")))
+    if not npz_files:
+        print(f"No NPZ files found in {data_dir}")
+        return
+
+    activation_key = 'hidden_activations'  # using hidden activations
+
+    km_list, kl_list = [], []
+    for f in npz_files:
+        d = np.load(f, allow_pickle=True)
+        if activation_key not in d or epoch >= len(d[activation_key]):
+            continue
+        A = np.asarray(d[activation_key][epoch], float)
+        if A.ndim < 2 or A.shape[0] != 2 * num_features:
+            continue
+        km, kl = get_pcns_mod_lat(A, num_features)
+        km_list.append(float(km))
+        kl_list.append(float(kl))
+
+    if not km_list or not kl_list:
+        print("No valid activation data to compute k95 at this epoch.")
+        return
+
+    def _mean_ci(vals, ci):
+        vals = np.asarray(vals, dtype=float)
+        n = vals.shape[0]
+        m = np.nanmean(vals)
+        if n <= 1:
+            return m, m, m, 0.0
+        sd = np.nanstd(vals, ddof=1)
+        se = sd / np.sqrt(n)
+        tcrit = t.ppf((1 + ci) / 2.0, df=n - 1)
+        half = tcrit * se
+        return m, m - half, m + half, half
+
+    km_mean, km_ci_l, km_ci_u, km_err = _mean_ci(km_list, ci)
+    kl_mean, kl_ci_l, kl_ci_u, kl_err = _mean_ci(kl_list, ci)
+
+    layer = 'Hidden'
+    epoch_display = epoch if include_e0 else epoch + 1
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+    labels = ['Mod', 'Lat']
+    means = [km_mean, kl_mean]
+    yerr = [km_err, kl_err]
+    colors = ['tab:blue', 'tab:orange']
+
+    ax.bar(labels, means, yerr=yerr, capsize=6, color=colors, alpha=0.85)
+    ax.set_ylabel('k95 (components to reach 95% variance)', fontsize=12)
+    ax.set_title(f'Average k95 at Epoch {epoch_display} — {layer}', fontsize=14)
+    ax.set_ylim(0, max(num_features, max(means) + 1))
+    ax.grid(True, axis='y', alpha=0.3)
+    plt.tight_layout()
+
+    out_path = os.path.join(save_dir, f"k95_bars_{layer[0].lower()}e{epoch_display}.png")
+    plt.savefig(out_path, dpi=300, bbox_inches='tight')
+    if show_plots:
+        plt.show()
+    else:
+        plt.close()
+
+    return {
+        'epoch': epoch,
+        'km_values': km_list,
+        'kl_values': kl_list,
+        'km_mean': km_mean,
+        'kl_mean': kl_mean,
+        'km_ci': (km_ci_l, km_ci_u),
+        'kl_ci': (kl_ci_l, kl_ci_u),
+        'save_path': out_path
+    }
+
+
+def plot_k95_over_epochs(
+    data_dir,
+    num_features=11,
+    save_dir="Results/Analysis/Plots/PCA/k95_over_epochs",
+    show_plots=False,
+    include_e0=False,
+    ci=0.95
+):
+    """
+    Compute average k95 for modular and lattice subsets across models for each epoch
+    and plot two lines (Mod and Lat) with confidence interval bars.
+
+    Returns dict with per-epoch means and CI bounds and save path.
+    """
+    os.makedirs(save_dir, exist_ok=True)
+
+    npz_files = sorted(glob.glob(os.path.join(data_dir, "*.npz")))
+    if not npz_files:
+        print(f"No NPZ files found in {data_dir}")
+        return
+
+    activation_key = 'hidden_activations'  # using hidden activations
+
+    # Determine maximum epochs available across models
+    max_epochs = 0
+    for f in npz_files:
+        try:
+            d = np.load(f, allow_pickle=True)
+            if activation_key in d:
+                max_epochs = max(max_epochs, len(d[activation_key]))
+        except Exception:
+            continue
+
+    if max_epochs == 0:
+        print("No activation data found.")
+        return
+
+    def _mean_ci(vals, ci):
+        vals = np.asarray(vals, dtype=float)
+        vals = vals[np.isfinite(vals)]
+        n = vals.shape[0]
+        if n == 0:
+            return np.nan, np.nan, np.nan, 0.0
+        m = np.mean(vals)
+        if n == 1:
+            return m, m, m, 0.0
+        sd = np.std(vals, ddof=1)
+        se = sd / np.sqrt(n)
+        tcrit = t.ppf((1 + ci) / 2.0, df=n - 1)
+        half = tcrit * se
+        return m, m - half, m + half, half
+
+    km_means, km_ci_l, km_ci_u, km_errs = [], [], [], []
+    kl_means, kl_ci_l, kl_ci_u, kl_errs = [], [], [], []
+
+    for e in range(max_epochs):
+        km_vals_e, kl_vals_e = [], []
+        for f in npz_files:
+            try:
+                d = np.load(f, allow_pickle=True)
+                if activation_key not in d or e >= len(d[activation_key]):
+                    continue
+                A = np.asarray(d[activation_key][e], float)
+                if A.ndim < 2 or A.shape[0] != 2 * num_features:
+                    continue
+                km, kl = get_pcns_mod_lat(A, num_features)
+                km_vals_e.append(float(km))
+                kl_vals_e.append(float(kl))
+            except Exception:
+                continue
+
+        m, l, u, err = _mean_ci(km_vals_e, ci)
+        km_means.append(m); km_ci_l.append(l); km_ci_u.append(u); km_errs.append(err)
+        m, l, u, err = _mean_ci(kl_vals_e, ci)
+        kl_means.append(m); kl_ci_l.append(l); kl_ci_u.append(u); kl_errs.append(err)
+
+    display_epochs = list(range(max_epochs)) if include_e0 else list(range(1, max_epochs + 1))
+
+    layer = 'Hidden'
+
+    fig, ax = plt.subplots(figsize=(12, 8))
+
+    # Plot lines with CI bars using errorbar
+    ax.errorbar(display_epochs, km_means, yerr=km_errs, color='tab:blue', marker='o',
+                linewidth=2, markersize=4, capsize=4, label='Mod k95')
+    ax.errorbar(display_epochs, kl_means, yerr=kl_errs, color='tab:orange', marker='s',
+                linewidth=2, markersize=4, capsize=4, label='Lat k95')
+
+    ax.set_xlabel('Epoch', fontsize=12)
+    ax.set_ylabel('k95 (components to reach 95% variance)', fontsize=12)
+    ax.set_title(f'Average k95 over Epochs — {layer}', fontsize=14)
+
+    # y-limit bounded by possible maximum (num_features)
+    y_max = np.nanmax([np.nanmax(km_means), np.nanmax(kl_means)])
+    ax.set_ylim(0, max(num_features, (y_max if np.isfinite(y_max) else num_features)))
+
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc='best', fontsize=10)
+    plt.tight_layout()
+
+    suffix = 'h'
+    out_path = os.path.join(save_dir, f"k95_over_epochs_{suffix}.png")
+    plt.savefig(out_path, dpi=300, bbox_inches='tight')
+    if show_plots:
+        plt.show()
+    else:
+        plt.close()
+
+    return {
+        'epochs': list(range(max_epochs)),
+        'km_means': km_means,
+        'km_ci_lowers': km_ci_l,
+        'km_ci_uppers': km_ci_u,
+        'kl_means': kl_means,
+        'kl_ci_lowers': kl_ci_l,
+        'kl_ci_uppers': kl_ci_u,
+        'save_path': out_path
     }
