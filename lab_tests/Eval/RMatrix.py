@@ -7,7 +7,7 @@ def generate_reference_matrices(training_data, num_mod_samples, method='jaccard'
     if method == 'cosine':
         mod_rm = generate_reference_matrix_cosine(td[:num_mod_samples,:11])
         lat_rm = generate_reference_matrix_cosine(td[num_mod_samples:,11:])
-    if print:
+    if show:
         print("Modular Reference Matrix:\n")
         print_matrix(mod_rm)
         print("Lattice Reference Matrix:\n")
