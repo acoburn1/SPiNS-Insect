@@ -1,6 +1,10 @@
 # Results and output directories
 Results/
 results/
+slurm_results/
+
+# Driver
+program.py
 
 # Python cache and compiled files
 __pycache__/
