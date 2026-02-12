@@ -28,6 +28,25 @@ class StatsProducer:
                     agg_stats_objects[param] = AggregateStatsObject(self._get_epoch_stats(data_array))
         
         return agg_stats_objects
+
+    def mean_ci_matrices(self, mats, ci=None):
+        ci = self.ci if ci is None else ci
+        mats = np.asarray(mats, float)  # (n_models, n, n)
+        if mats.ndim != 3:
+            raise ValueError(f"Expected (n_models,n,n), got {mats.shape}")
+
+        n_models = mats.shape[0]
+        mean = np.mean(mats, axis=0)
+
+        if n_models <= 1:
+            half = np.zeros_like(mean)
+            return mean, mean - half, mean + half, half
+
+        sd = np.std(mats, axis=0, ddof=1)
+        se = sd / np.sqrt(n_models)
+        tcrit = t.ppf((1 + ci) / 2.0, df=n_models - 1)
+        half = tcrit * se
+        return mean, mean - half, mean + half, half
     
     def get_difference_stats_with_ttest(self, modular_data, lattice_data, alpha=0.05):
 

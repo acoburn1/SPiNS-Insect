@@ -24,10 +24,12 @@
   <ItemGroup>
     <Compile Include="configs\utils.py" />
     <Compile Include="Data\Old\stimList_gencat_hydra.py" />
+    <Compile Include="Eval\MDS.py" />
     <Compile Include="Eval\RMatrix.py" />
     <Compile Include="Eval\PCA.py" />
     <Compile Include="Model\Parameters.py" />
     <Compile Include="Output\MatrixOutput.py" />
+    <Compile Include="Output\MDSOutput.py" />
     <Compile Include="Output\Outdated\CorrelationAnalyzer.py" />
     <Compile Include="Output\PCAOutput.py" />
     <Compile Include="Output\Outdated\RatioExemplarOutput.py" />

@@ -9,8 +9,9 @@ import Tests.RatioExemplar as RE
 import Prep.SpecialDataLoader as SDL
 
 class StandardModel:
-    def __init__(self, num_features, hidden_layer_size, batch_size, num_epochs, learning_rate, loss_fn, first_h=False):
-        self.model = NeuralNetwork(num_features, hidden_layer_size, first_h)
+    def __init__(self, num_features, hidden_layer_size, batch_size, num_epochs, learning_rate, loss_fn, first_h=False, device=None):
+        self.device = device or torch.device("cpu")
+        self.model = NeuralNetwork(num_features, hidden_layer_size, first_h).to(self.device)
         self.num_features = num_features
         self.hidden_layer_size = hidden_layer_size
         self.batch_size = batch_size
@@ -23,6 +24,8 @@ class StandardModel:
         for epoch in range(self.num_epochs):
             total_loss = 0
             for batch_X, batch_Y in dataloader:
+                batch_X = batch_X.to(self.device)
+                batch_Y = batch_Y.to(self.device)
                 pred = self.model(batch_X)
                 loss = self.loss_fn(pred, batch_Y)
                 self.optimizer.zero_grad()
@@ -64,6 +67,8 @@ class StandardModel:
                 epoch_loader = dataloader
             for batch_X, batch_Y in epoch_loader:
                 #flat = batch_X.cpu().numpy()       # uncomment to debug batch data
+                batch_X = batch_X.to(self.device)
+                batch_Y = batch_Y.to(self.device)
                 pred = self.model(batch_X)
                 loss = self.loss_fn(pred, batch_Y)
                 self.optimizer.zero_grad()
@@ -126,7 +131,7 @@ class StandardModel:
         return results
 
     def test_model(self, raw_inputs):
-        test_inputs = torch.tensor(raw_inputs, dtype=torch.float32)
+        test_inputs = torch.tensor(raw_inputs, dtype=torch.float32, device=self.device)
         test_outputs = torch.sigmoid(self.model(test_inputs))
         return test_outputs.detach().numpy()
 

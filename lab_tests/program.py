@@ -16,10 +16,14 @@ import Output.StatOutput as StatOutput
 import Tests.RatioExemplar as RE
 import Output.PCAOutput as PCAOutput
 import Output.MatrixOutput as MO
+import Output.MDSOutput as MDSOutput
 import Eval.RMatrix as RM
 import Model.Parameters as PAR
 from configs.utils import get_config
 import Prep.SpecialDataLoader as SDL
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print("Using device:", device)
 
 ### globals ---
 
@@ -65,18 +69,16 @@ INCLUDE_E0 = m_cfg["include_e0"]
 DATA_FILENAME = f"Data/Current/{TRAINING_NAME}.csv"
 MODULAR_P_M_FILENAME = "Data/ReferenceMatrices/cooc-jaccard-mod.csv"
 LATTICE_P_M_FILENAME = "Data/ReferenceMatrices/cooc-jaccard-lat.csv" if not ALT else "Data/ReferenceMatrices/cooc-jaccard-lat-alt.csv"
-DATA_DIR = f"Results/Data/Focused_04/{TRAINING_NAME}"
-ANALYSIS_DIR = f"Results/Analysis/Plots/one_h/{TRAINING_NAME}"
 
-### -----------
+## -----------
 
 for HLS in HIDDEN_LAYER_RANGE:
     for LR in LEARNING_RATE_RANGE:
 
         lr_str = f"{LR}".replace(".", "p")
 
-        DATA_DIR += f"_h{HLS}_lr{lr_str}"
-        ANALYSIS_DIR += f"_h{HLS}_lr{lr_str}"
+        DATA_DIR = f"Results/Data/Focused_04/{TRAINING_NAME}_h{HLS}_lr{lr_str}"
+        ANALYSIS_DIR = f"Results/Analysis/{TRAINING_NAME}_h{HLS}_lr{lr_str}"
 
         print(f"Saving data to:     {DATA_DIR}")
         print(f"Saving analysis to: {ANALYSIS_DIR}")
@@ -103,7 +105,7 @@ for HLS in HIDDEN_LAYER_RANGE:
         ### -----------
 
         for i in range(1, NUM_MODELS + 1):
-            model = StandardModel(num_features=NUM_FEATURES, hidden_layer_size=HLS, batch_size=NUM_TOTAL_TRIALS, num_epochs=NUM_EPOCHS, learning_rate=LR, loss_fn=nn.BCEWithLogitsLoss())
+            model = StandardModel(num_features=NUM_FEATURES, hidden_layer_size=HLS, batch_size=NUM_TOTAL_TRIALS, num_epochs=NUM_EPOCHS, learning_rate=LR, loss_fn=nn.BCEWithLogitsLoss(), device=device)
             results = model.train_eval_test_P(dataloader, modular_reference_matrix, lattice_reference_matrix, DATA_PARAMS, include_e0=INCLUDE_E0, alt=ALT)
             np.savez(f"{DATA_DIR}/p_m{i}.npz", **results)
             print(f"h{HLS} m{i}")
@@ -120,3 +122,5 @@ for HLS in HIDDEN_LAYER_RANGE:
             PCAOutput.plot_k95_bars_epoch(data_dir=DATA_DIR, epoch=sig_epoch, save_dir=f"{ANALYSIS_DIR}/PCA/k95_bars", num_features=NUM_FEATURES, include_e0=INCLUDE_E0)
 
         MO.save_all_epoch_matrices(DATA_DIR, f"{ANALYSIS_DIR}/Matrices", NUM_EPOCHS, INCLUDE_E0)
+
+        
