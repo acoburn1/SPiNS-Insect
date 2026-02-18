@@ -8,7 +8,7 @@ import time
 import os
 import numpy as np
 from Model.NeuralNetwork import NeuralNetwork
-from Prep import DataUtils, DataPreparer
+from DataHelper import utils as DataUtils
 import Output
 from Model.StandardModel import StandardModel
 from scipy.stats import pearsonr, zscore
@@ -19,7 +19,7 @@ import Output.MatrixOutput as MO
 import Eval.RMatrix as RM
 import Model.Parameters as PAR
 from configs.utils import get_config
-import Prep.SpecialDataLoader as SDL
+import DataHelper.SpecialDataLoader as SDL
 
 ### globals ---
 
@@ -62,7 +62,7 @@ NUM_EPOCHS = m_cfg["num_epochs"]
 NUM_MODELS = m_cfg["num_models"]
 INCLUDE_E0 = m_cfg["include_e0"]
 
-DATA_FILENAME = f"Data/Current/{TRAINING_NAME}.csv"
+TRAINING_DATA_FILENAME = f"Data/Current/{TRAINING_NAME}.csv"
 MODULAR_P_M_FILENAME = "Data/ReferenceMatrices/cooc-jaccard-mod.csv"
 LATTICE_P_M_FILENAME = "Data/ReferenceMatrices/cooc-jaccard-lat.csv" if not ALT else "Data/ReferenceMatrices/cooc-jaccard-lat-alt.csv"
 DATA_DIR = f"Results/Data/Focused_04/{TRAINING_NAME}"
@@ -83,17 +83,13 @@ for HLS in HIDDEN_LAYER_RANGE:
 
         for path in [DATA_DIR, ANALYSIS_DIR]:
             os.makedirs(path, exist_ok=True)
-    
-        csv_data = DataUtils.load_csv_data(DATA_FILENAME, NUM_FEATURES)
 
-        if d_cfg["special_dl"]:
-            training_inputs, training_outputs = DataUtils.training_csv_to_array(DATA_FILENAME, num_features=NUM_FEATURES)
-            dataloader = SDL.SpecialDataLoader(training_inputs, training_outputs, NUM_MOD_TRIALS)
-        else:
-            dataloader = DataPreparer.get_dataloader(csv_data)
+        training_inputs, training_outputs = DataUtils.training_csv_to_array(TRAINING_DATA_FILENAME, num_features=NUM_FEATURES)
+
+        dataloader = DataUtils.get_dataloader(training_inputs, training_outputs) if not d_cfg["special_dl"] else SDL.SpecialDataLoader(training_inputs, training_outputs, NUM_MOD_TRIALS)
 
         if d_cfg["generate_rms"] == True:
-            modular_reference_matrix, lattice_reference_matrix = RM.generate_reference_matrices(csv_data.training_inputs, NUM_MOD_TRIALS, method='jaccard')
+            modular_reference_matrix, lattice_reference_matrix = RM.generate_reference_matrices(training_inputs, NUM_MOD_TRIALS, method='jaccard')
         else:
             modular_reference_matrix, lattice_reference_matrix = DataUtils.get_probability_matrices_m_l(MODULAR_P_M_FILENAME, LATTICE_P_M_FILENAME);
 
