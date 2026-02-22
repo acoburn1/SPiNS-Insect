@@ -6,6 +6,7 @@ import torch
 from torch import kl_div, nn
 import time
 import os
+import argparse
 import numpy as np
 from Model.NeuralNetwork import NeuralNetwork
 from DataHelper import utils as DataUtils
@@ -18,33 +19,21 @@ import Output.PCAOutput as PCAOutput
 import Output.MatrixOutput as MO
 import Eval.RMatrix as RM
 import Model.Parameters as PAR
-from configs.utils import get_config
+from configs.utils import resolve_cfgs, print_cfgs
 import DataHelper.SpecialDataLoader as SDL
 
-### globals ---
+parser = argparse.ArgumentParser()
+parser.add_argument("--data-config", "-d", default=None)
+parser.add_argument("--model-config", "-m", default=None)
+parser.add_argument("--output-config", "-o", default=None)
+parser.add_argument("--probe-config", "-p", default=None)
+args, _unknown = parser.parse_known_args()
 
-DATA_PARAMS = PAR.all_parameters
-CORR_DATA_PARAMS = PAR.correlation_parameters
-
-DATA_CONFIG_DIR = "configs/data"
-MODEL_CONFIG_DIR = "configs/model"
-
-### -----------
-
-d_cfg_filename = f"{DATA_CONFIG_DIR}/stimList_gencat_hydra.yaml"
-d_cfg = get_config(d_cfg_filename)
-
-m_cfg_filename = f"{MODEL_CONFIG_DIR}/f11_hls10-100_e60_m50_ie0t.yaml"
-m_cfg = get_config(m_cfg_filename)
-
-print("/ ---- configuration ---- \\")
-for k, v in d_cfg.items():
-    print(f"| {k}: {v}")
-for k, v in m_cfg.items():
-    print(f"| {k}: {v}")
-print("\\ ----------------------- /")   
+d_cfg, m_cfg, o_cfg, p_cfg = resolve_cfgs(args, idv=True)
 
 assert not (d_cfg["num_total_trials"] / d_cfg["num_mod_trials"] == 2 and d_cfg["special_dl"] or d_cfg["num_total_trials"] / d_cfg["num_mod_trials"] != 2 and not d_cfg["special_dl"]), "special data loader must be used when num mod and num lat trials ineq"
+
+print_cfgs(resolve_cfgs(args))
         
 ### config-dependent subglobals ---
 
@@ -70,49 +59,3 @@ ANALYSIS_DIR = f"Results/Analysis/Plots/one_h/{TRAINING_NAME}"
 
 ### -----------
 
-for HLS in HIDDEN_LAYER_RANGE:
-    for LR in LEARNING_RATE_RANGE:
-
-        lr_str = f"{LR}".replace(".", "p")
-
-        DATA_DIR += f"_h{HLS}_lr{lr_str}"
-        ANALYSIS_DIR += f"_h{HLS}_lr{lr_str}"
-
-        print(f"Saving data to:     {DATA_DIR}")
-        print(f"Saving analysis to: {ANALYSIS_DIR}")
-
-        for path in [DATA_DIR, ANALYSIS_DIR]:
-            os.makedirs(path, exist_ok=True)
-
-        training_inputs, training_outputs = DataUtils.training_csv_to_array(TRAINING_DATA_FILENAME, num_features=NUM_FEATURES)
-
-        dataloader = DataUtils.get_dataloader(training_inputs, training_outputs) if not d_cfg["special_dl"] else SDL.SpecialDataLoader(training_inputs, training_outputs, NUM_MOD_TRIALS)
-
-        if d_cfg["generate_rms"] == True:
-            modular_reference_matrix, lattice_reference_matrix = RM.generate_reference_matrices(training_inputs, NUM_MOD_TRIALS, method='jaccard')
-        else:
-            modular_reference_matrix, lattice_reference_matrix = DataUtils.get_probability_matrices_m_l(MODULAR_P_M_FILENAME, LATTICE_P_M_FILENAME);
-
-        MO.save_generic_matrix(modular_reference_matrix, f"{ANALYSIS_DIR}/generated_rms", "mod.png")
-        MO.save_generic_matrix(lattice_reference_matrix, f"{ANALYSIS_DIR}/generated_rms", "lat.png")
-
-        ### -----------
-
-        for i in range(1, NUM_MODELS + 1):
-            model = StandardModel(num_features=NUM_FEATURES, hidden_layer_size=HLS, batch_size=NUM_TOTAL_TRIALS, num_epochs=NUM_EPOCHS, learning_rate=LR, loss_fn=nn.BCEWithLogitsLoss())
-            results = model.train_eval_test_P(dataloader, modular_reference_matrix, lattice_reference_matrix, DATA_PARAMS, include_e0=INCLUDE_E0, alt=ALT)
-            np.savez(f"{DATA_DIR}/p_m{i}.npz", **results)
-            print(f"h{HLS} m{i}")
-
-        ### -----------
-
-        StatOutput.plot_stats_with_confidence_intervals(lr_str="4_50m", data_dir=DATA_DIR, save_dir=f"{ANALYSIS_DIR}/Correlations", data_parameters=CORR_DATA_PARAMS, include_e0=INCLUDE_E0)
-        StatOutput.plot_33s(data_dir=DATA_DIR, save_dir=f"{ANALYSIS_DIR}/3-3", include_e0=INCLUDE_E0, alt=ALT)
-
-        sig_epochs = StatOutput.get_significant_epochs(data_dir=DATA_DIR, data_parameters=CORR_DATA_PARAMS, degf=3)
-
-        for sig_epoch in sig_epochs: 
-            StatOutput.plot_s_curve(data_dir=DATA_DIR, save_dir=f"{ANALYSIS_DIR}/S-Curves", epoch=sig_epoch, include_e0=INCLUDE_E0, alt=ALT)
-            PCAOutput.plot_k95_bars_epoch(data_dir=DATA_DIR, epoch=sig_epoch, save_dir=f"{ANALYSIS_DIR}/PCA/k95_bars", num_features=NUM_FEATURES, include_e0=INCLUDE_E0)
-
-        MO.save_all_epoch_matrices(DATA_DIR, f"{ANALYSIS_DIR}/Matrices", NUM_EPOCHS, INCLUDE_E0)

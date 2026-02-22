@@ -3,7 +3,6 @@ import glob
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import t, pearsonr
-from Statistics.StatsProducer import StatsProducer, AggregateStatsObject
 
 
 def get_significant_epochs(data_dir, data_parameters, degf):

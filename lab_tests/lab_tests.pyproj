@@ -43,7 +43,7 @@
   <ItemGroup>
     <Folder Include="configs\model\" />
     <Folder Include="configs\data\" />
-    <Folder Include="configs\probelists\" />
+    <Folder Include="configs\probe\" />
     <Folder Include="configs\output\" />
     <Folder Include="Data\" />
     <Folder Include="Data\Exemplar\" />
@@ -71,9 +71,11 @@
     <Content Include="configs\data\mod-lat1_6-6_whole.yaml" />
     <Content Include="configs\data\mod-lat2_5-5_missing-core.yaml" />
     <Content Include="configs\data\mod-lat2_5-5_whole.yaml" />
-    <Content Include="configs\data\stimList_gencat_hydra.yaml" />
-    <Content Include="configs\model\f11_hls10-100_e60_m50_ie0t.yaml" />
-    <Content Include="configs\probelists\original_exemplars&amp;ratiotrials&amp;onehot.yaml" />
+    <Content Include="configs\data\default.yaml" />
+    <Content Include="configs\model\default.yaml" />
+    <Content Include="configs\model\hls10-100.yaml" />
+    <Content Include="configs\output\default.yaml" />
+    <Content Include="configs\probe\default.yaml" />
     <Content Include="Data\Exemplar\alt-lat_exemplars.csv" />
     <Content Include="Data\Exemplar\original_exemplars.csv" />
     <Content Include="Data\Training\mod-lat1_6-6_missing-core.csv" />

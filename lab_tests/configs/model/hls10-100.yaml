@@ -7,6 +7,6 @@ learning_rate:
   start: 0.04
   end: 0.04
   num: 1
-num_epochs: 60
+num_epochs: 120
 num_models: 50
 include_e0: true
