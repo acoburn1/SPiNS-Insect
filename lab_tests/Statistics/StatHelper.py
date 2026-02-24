@@ -13,7 +13,7 @@ def get_epoch_stats(self, data_array):
         stats = self.get_stats_object(epoch_data)
         stats_objects.append(stats)
         
-    return stats_objects
+    return AggregateStatsObject(stats_objects)
 
 class StatsObject:
     def __init__(self, data: list, ci=0.95):

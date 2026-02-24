@@ -3,15 +3,18 @@ from scipy import special
 from Model.NeuralNetwork import NeuralNetwork
 import torch
 import os
+import sys
+import time
 import Eval.PearsonEval as PearsonEval
 import Tests.RatioExemplar as RE
 import DataHelper.SpecialDataLoader as SDL
 from functools import partial
+import DriverUtils.Visual as Visual
 
 class StandardModel:
-    def __init__(self, num_features, hidden_layer_size, batch_size, num_epochs, learning_rate, loss_fn, first_h=False, device=None):
+    def __init__(self, num_features, hidden_layer_size, batch_size, num_epochs, learning_rate, loss_fn, device=None):
         self.device = device or torch.device("cpu")
-        self.model = NeuralNetwork(num_features, hidden_layer_size, first_h).to(self.device)
+        self.model = NeuralNetwork(num_features, hidden_layer_size).to(self.device)
         self.num_features = num_features
         self.hidden_layer_size = hidden_layer_size
         self.batch_size = batch_size
@@ -20,7 +23,7 @@ class StandardModel:
         self.loss_fn = loss_fn
         self.optimizer = torch.optim.Adam(self.model.parameters(), self.learning_rate)
 
-    def train_eval(self, dataloader, X_probe, include_e0=False, alt=False):
+    def train_eval(self, dataloader, X_probe, include_e0=False, vis=None):
         results = { "losses": [], "hidden": [], "output": []}
         Xp = X_probe.to(self.device)
 
@@ -37,9 +40,10 @@ class StandardModel:
             results["output"].append(out)
 
         special_dl = isinstance(dataloader, SDL.SpecialDataLoader)
-
         if special_dl:
             dataloader.reset_appearances()
+
+        t0 = time.time()
         for epoch in range(self.num_epochs):
             total_loss = 0
             if special_dl:
@@ -61,6 +65,9 @@ class StandardModel:
             results["losses"].append(total_loss)
             results["hidden"].append(hid)
             results["output"].append(out)
+            
+            if vis:
+                Visual.progress_line(vis, epoch_i=epoch, loss=total_loss)
 
         if include_e0 and len(results["losses"]) > 1:
             results["losses"][0] = results["losses"][1]

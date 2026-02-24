@@ -3,15 +3,19 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>aa902ebc-feaa-4dd9-9bde-17fe7bf34fbd</ProjectGuid>
-    <ProjectHome>.</ProjectHome>
+    <ProjectHome>
+    </ProjectHome>
     <StartupFile>program.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
-    <Name>lab_tests</Name>
+    <Name>SPiNS_Insect</Name>
     <RootNamespace>lab_tests</RootNamespace>
     <SuppressConfigureTestFrameworkPrompt>true</SuppressConfigureTestFrameworkPrompt>
+    <LaunchProvider>Standard Python launcher</LaunchProvider>
+    <CommandLineArguments>-a -v</CommandLineArguments>
+    <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -23,6 +27,10 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="configs\utils.py" />
+    <Compile Include="DriverUtils\Parser.py" />
+    <Compile Include="DriverUtils\RunConfig.py" />
+    <Compile Include="DriverUtils\Visual.py" />
+    <Compile Include="DriverUtils\Zarr.py" />
     <Compile Include="Eval\RMatrix.py" />
     <Compile Include="Eval\PCA.py" />
     <Compile Include="Model\Parameters.py" />
@@ -38,11 +46,12 @@
     <Compile Include="Model\NeuralNetwork.py" />
     <Compile Include="Model\StandardModel.py" />
     <Compile Include="Statistics\StatHelper.py" />
-    <Compile Include="Tests\RatioExemplar.py" />
+    <Compile Include="Eval\RatioExemplar.py" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="configs\model\" />
     <Folder Include="configs\data\" />
+    <Folder Include="configs\directory\" />
     <Folder Include="configs\probe\" />
     <Folder Include="configs\output\" />
     <Folder Include="Data\" />
@@ -56,8 +65,8 @@
     <Folder Include="Eval\" />
     <Folder Include="configs\" />
     <Folder Include="DataHelper\" />
+    <Folder Include="DriverUtils\" />
     <Folder Include="Statistics\" />
-    <Folder Include="Tests\" />
     <Folder Include="Output\" />
     <Folder Include="Results\" />
     <Folder Include="results\Analysis\" />
@@ -75,6 +84,7 @@
     <Content Include="configs\model\default.yaml" />
     <Content Include="configs\model\hls10-100.yaml" />
     <Content Include="configs\output\default.yaml" />
+    <Content Include="configs\directory\default.yaml" />
     <Content Include="configs\probe\default.yaml" />
     <Content Include="Data\Exemplar\alt-lat_exemplars.csv" />
     <Content Include="Data\Exemplar\original_exemplars.csv" />

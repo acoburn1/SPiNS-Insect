@@ -1,4 +1,6 @@
-exemplar: "original_exemplars"
-ratio: "ratiotrials"
-onehot: "onehot"
+name: "default"
+data:
+  exemplar: "original_exemplars"
+  ratio: "ratiotrials"
+  onehot: "onehot"
   

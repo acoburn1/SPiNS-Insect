@@ -61,16 +61,18 @@ def csv_ratio_data_to_parquet(filename: str, output_filename: str, num_features:
     return out
 
 def generate_onehot_parquet(output_filename: str, num_features: int = 11):
-    """ Generates a Parquet file containing one-hot encoded feature vectors. Unnecessary but support existing structure and labeling """
-    
+    """ Generates a Parquet file containing one-hot encoded feature vectors """
     rows = []
     d = 2 * num_features
     for i in range(d):
         v = [0] * d
         v[i] = 1
-        rows.append({"tensor": v})
-
-    out = pd.DataFrame(rows, columns=["tensor"])
+        category = "mod" if i < num_features else "lat"
+        rows.append({
+            "category": category,
+            "tensor": v
+        })
+    out = pd.DataFrame(rows, columns=["category", "tensor"])
     out.to_parquet(output_filename, index=False)
     return out
 
@@ -79,25 +81,38 @@ def generate_exemplar_parquet(filename: str, output_filename: str):
     Generates a Parquet file containing exemplar vectors
     Convention: label1, label2, ..., labelN, 'tensor'
     """
-    raw = pd.read_csv(filename, header=None, dtype=str)
+    rows = []
+    with open(filename, "r", newline="") as f:
+        reader = csv.reader(f, skipinitialspace=True)
 
-    header = raw.iloc[0].tolist()
+        header = next(reader, None)
+        if header is None:
+            raise ValueError(f"Empty exemplar CSV: {filename}")
 
-    try:
-        tensor_col_idx = header.index("tensor")
-    except ValueError:
-        raise ValueError("Exemplar file: first row must contain a 'tensor' marker column.")
+        header = [h.strip() for h in header]
+        try:
+            tensor_idx = [h.lower() for h in header].index("tensor")
+        except ValueError:
+            raise ValueError("Exemplar file: header row must contain a 'tensor' marker column.")
 
-    label_names = header[:tensor_col_idx]
+        label_names = header[:tensor_idx]
+        if not label_names:
+            raise ValueError("Exemplar file: must have at least one label column before 'tensor'.")
 
-    data = raw.iloc[1:].reset_index(drop=True)
+        for line_no, row in enumerate(reader, start=2):
+            labels = [str(x).strip() for x in row[:tensor_idx]]
+            feats  = [str(x).strip() for x in row[tensor_idx:]]
 
-    out = pd.DataFrame()
-    for i, name in enumerate(label_names):
-        out[name] = data.iloc[:, i].astype(str)
+            try:
+                tensor = [int(x) for x in feats if x != ""]
+            except ValueError as e:
+                raise ValueError(f"Line {line_no}: non-integer tensor value in {feats[:10]}...") from e
 
-    tensor_vals = data.iloc[:, tensor_col_idx + 1 :].astype(int).values.tolist()
-    out["tensor"] = tensor_vals
+            rows.append({**dict(zip(label_names, labels)), "tensor": tensor})
 
+    out = pd.DataFrame(rows, columns=label_names + ["tensor"])
+    lens = out["tensor"].map(len)
+    if lens.nunique() != 1:
+        raise ValueError(f"Ragged exemplar tensors: {lens.value_counts().to_dict()}")
     out.to_parquet(output_filename, index=False)
     return out

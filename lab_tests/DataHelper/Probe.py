@@ -1,8 +1,8 @@
 import os
 import json
+import numpy as np
 import pandas as pd
 import torch
-from configs.utils import get_config
 
 from DataHelper.utils import (
     csv_ratio_data_to_parquet,
@@ -10,7 +10,7 @@ from DataHelper.utils import (
     generate_exemplar_parquet,
 )
 
-def build_probe(cfg_filename, probe_folder: str = "Data/Probes"):
+def build_probe(probe_cfg, probe_folder: str = "Data/Probes"):
     """
     Always rebuilds probe from sources to avoid stale data.
 
@@ -23,10 +23,11 @@ def build_probe(cfg_filename, probe_folder: str = "Data/Probes"):
         metadata_df (pandas DataFrame)
         index (dict)
     """
-    cfg = get_config(cfg_filename)
-    cfg_stem = _stem(cfg_filename)
+    cfg = probe_cfg["data"]
+    cfg_name = probe_cfg["name"]
 
     sources_folder = os.path.join(probe_folder, "Sources")
+    data_folder = "Data"
     _ensure_dir(probe_folder)
     _ensure_dir(sources_folder)
 
@@ -38,13 +39,13 @@ def build_probe(cfg_filename, probe_folder: str = "Data/Probes"):
     dfs = []
 
     if exemplar_src:
-        exemplar_csv = os.path.join(probe_folder, "Exemplar", f"{exemplar_src}.csv")
+        exemplar_csv = os.path.join(data_folder, "Exemplar", f"{exemplar_src}.csv")
         exemplar_parquet = os.path.join(sources_folder, f"{exemplar_src}.parquet")
         generate_exemplar_parquet(exemplar_csv, exemplar_parquet)
         dfs.append(_normalize(_read_parquet(exemplar_parquet), "exemplar"))
 
     if ratio_src:
-        ratio_csv = os.path.join(probe_folder, "Ratio", f"{ratio_src}.csv")
+        ratio_csv = os.path.join(data_folder, "Ratio", f"{ratio_src}.csv")
         ratio_parquet = os.path.join(sources_folder, f"{ratio_src}.parquet")
         csv_ratio_data_to_parquet(ratio_csv, ratio_parquet, num_features)
         dfs.append(_normalize(_read_parquet(ratio_parquet), "ratio"))
@@ -60,14 +61,18 @@ def build_probe(cfg_filename, probe_folder: str = "Data/Probes"):
 
     probe_df = pd.concat(dfs, ignore_index=True)
 
-    probe_parquet_path = os.path.join(probe_folder, f"{cfg_stem}.parquet")
-    index_json_path = os.path.join(probe_folder, f"{cfg_stem}.index.json")
+    probe_parquet_path = os.path.join(probe_folder, f"{cfg_name}.parquet")
+    index_json_path = os.path.join(probe_folder, f"{cfg_name}.index.json")
 
     probe_df.to_parquet(probe_parquet_path, index=False)
 
+    lens = probe_df["tensor"].map(len)
+    if lens.nunique() != 1:
+        raise ValueError(f"Ragged probe tensors: {lens.value_counts().to_dict()}")
+
     probe_tensor = torch.tensor(probe_df["tensor"].tolist(), dtype=torch.float32)
 
-    metadata = probe_df.drop(columns=["tensor"])
+    metadata = probe_df.drop(columns=["tensor"]).fillna("")
     index = _build_index(metadata)
 
     _write_json(index, index_json_path)
@@ -88,6 +93,15 @@ def _read_parquet(path: str) -> pd.DataFrame:
     df = pd.read_parquet(path)
     if "tensor" not in df.columns:
         raise ValueError(f"Missing 'tensor' column in {path}")
+
+    def _to_list(x):
+        if isinstance(x, np.ndarray):
+            x = x.tolist()
+        if not isinstance(x, list):
+            raise TypeError(f"{path}: tensor cell type {type(x)} value={x!r}")
+        return x
+
+    df["tensor"] = df["tensor"].map(_to_list)
     return df
 
 def _normalize(df: pd.DataFrame, source_name: str) -> pd.DataFrame:
