@@ -14,7 +14,7 @@
     <RootNamespace>lab_tests</RootNamespace>
     <SuppressConfigureTestFrameworkPrompt>true</SuppressConfigureTestFrameworkPrompt>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <CommandLineArguments>-a -v</CommandLineArguments>
+    <CommandLineArguments>-e -v -m "hls10-100-10.yaml"</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -28,19 +28,21 @@
   <ItemGroup>
     <Compile Include="configs\utils.py" />
     <Compile Include="DriverUtils\Parser.py" />
+    <Compile Include="DriverUtils\RMutils.py" />
     <Compile Include="DriverUtils\RunConfig.py" />
     <Compile Include="DriverUtils\Visual.py" />
     <Compile Include="DriverUtils\Zarr.py" />
-    <Compile Include="Eval\RMatrix.py" />
+    <Compile Include="Eval\utils.py" />
+    <Compile Include="Eval\Protocol.py" />
     <Compile Include="Eval\PCA.py" />
     <Compile Include="Model\Parameters.py" />
     <Compile Include="DataHelper\Probe.py" />
     <Compile Include="Output\MatrixOutput.py" />
-    <Compile Include="Output\OutputUtils.py" />
-    <Compile Include="Output\PCAOutput.py" />
+    <Compile Include="Output\OutputSpec.py" />
+    <Compile Include="Output\PlotOutput.py" />
     <Compile Include="Output\StatOutput.py" />
     <Compile Include="DataHelper\utils.py" />
-    <Compile Include="Eval\PearsonEval.py" />
+    <Compile Include="Eval\Pearson.py" />
     <Compile Include="DataHelper\SpecialDataLoader.py" />
     <Compile Include="program.py" />
     <Compile Include="Model\NeuralNetwork.py" />
@@ -82,7 +84,7 @@
     <Content Include="configs\data\mod-lat2_5-5_whole.yaml" />
     <Content Include="configs\data\default.yaml" />
     <Content Include="configs\model\default.yaml" />
-    <Content Include="configs\model\hls10-100.yaml" />
+    <Content Include="configs\model\hls10-100-10.yaml" />
     <Content Include="configs\output\default.yaml" />
     <Content Include="configs\directory\default.yaml" />
     <Content Include="configs\probe\default.yaml" />

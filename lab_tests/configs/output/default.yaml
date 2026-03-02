@@ -1,0 +1,26 @@
+SeriesCorrelation:
+  present: true
+  attributes:
+    hidden: true
+    output: true
+    loss: true
+MatrixCorrelation:
+  present: true
+  attributes:
+    output: true
+    loss: true
+SCurve:
+  present: true
+  attributes:
+    hidden: true
+    output: false
+K95BarsEpoch:
+  present: true
+  attributes:
+    hidden: true
+    output: false
+K95OverEpochs:
+  present: true
+  attributes:
+    hidden: true
+    output: false

@@ -12,7 +12,7 @@ from DriverUtils.RunConfig import *
 
 
 parser = get_parser()
-args, _unknown = parser.parse_known_args()
+args, _ = parser.parse_known_args()
 
 runcfg = RunConfig(args)
 
@@ -26,7 +26,7 @@ else:
     if args.evaluate:
         runcfg.evaluate()
     if args.graph:
-        runcfg.graph()
+        runcfg.generate_output()
 
 
 

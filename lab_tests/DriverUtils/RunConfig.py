@@ -4,11 +4,24 @@ import numpy as np
 import DataHelper.utils as DataUtils
 from DataHelper.Probe import build_probe
 import time
+import os
 from Model.StandardModel import StandardModel
 import DriverUtils.Visual as Visual
 from torch import kl_div, nn
 from DataHelper import SpecialDataLoader as SDL
 from DriverUtils.Zarr import build_zarr_from_results
+from DriverUtils.RMutils import get_reference_matrices_m_l
+from Output.PlotOutput import save_output, save_s_curve_output
+from Eval.Pearson import MatrixCorrelationEpochEvaluator, SeriesCorrelationEvaluator
+from Eval.PCA import K95BarsEpochEvaluator, K95OverEpochsEvaluator, build_pca_scatter
+from Eval.RatioExemplar import SCurveEpochEvaluator
+
+
+EVALUATORS = [
+    CorrelationEvaluator(),
+    K95Evaluator,
+    RatioTestEvaluator()
+    ]
 
 @dataclass
 class RunConfig:
@@ -36,22 +49,24 @@ class RunConfig:
         self.include_e0 = m_cfg['include_e0']
 
         self.o_cfg = o_cfg
+
         self.p_cfg = p_cfg
+        self.X_probe, self.probe_metadata, self.probe_index = build_probe(self.p_cfg)
 
         self.training_data_filename = f"{dir_cfg['training_data']}/{self.training_name}.csv"
+        self.training_inputs, self.training_outputs = DataUtils.csv_training_data_to_numpy(self.training_data_filename, num_features=self.num_features)
+        assert len(self.training_inputs) == self.num_total_trials, f"expected {self.num_total_trials} training trials but got {len(self.training_inputs)}. check data config"
+        self.dataloader = DataUtils.get_dataloader(self.training_inputs, self.training_outputs) if not self.special_dl else SDL.SpecialDataLoader(self.training_inputs, self.training_outputs, self.num_mod_trials)
+
         self.modular_p_m_filename = f"{dir_cfg['reference_matrices']}/cooc-jaccard-mod.csv"
         self.lattice_p_m_filename = f"{dir_cfg['reference_matrices']}/cooc-jaccard-lat.csv" if not self.alt else "Data/ReferenceMatrices/cooc-jaccard-lat-alt.csv"
+        self.mod_rm, self.lat_rm = get_reference_matrices_m_l(self.modular_p_m_filename, self.lattice_p_m_filename, self.num_mod_trials, self.training_inputs, self.generate_rms)
         self.activations_dir = f"{dir_cfg['activation_data']}/{self.training_name}"
         self.analysis_dir = f"{dir_cfg['analysis_data']}/{self.training_name}"
-        self.graphs_dir = f"{dir_cfg['graphs']}/{self.training_name}"
+        self.output_dir = f"{dir_cfg['output']}/{self.training_name}"
 
     def train(self):
-        training_inputs, training_outputs = DataUtils.csv_training_data_to_numpy(self.training_data_filename, num_features=self.num_features)
-        assert len(training_inputs) == self.num_total_trials, f"expected {self.num_total_trials} training trials but got {len(training_inputs)}. check data config"
-
-        dataloader = DataUtils.get_dataloader(training_inputs, training_outputs) if not self.special_dl else SDL.SpecialDataLoader(training_inputs, training_outputs, self.num_mod_trials)
-        X_probe, _, _ = build_probe(self.p_cfg)
-
+        """ Trains models for each combination of hidden layer size and learning rate, evaluates them on the probe, and saves the activations to zarr files """
         if self.visual:
             run_t0 = time.time()
 
@@ -67,7 +82,7 @@ class RunConfig:
                     for i in range(self.num_models):
                         vis.model_i = i
                         model = StandardModel(num_features=self.num_features, hidden_layer_size=HLS, batch_size=self.num_total_trials, num_epochs=self.num_epochs, learning_rate=LR, loss_fn=nn.BCEWithLogitsLoss())
-                        result = model.train_eval(dataloader, X_probe, include_e0=self.include_e0, vis=vis)
+                        result = model.train_eval(self.dataloader, self.X_probe, include_e0=self.include_e0, vis=vis)
                         results.append(result)
                     Visual.progress_done(vis)
                     time.sleep(.1)
@@ -75,16 +90,18 @@ class RunConfig:
                 else:
                     for i in range(self.num_models):
                         model = StandardModel(num_features=self.num_features, hidden_layer_size=HLS, batch_size=self.num_total_trials, num_epochs=self.num_epochs, learning_rate=LR, loss_fn=nn.BCEWithLogitsLoss())
-                        result = model.train_eval(dataloader, X_probe, include_e0=self.include_e0)
+                        result = model.train_eval(self.dataloader, self.X_probe, include_e0=self.include_e0)
                         results.append(result)
 
                 build_zarr_from_results(f"{activations_dir}/activations.zarr", results)
         return
 
     def evaluate(self):
-        pass
+        """ Evaluates the trained models on the probe using the specified evaluators and saves the results to npz files """
+        for HLS in self.hidden_layer_range:
+            for LR in self.learning_rate_range:
 
-    def graph(self):
+    def generate_output(self):
         pass
 
     @staticmethod

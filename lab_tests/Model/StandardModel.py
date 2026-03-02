@@ -5,8 +5,6 @@ import torch
 import os
 import sys
 import time
-import Eval.PearsonEval as PearsonEval
-import Tests.RatioExemplar as RE
 import DataHelper.SpecialDataLoader as SDL
 from functools import partial
 import DriverUtils.Visual as Visual
@@ -27,11 +25,11 @@ class StandardModel:
         results = { "losses": [], "hidden": [], "output": []}
         Xp = X_probe.to(self.device)
 
-        def _probe():
+        def _probe():       # note: no train/eval mode switch since no dropout or batchnorm 
             self.model.eval()
             with torch.no_grad():
                 hid, out = self.model(Xp, return_hidden=True)
-            return hid.cpu(), out.cpu()
+            return hid.cpu(), torch.sigmoid(out).cpu()
 
         if include_e0:
             hid, out = _probe()

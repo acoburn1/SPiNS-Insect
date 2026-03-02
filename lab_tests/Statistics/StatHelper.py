@@ -2,18 +2,6 @@ from scipy.stats import t, ttest_rel
 import numpy as np
 import os
 import glob
-        
-    
-def get_epoch_stats(self, data_array):
-    stats_objects = []
-    num_epochs = data_array.shape[1]
-        
-    for epoch in range(num_epochs):
-        epoch_data = data_array[:, epoch]
-        stats = self.get_stats_object(epoch_data)
-        stats_objects.append(stats)
-        
-    return AggregateStatsObject(stats_objects)
 
 class StatsObject:
     def __init__(self, data: list, ci=0.95):
