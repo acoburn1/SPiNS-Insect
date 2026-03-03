@@ -4,23 +4,52 @@ SeriesCorrelation:
     hidden: true
     output: true
     loss: true
+  epochs:
+    all: true
+    sig: false
+    range: null
 MatrixCorrelation:
   present: true
   attributes:
     output: true
     loss: true
+  epochs:
+    all: true
+    sig: false
+    range: null
+RatioOverEpochs:
+  present: true
+  attributes:
+    hidden: true
+    output: false
+  epochs:
+    all: true
+    sig: false
+    range: null
 SCurve:
   present: true
   attributes:
     hidden: true
     output: false
+  epochs:
+    all: false
+    sig: true
+    range: null
 K95BarsEpoch:
   present: true
   attributes:
     hidden: true
     output: false
+  epochs:
+    all: false
+    sig: true
+    range: null
 K95OverEpochs:
   present: true
   attributes:
     hidden: true
     output: false
+  epochs:
+    all: true
+    sig: false
+    range: null

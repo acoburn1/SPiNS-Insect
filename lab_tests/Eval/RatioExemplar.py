@@ -1,171 +1,131 @@
+import os
 import numpy as np
-from scipy.stats import pearsonr
-from Output.OutputSpec import *
-from Eval.utils import *
-from Eval.Pearson import get_significant_epoch
+from DriverUtils.Zarr import load_slice
+from Eval.utils import get_ratio_ids
 
 
-import numpy as np
-from scipy.stats import pearsonr
-from Output.OutputSpec import *
-from Eval.utils import *
-from Eval.Pearson import get_significant_epoch
+class RatioTestEvaluator:
+    name = "RatioTest"
 
-
-class SCurveEpochEvaluator:
-    name = "SCurve"
-
-    def run(self, cfg, zarr_path: str, save_path: str) -> list[OutputSpec]:
-        alt = cfg.alt
-        include_e0 = cfg.include_e0
-
+    def run(self, cfg, zarr_path: str, vis=None) -> np.ndarray:
+        alt = bool(getattr(cfg, "alt", False))
         ratio_labels, ratio_to_pos = _ratio_positions(alt=alt)
+        n_sets = 7
 
-        # exemplar ids
         mod_exemplar_ids = _ids_for_conditions(cfg.probe_index, source="exemplar", category="mod")
         lat_exemplar_ids = _ids_for_conditions(cfg.probe_index, source="exemplar", category="lat")
 
-        # onehot ids (needed for significant epoch computation)
-        onehot_ids = get_onehot_ids(cfg.probe_index)
+        ratio_ids_by_label = {r: get_ratio_ids(cfg.probe_index, r) for r in ratio_labels}
 
-        # ratio ids
-        need_ratio_ids = []
-        for r in ratio_labels:
-            need_ratio_ids.extend(cfg.probe_index.get(f"ratio={r}", []))
-        need_ratio_ids = np.asarray(sorted(set(need_ratio_ids)), dtype=np.int64)
+        all_ratio_ids = np.concatenate([v for v in ratio_ids_by_label.values() if v.size], axis=0) if ratio_ids_by_label else np.asarray([], dtype=np.int64)
 
-        # union of all probes we need
         probe_ids = np.asarray(
             sorted(
                 set(mod_exemplar_ids.tolist())
                 | set(lat_exemplar_ids.tolist())
-                | set(onehot_ids.tolist())
-                | set(need_ratio_ids.tolist())
+                | set(all_ratio_ids.tolist())
             ),
             dtype=np.int64,
         )
 
-        loaded = load_slice(zarr_path, probe_ids=probe_ids)
-        hid = loaded[0] if isinstance(loaded, tuple) else loaded
-        reps = np.asarray(hid, dtype=np.float64)  # (M,E,Psel,D)
-
-        idx_map = {int(pid): i for i, pid in enumerate(probe_ids.tolist())}
-
-        mod_local = np.asarray([idx_map[int(pid)] for pid in mod_exemplar_ids if int(pid) in idx_map], dtype=np.int64)
-        lat_local = np.asarray([idx_map[int(pid)] for pid in lat_exemplar_ids if int(pid) in idx_map], dtype=np.int64)
-        onehot_local = np.asarray([idx_map[int(pid)] for pid in onehot_ids if int(pid) in idx_map], dtype=np.int64)
+        hid, _, _ = load_slice(zarr_path, probe_ids=probe_ids)
+        reps = np.asarray(hid, dtype=np.float64)  # (M,E,Psel,H)
 
         M, E = int(reps.shape[0]), int(reps.shape[1])
+        out = np.full((M, E, n_sets), np.nan, dtype=np.float64)
 
-        totals = M
-        included = 0
-        sig_epochs = []
+        mod_local = _to_local(probe_ids, mod_exemplar_ids)
+        lat_local = _to_local(probe_ids, lat_exemplar_ids)
 
-        acc_by_pos = {i: [] for i in range(7)}
+        ratio_locals = []
+        ratio_pos_for_rows = []
+
+        for r in ratio_labels:
+            ids = ratio_ids_by_label[r]
+            if ids.size == 0:
+                continue
+            local = _to_local(probe_ids, ids)
+            if local.size == 0:
+                continue
+            pos = ratio_to_pos[r]
+            ratio_locals.append(local)
+            ratio_pos_for_rows.append(np.full((local.size,), pos, dtype=np.int64))
+
+        if mod_local.size == 0 or lat_local.size == 0 or not ratio_locals:
+            return out
+
+        all_ratio_local = np.concatenate(ratio_locals, axis=0).astype(np.int64, copy=False)
+        pos_of_trial_row = np.concatenate(ratio_pos_for_rows, axis=0).astype(np.int64, copy=False)
 
         for m in range(M):
-            try:
-                if mod_local.size == 0 or lat_local.size == 0 or onehot_local.size == 0:
+            for e in range(E):
+                if vis is not None:
+                    vis.update(self.name, m, e)
+
+                mod_ex = reps[m, e, mod_local, :]  # (Em,H)
+                lat_ex = reps[m, e, lat_local, :]  # (El,H)
+                trials = reps[m, e, all_ratio_local, :]  # (T,H)
+
+                pref = _trial_prefers_mod(trials, mod_ex, lat_ex)  # (T,) bool or empty
+                if pref.size == 0:
                     continue
 
-                hidden_onehot = np.take(reps[m], onehot_local, axis=1)  # (E,P,H)
-                P_onehot = int(hidden_onehot.shape[1])
-                nf = int(P_onehot // 2)
+                pref_i = pref.astype(np.int64, copy=False)
+                sums = np.bincount(pos_of_trial_row, weights=pref_i, minlength=n_sets).astype(np.float64, copy=False)
+                cnts = np.bincount(pos_of_trial_row, minlength=n_sets).astype(np.float64, copy=False)
 
-                sig_e = get_significant_epoch(
-                    hidden_onehot=hidden_onehot,
-                    ref_mod=cfg.mod_rm,
-                    ref_lat=cfg.lat_rm,
-                    num_features=nf,
-                    alpha=getattr(cfg, "alpha", 0.05),
-                    diff_threshold=getattr(cfg, "diff_threshold", 0.05),
-                )
-                if sig_e is None:
-                    continue
+                with np.errstate(divide="ignore", invalid="ignore"):
+                    rates = sums / cnts
 
-                sig_e = int(sig_e)
-                if sig_e < 0 or sig_e >= E:
-                    continue
+                out[m, e, :] = rates
 
-                mod_exemplars = reps[m, sig_e, mod_local, :]
-                lat_exemplars = reps[m, sig_e, lat_local, :]
+        return out
 
-                if mod_exemplars.shape[0] == 0 or lat_exemplars.shape[0] == 0:
-                    continue
+def _to_local(sorted_probe_ids: np.ndarray, ids: np.ndarray) -> np.ndarray:
+    ids = np.asarray(ids, dtype=np.int64)
+    if ids.size == 0:
+        return np.asarray([], dtype=np.int64)
 
-                for ratio in ratio_labels:
-                    r_ids = get_ratio_ids(cfg.probe_index, ratio)
-                    if r_ids.size == 0:
-                        continue
-
-                    r_local = np.asarray([idx_map[int(pid)] for pid in r_ids if int(pid) in idx_map], dtype=np.int64)
-                    if r_local.size == 0:
-                        continue
-
-                    trials = reps[m, sig_e, r_local, :]
-                    rate = _mod_pref_rate(trials, mod_exemplars, lat_exemplars)
-
-                    pos = ratio_to_pos[ratio]
-                    if np.isfinite(rate):
-                        acc_by_pos[pos].append(rate)
-
-                included += 1
-                sig_epochs.append(sig_e)
-
-            except Exception:
-                continue
-
-        means = []
-        stderrs = []
-        for pos in range(7):
-            vals = np.asarray(acc_by_pos[pos], dtype=np.float64)
-            vals = vals[np.isfinite(vals)]
-            if vals.size == 0:
-                means.append(np.nan)
-                stderrs.append(np.nan)
-            else:
-                means.append(float(np.mean(vals)))
-                stderrs.append(float(np.std(vals, ddof=1) / np.sqrt(vals.size)) if vals.size > 1 else 0.0)
-
-        pct = (100.0 * included / totals) if totals > 0 else 0.0
-        ses = np.asarray(sig_epochs, dtype=np.float64)
-        if ses.size == 0:
-            mean_se = np.nan
-            std_se = np.nan
-        else:
-            mean_se = float(np.mean(ses))
-            std_se = float(np.std(ses, ddof=1)) if ses.size > 1 else 0.0
-
-        x = list(range(7))
-        label = f"mean ({pct:.1f}%, sig_e={mean_se:.2f}±{std_se:.2f})"
-
-        return [
-            OutputSpec(
-                figure_id=f"s_curve_h_sig_e",
-                title="Modular Preference by Feature Composition (hidden vs exemplars @ sig epoch/model)",
-                x_label="# mod feats",
-                y_label="% mod-pref (avg corr to mod exemplars > lat exemplars)",
-                series_list=[
-                    Series(
-                        kind=PlotKind.LINE,
-                        label=label,
-                        x=x,
-                        y=means,
-                        yerr=stderrs,
-                        color=Color.BLUE,
-                        linestyle=LineStyle.SOLID,
-                    )
-                ],
-                matrix=None,
-            )
-        ]
+    ids = np.unique(ids)
+    idx = np.searchsorted(sorted_probe_ids, ids)
+    ok = (idx < sorted_probe_ids.size) & (sorted_probe_ids[idx] == ids)
+    return idx[ok].astype(np.int64, copy=False)
 
 
-class RatioSetOverEpochsEvaluator:
-    name = "RatioSetOverEpochs"
+def _zscore_rows(X: np.ndarray) -> np.ndarray:
+    X = np.asarray(X, dtype=np.float64)
+    mu = X.mean(axis=1, keepdims=True)
+    sd = X.std(axis=1, keepdims=True)
+    sd = np.where(sd == 0.0, np.nan, sd)
+    return (X - mu) / sd
 
-    def run(self, cfg, zarr_path: str, save_path: str) -> list[OutputSpec]:
-        return []
+
+def _trial_prefers_mod(trials: np.ndarray, mod_exemplars: np.ndarray, lat_exemplars: np.ndarray) -> np.ndarray:
+    T = np.asarray(trials, dtype=np.float64)
+    M = np.asarray(mod_exemplars, dtype=np.float64)
+    L = np.asarray(lat_exemplars, dtype=np.float64)
+
+    if T.shape[0] == 0 or M.shape[0] == 0 or L.shape[0] == 0:
+        return np.asarray([], dtype=bool)
+
+    zT = _zscore_rows(T)
+    zM = _zscore_rows(M)
+    zL = _zscore_rows(L)
+
+    H = float(T.shape[1])
+    if H <= 0:
+        return np.asarray([], dtype=bool)
+
+    mod_corrs = (zT @ zM.T) / H  # (T,Em)
+    lat_corrs = (zT @ zL.T) / H  # (T,El)
+
+    avg_mod = np.nanmean(mod_corrs, axis=1)
+    avg_lat = np.nanmean(lat_corrs, axis=1)
+
+    good = np.isfinite(avg_mod) & np.isfinite(avg_lat)
+    out = np.zeros((T.shape[0],), dtype=bool)
+    out[good] = avg_mod[good] > avg_lat[good]
+    return out
 
 
 def _ids_for_conditions(probe_index: dict, **conds) -> np.ndarray:
@@ -177,32 +137,6 @@ def _ids_for_conditions(probe_index: dict, **conds) -> np.ndarray:
     if not hit:
         return np.asarray([], dtype=np.int64)
     return np.asarray(sorted(hit), dtype=np.int64)
-
-
-def _exemplar_corrs(trials: np.ndarray, exemplars: np.ndarray) -> np.ndarray:
-    T = np.asarray(trials, dtype=np.float64)
-    E = np.asarray(exemplars, dtype=np.float64)
-    n_trials = int(T.shape[0])
-    n_exemplar = int(E.shape[0])
-    out = np.empty((n_trials, n_exemplar), dtype=np.float64)
-    for i in range(n_trials):
-        for j in range(n_exemplar):
-            r, _ = pearsonr(T[i], E[j])
-            out[i, j] = float(r)
-    return out
-
-
-def _mod_pref_rate(trials: np.ndarray, mod_exemplars: np.ndarray, lat_exemplars: np.ndarray) -> float:
-    if trials.shape[0] == 0:
-        return np.nan
-    if mod_exemplars.shape[0] == 0 or lat_exemplars.shape[0] == 0:
-        return np.nan
-
-    mod_corrs = _exemplar_corrs(trials, mod_exemplars)
-    lat_corrs = _exemplar_corrs(trials, lat_exemplars)
-    avg_mod = np.mean(mod_corrs, axis=1)
-    avg_lat = np.mean(lat_corrs, axis=1)
-    return float(np.mean(avg_mod > avg_lat))
 
 
 def _ratio_positions(alt: bool):

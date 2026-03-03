@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from Output import dependencies
 from configs.utils import resolve_cfgs
 import numpy as np
 import DataHelper.utils as DataUtils
@@ -12,16 +13,8 @@ from DataHelper import SpecialDataLoader as SDL
 from DriverUtils.Zarr import build_zarr_from_results
 from DriverUtils.RMutils import get_reference_matrices_m_l
 from Output.PlotOutput import save_output, save_s_curve_output
-from Eval.Pearson import MatrixCorrelationEpochEvaluator, SeriesCorrelationEvaluator
-from Eval.PCA import K95BarsEpochEvaluator, K95OverEpochsEvaluator, build_pca_scatter
-from Eval.RatioExemplar import SCurveEpochEvaluator
-
-
-EVALUATORS = [
-    CorrelationEvaluator(),
-    K95Evaluator,
-    RatioTestEvaluator()
-    ]
+from Output.dependencies import get_dependencies
+from Eval.SigE import SignificantEpochEvaluator
 
 @dataclass
 class RunConfig:
@@ -66,40 +59,98 @@ class RunConfig:
         self.output_dir = f"{dir_cfg['output']}/{self.training_name}"
 
     def train(self):
-        """ Trains models for each combination of hidden layer size and learning rate, evaluates them on the probe, and saves the activations to zarr files """
-        if self.visual:
-            run_t0 = time.time()
-
+        """
+        Trains models for each combination of hidden layer size and learning rate,
+        evaluates them on the probe, and saves the activations to zarr files.
+        """
         for HLS in self.hidden_layer_range:
             for LR in self.learning_rate_range:
-
                 activations_dir = self._add_suffix(self.activations_dir, HLS, LR)
                 results = []
 
+                vis = None
                 if self.visual:
-                    vis = Visual.VisualInfo(hls=HLS, lr=LR, model_n=self.num_models, epoch_n=self.num_epochs)
+                    vis = Visual.ModelVisualInfo(hls=HLS, lr=LR, model_n=self.num_models, epoch_n=self.num_epochs)
                     vis.start_pair()
+
+                try:
                     for i in range(self.num_models):
-                        vis.model_i = i
-                        model = StandardModel(num_features=self.num_features, hidden_layer_size=HLS, batch_size=self.num_total_trials, num_epochs=self.num_epochs, learning_rate=LR, loss_fn=nn.BCEWithLogitsLoss())
-                        result = model.train_eval(self.dataloader, self.X_probe, include_e0=self.include_e0, vis=vis)
+
+                        if vis is not None:
+                            vis.model_i = i
+
+                        model = StandardModel(
+                            num_features=self.num_features,
+                            hidden_layer_size=HLS,
+                            batch_size=self.num_total_trials,
+                            num_epochs=self.num_epochs,
+                            learning_rate=LR,
+                            loss_fn=nn.BCEWithLogitsLoss(),
+                        )
+                        result = model.train_eval(
+                            self.dataloader,
+                            self.X_probe,
+                            include_e0=self.include_e0,
+                            vis=vis,
+                        )
                         results.append(result)
-                    Visual.progress_done(vis)
-                    time.sleep(.1)
-                    Visual.print_dim(f"Saving zarr to {activations_dir}...")
-                else:
-                    for i in range(self.num_models):
-                        model = StandardModel(num_features=self.num_features, hidden_layer_size=HLS, batch_size=self.num_total_trials, num_epochs=self.num_epochs, learning_rate=LR, loss_fn=nn.BCEWithLogitsLoss())
-                        result = model.train_eval(self.dataloader, self.X_probe, include_e0=self.include_e0)
-                        results.append(result)
+                finally:
+                    if vis is not None:
+                        Visual.progress_done(vis)
+                        time.sleep(0.1)
+                        Visual.print_dim(f"Saving zarr to {activations_dir}...")
 
                 build_zarr_from_results(f"{activations_dir}/activations.zarr", results)
-        return
 
     def evaluate(self):
-        """ Evaluates the trained models on the probe using the specified evaluators and saves the results to npz files """
+        """
+        Evaluates activations and saves the results to npz files.
+        sig_epoch data is organized as a binary mask of shape (M, E) indicating whether each epoch is significant or not.
+        The rest of the data is always organized as one value/object per condition, per epoch, per model with shape (M, E, C, D).
+        """
+        dependencies, sige = get_dependencies(self.o_cfg)
+
         for HLS in self.hidden_layer_range:
             for LR in self.learning_rate_range:
+                activations_dir = self._add_suffix(self.activations_dir, HLS, LR)
+                analysis_dir = self._add_suffix(self.analysis_dir, HLS, LR)
+                os.makedirs(analysis_dir, exist_ok=True)
+
+                vis = None
+                if self.visual:
+                    vis = Visual.EvalVisualInfo(
+                        hls=int(HLS),
+                        lr=float(LR),
+                        eval_names=[ev.name for ev in dependencies] + (["SigEpoch"] if sige else []),
+                        model_n=int(self.num_models),
+                        epoch_n=int(self.num_epochs),
+                    )
+                    vis.start()
+
+                try:
+                    for ev_i, evaluator in enumerate(dependencies):
+                        if vis is not None:
+                            vis.set_eval(evaluator.name, ev_i)
+
+                        results = evaluator.run(
+                            self.o_cfg,
+                            activations_dir,
+                            vis=vis,
+                        )
+                        np.savez(f"{analysis_dir}/{evaluator.name}.npz", results=results, allow_pickle=True)
+
+                        if sige and evaluator.name == "Correlation":
+                            if vis is not None:
+                                vis.set_eval("SigEpoch", ev_i + 1)
+                                vis.note("vector pass")
+
+                            sige_results = sige.run(results, self.o_cfg)
+
+                            np.savez(f"{analysis_dir}/sige.npz", results=sige_results, allow_pickle=True)
+
+                finally:
+                    if vis is not None:
+                        vis.close()
 
     def generate_output(self):
         pass

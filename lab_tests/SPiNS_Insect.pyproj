@@ -32,15 +32,15 @@
     <Compile Include="DriverUtils\RunConfig.py" />
     <Compile Include="DriverUtils\Visual.py" />
     <Compile Include="DriverUtils\Zarr.py" />
+    <Compile Include="Eval\SigE.py" />
     <Compile Include="Eval\utils.py" />
     <Compile Include="Eval\Protocol.py" />
     <Compile Include="Eval\PCA.py" />
     <Compile Include="Model\Parameters.py" />
     <Compile Include="DataHelper\Probe.py" />
-    <Compile Include="Output\MatrixOutput.py" />
+    <Compile Include="Output\dependencies.py" />
     <Compile Include="Output\OutputSpec.py" />
     <Compile Include="Output\PlotOutput.py" />
-    <Compile Include="Output\StatOutput.py" />
     <Compile Include="DataHelper\utils.py" />
     <Compile Include="Eval\Pearson.py" />
     <Compile Include="DataHelper\SpecialDataLoader.py" />
