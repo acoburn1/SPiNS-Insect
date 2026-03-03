@@ -1,12 +1,12 @@
 from math import e
 from Eval.PCA import K95Evaluator
-from Eval.Pearson import CorrelationEvaluator
+from Eval.Pearson import CorrelationEvaluator, MatrixCorrelationEvaluator
 from Eval.RatioExemplar import RatioTestEvaluator
 from Eval.SigE import SignificantEpochEvaluator
 
 dependencies = {
     "SeriesCorrelation": CorrelationEvaluator(),
-    "MatrixCorrelation": CorrelationEvaluator(),
+    "MatrixCorrelation": MatrixCorrelationEvaluator(),
     "RatioOverEpochs": RatioTestEvaluator(),
     "SCurve": RatioTestEvaluator(),
     "K95Bars": K95Evaluator(),
@@ -21,10 +21,13 @@ def get_dependencies(o_cfg):
     """
     evals = []
     sige = None
-    for key in o_cfg.keys():
-        if key.present == True:
-            if dependencies[key] not in evals:
-                evals.append(dependencies[key])
-        if sige == None and key.value["epochs"]["sig"] == True:
-            sige = SignificantEpochEvaluator
+
+    for key, subcfg in o_cfg.items():
+        if subcfg.get("present", False):
+            ev = dependencies.get(key)
+            if ev is not None and ev not in evals:
+                evals.append(ev)
+        if sige is None and subcfg.get("epochs", {}).get("sig", False):
+            sige = SignificantEpochEvaluator()
+
     return evals, sige

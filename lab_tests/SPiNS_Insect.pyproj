@@ -38,9 +38,9 @@
     <Compile Include="Eval\PCA.py" />
     <Compile Include="Model\Parameters.py" />
     <Compile Include="DataHelper\Probe.py" />
-    <Compile Include="Output\dependencies.py" />
-    <Compile Include="Output\OutputSpec.py" />
-    <Compile Include="Output\PlotOutput.py" />
+    <Compile Include="Output\schema\dependencies.py" />
+    <Compile Include="Output\schema\OutputSpec.py" />
+    <Compile Include="Output\schema\PlotOutput.py" />
     <Compile Include="DataHelper\utils.py" />
     <Compile Include="Eval\Pearson.py" />
     <Compile Include="DataHelper\SpecialDataLoader.py" />
@@ -68,6 +68,7 @@
     <Folder Include="configs\" />
     <Folder Include="DataHelper\" />
     <Folder Include="DriverUtils\" />
+    <Folder Include="Output\schema\" />
     <Folder Include="Statistics\" />
     <Folder Include="Output\" />
     <Folder Include="Results\" />

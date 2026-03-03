@@ -1,27 +1,32 @@
 from scipy.stats import pearsonr
 import numpy as np
-from Eval.utils import get_onehot_ids
+from Eval.utils import *
 from DriverUtils.Zarr import load_slice
-from DriverUtils.Visual import DataVisualInfo
+from DriverUtils.Visual import EvalVisualInfo
 
 
 class CorrelationEvaluator:
     name = "Correlation"
 
-    def run(self, cfg, zarr_path: str, vis: DataVisualInfo = None) -> np.ndarray:
+    def run(self, cfg, zarr_path: str, vis: EvalVisualInfo = None) -> np.ndarray:
+        """
+          C=0 mod, C=1 lat
+          D=0 r,   D=1 p
+        """
         onehot_ids = get_onehot_ids(cfg.probe_index)
         hid, _, _ = load_slice(zarr_path, probe_ids=onehot_ids)
         hid = np.asarray(hid, dtype=np.float64)  # (M,E,P,H)
 
         M, E, P, H = map(int, hid.shape)
-        nf = int(P // 2)
+        nf = cfg.num_features
+        assert_data_shape([M, E, P], [cfg.num_models, cfg.eval_epochs, nf*2], ["M", "E", "P"])
 
         out = np.full((M, E, 2, 2), np.nan, dtype=np.float64)  # C=[mod,lat], D=[r,p]
 
         for m in range(M):
             for e in range(E):
                 if vis is not None:
-                    vis.update(self.name, m, e)
+                    vis.update(m, e)
 
                 A = hid[m, e]  # (P,H)
 
@@ -40,6 +45,36 @@ class CorrelationEvaluator:
                 out[m, e, 1, 1] = p_l
 
         return out
+
+class MatrixCorrelationEvaluator:
+    name = "MatrixCorrelation"
+    def run(self, cfg, zarr_path: str, vis: EvalVisualInfo = None) -> np.ndarray:
+        """
+          C=0 mod, C=1 lat
+          D=(nf, nf) pairwise correlation matrix of hidden onehot activations
+        """
+        onehot_ids = get_onehot_ids(cfg.probe_index)
+        hid, _, _ = load_slice(zarr_path, probe_ids=onehot_ids)
+        hid = np.asarray(hid, dtype=np.float64)  # (M,E,P,H)
+
+        M, E, P, H = map(int, hid.shape)
+        nf = cfg.num_features
+        assert_data_shape([M, E, P], [cfg.num_models, cfg.eval_epochs, nf*2], ["M", "E", "P"])
+
+        out = np.full((M, E, 2, nf, nf), np.nan, dtype=np.float64)  # C=[mod,lat], D=(nf, nf)
+
+        for m in range(M):
+            for e in range(E):
+                if vis is not None:
+                    vis.update(m, e)
+                A = hid[m, e]  # (P,H)
+                mod_vecs = A[:nf]
+                lat_vecs = A[nf:]
+                out[m, e, 0, :, :] = _pairwise_corr_matrix(mod_vecs)
+                out[m, e, 1, :, :] = _pairwise_corr_matrix(lat_vecs)
+
+        return out
+
 
 def _cut(m: np.ndarray) -> np.ndarray:
     m = np.asarray(m, dtype=np.float64)

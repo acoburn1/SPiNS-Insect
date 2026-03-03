@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from Output.OutputSpec import OutputSpec, PlotKind, YAxis, Aspect
+from Output.schema.OutputSpec import OutputSpec, PlotKind, YAxis, Aspect
 
 
 def plot_output(spec: OutputSpec, save_dir: str) -> str:

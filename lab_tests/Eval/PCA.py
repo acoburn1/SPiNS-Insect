@@ -1,11 +1,8 @@
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
 from numpy.linalg import eigh
-from Output.OutputSpec import *
 from DriverUtils.Zarr import load_slice
 from Eval.utils import *
-from Eval.Pearson import get_significant_epoch
-from scipy.stats import pearsonr
 
 class K95Evaluator:
     name = "K95"
@@ -19,7 +16,8 @@ class K95Evaluator:
         hid = np.asarray(hid, dtype=np.float64)  # (M,E,P,H)
 
         M, E, P = int(hid.shape[0]), int(hid.shape[1]), int(hid.shape[2])
-        nf = int(P // 2)
+        nf = cfg.num_features
+        assert_data_shape([M, E, P], [cfg.num_models, cfg.eval_epochs, nf*2], ["M", "E", "P"])
 
         out = np.empty((M, E, 2, 1), dtype=np.int16)
 
@@ -30,7 +28,7 @@ class K95Evaluator:
                 out[m, e, 0, 0] = int(km)
                 out[m, e, 1, 0] = int(kl)
                 if vis is not None:
-                    vis.update(self.name, m, e)
+                    vis.update(m, e)
 
         return out
         

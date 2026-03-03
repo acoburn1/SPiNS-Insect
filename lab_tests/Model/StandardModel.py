@@ -21,7 +21,7 @@ class StandardModel:
         self.loss_fn = loss_fn
         self.optimizer = torch.optim.Adam(self.model.parameters(), self.learning_rate)
 
-    def train_eval(self, dataloader, X_probe, include_e0=False, vis=None):
+    def train_eval(self, dataloader, X_probe, vis=None):
         results = { "losses": [], "hidden": [], "output": []}
         Xp = X_probe.to(self.device)
 
@@ -31,11 +31,11 @@ class StandardModel:
                 hid, out = self.model(Xp, return_hidden=True)
             return hid.cpu(), torch.sigmoid(out).cpu()
 
-        if include_e0:
-            hid, out = _probe()
-            results["losses"].append(0)
-            results["hidden"].append(hid)
-            results["output"].append(out)
+        # add probe data from initialization
+        hid, out = _probe()
+        results["losses"].append(0)
+        results["hidden"].append(hid)
+        results["output"].append(out)
 
         special_dl = isinstance(dataloader, SDL.SpecialDataLoader)
         if special_dl:
@@ -64,10 +64,10 @@ class StandardModel:
             results["hidden"].append(hid)
             results["output"].append(out)
             
-            if vis:
-                Visual.progress_line(vis, epoch_i=epoch, loss=total_loss)
+            if vis is not None:
+                vis.progress_line(epoch_i=epoch, loss=total_loss)
 
-        if include_e0 and len(results["losses"]) > 1:
+        if len(results["losses"]) > 1:
             results["losses"][0] = results["losses"][1]
         
         return results

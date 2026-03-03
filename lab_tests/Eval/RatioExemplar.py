@@ -1,14 +1,14 @@
 import os
 import numpy as np
 from DriverUtils.Zarr import load_slice
-from Eval.utils import get_ratio_ids
+from Eval.utils import *
 
 
 class RatioTestEvaluator:
     name = "RatioTest"
 
     def run(self, cfg, zarr_path: str, vis=None) -> np.ndarray:
-        alt = bool(getattr(cfg, "alt", False))
+        alt = cfg.alt
         ratio_labels, ratio_to_pos = _ratio_positions(alt=alt)
         n_sets = 7
 
@@ -32,6 +32,7 @@ class RatioTestEvaluator:
         reps = np.asarray(hid, dtype=np.float64)  # (M,E,Psel,H)
 
         M, E = int(reps.shape[0]), int(reps.shape[1])
+        assert_data_shape([M, E], [cfg.num_models, cfg.eval_epochs], ["M", "E"])
         out = np.full((M, E, n_sets), np.nan, dtype=np.float64)
 
         mod_local = _to_local(probe_ids, mod_exemplar_ids)
@@ -60,7 +61,7 @@ class RatioTestEvaluator:
         for m in range(M):
             for e in range(E):
                 if vis is not None:
-                    vis.update(self.name, m, e)
+                    vis.update(m, e)
 
                 mod_ex = reps[m, e, mod_local, :]  # (Em,H)
                 lat_ex = reps[m, e, lat_local, :]  # (El,H)

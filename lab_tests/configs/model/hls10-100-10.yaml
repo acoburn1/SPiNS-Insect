@@ -9,4 +9,3 @@ learning_rate:
   num: 1
 num_epochs: 120
 num_models: 50
-include_e0: true

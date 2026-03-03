@@ -1,28 +1,41 @@
-from scipy.stats import t, ttest_rel
+from scipy.stats import t
 import numpy as np
-import os
-import glob
 
-class StatsObject:
-    def __init__(self, data: list, ci=0.95):
-        self.mean = np.mean(data)
-        self.std_dev = np.std(data, ddof=1)
-        self.std_err = self.std_dev / np.sqrt(data.shape[0])
-        t_score = t.ppf((1 + ci) / 2, df=data.shape[0] - 1)
-        self.ci_lower = self.mean - t_score * self.std_err
-        self.ci_upper = self.mean + t_score * self.std_err
-        
-class AggregateStatsObject:
-    def __init__(self, stats_objects: list[StatsObject]):
-        self.means = []
-        self.std_devs = []
-        self.std_errs = []
-        self.ci_lowers = []
-        self.ci_uppers = []
-        
-        for stat_object in stats_objects:
-            self.means.append(stat_object.mean)
-            self.std_devs.append(stat_object.std_dev)
-            self.std_errs.append(stat_object.std_err)
-            self.ci_lowers.append(stat_object.ci_lower)
-            self.ci_uppers.append(stat_object.ci_upper)
+def stats_over_models(raw: np.ndarray, ci=0.95):
+    """
+    raw: (M, E, ...)
+    returns dict with arrays of shape (E, ...)
+    NaNs ignored.
+    """
+    x = np.asarray(raw, dtype=np.float64)
+
+    finite = np.isfinite(x)
+    n = np.sum(finite, axis=0).astype(np.int64)
+
+    with np.errstate(invalid="ignore"):
+        mean = np.nanmean(x, axis=0)
+
+    x0 = x - mean[None, ...]
+    x0 = np.where(finite, x0, 0.0)
+    ss = np.sum(x0 * x0, axis=0)
+
+    denom = np.maximum(n - 1, 1)
+    std = np.sqrt(ss / denom)
+    std = np.where(n >= 2, std, 0.0)
+
+    se = np.where(n > 0, std / np.sqrt(np.maximum(n, 1)), np.nan)
+
+    df = np.maximum(n - 1, 1).astype(np.float64)
+    tcrit = t.ppf((1 + ci) / 2, df=df)
+    tcrit = np.where(n >= 2, tcrit, 0.0)
+
+    ci_lo = mean - tcrit * se
+    ci_hi = mean + tcrit * se
+
+    mean = np.where(n > 0, mean, np.nan)
+    std = np.where(n > 0, std, np.nan)
+    se = np.where(n > 0, se, np.nan)
+    ci_lo = np.where(n > 0, ci_lo, np.nan)
+    ci_hi = np.where(n > 0, ci_hi, np.nan)
+
+    return dict(mean=mean, std=std, se=se, ci_lo=ci_lo, ci_hi=ci_hi, n=n)

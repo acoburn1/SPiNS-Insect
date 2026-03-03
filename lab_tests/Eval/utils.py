@@ -2,11 +2,6 @@ import numpy as np
 from Statistics.StatHelper import *
 from DriverUtils.Zarr import load_slice
 
-def get_epoch_stats(data_array: np.ndarray, ci=0.95):
-    data_array = np.asarray(data_array, dtype=np.float64)
-    E = int(data_array.shape[1])
-    return AggregateStatsObject([StatsObject(data_array[:, e], ci=ci) for e in range(E)])
-
 def get_onehot_ids(probe_index: dict) -> np.ndarray:
     ids = probe_index.get("source=onehot", None)
     if ids is None:
@@ -18,3 +13,7 @@ def get_ratio_ids(probe_index: dict, ratio: str) -> np.ndarray:
     if ids is None:
         return np.asarray([], dtype=np.int64)
     return np.asarray(ids, dtype=np.int64)
+
+def assert_data_shape(eval: list[int], cfg: list[int], names: list[str]=None):
+    for (e, c, n) in zip(eval, cfg, names if names is not None else ["param"]*len(eval)):
+        assert e == c, f"Expected {n}={c} from config but got {e} in eval"
