@@ -1,4 +1,4 @@
-from scipy.stats import t
+from scipy.stats import t, ttest_rel
 import numpy as np
 
 def stats_over_models(raw: np.ndarray, ci=0.95):
@@ -39,3 +39,15 @@ def stats_over_models(raw: np.ndarray, ci=0.95):
     ci_hi = np.where(n > 0, ci_hi, np.nan)
 
     return dict(mean=mean, std=std, se=se, ci_lo=ci_lo, ci_hi=ci_hi, n=n)
+
+def paired_ttest(a: np.ndarray, b: np.ndarray) -> float:
+    a = np.asarray(a, dtype=np.float64)
+    b = np.asarray(b, dtype=np.float64)
+
+    good = np.isfinite(a) & np.isfinite(b)
+    if np.sum(good) < 2:
+        return np.nan
+
+    res = ttest_rel(a[good], b[good], nan_policy="omit")
+    p = getattr(res, "pvalue", np.nan)
+    return float(p) if np.isfinite(p) else np.nan

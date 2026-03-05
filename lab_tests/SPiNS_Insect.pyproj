@@ -14,7 +14,7 @@
     <RootNamespace>lab_tests</RootNamespace>
     <SuppressConfigureTestFrameworkPrompt>true</SuppressConfigureTestFrameworkPrompt>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <CommandLineArguments>-e -v -m "hls10-100-10.yaml"</CommandLineArguments>
+    <CommandLineArguments>-g -v -m "hls10-100-10.yaml"</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -27,23 +27,34 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="configs\utils.py" />
+    <Compile Include="DriverUtils\Organize.py" />
     <Compile Include="DriverUtils\Parser.py" />
     <Compile Include="DriverUtils\RMutils.py" />
     <Compile Include="DriverUtils\RunConfig.py" />
     <Compile Include="DriverUtils\Visual.py" />
     <Compile Include="DriverUtils\Zarr.py" />
+    <Compile Include="Eval\RatioExemplar-corrected.py" />
     <Compile Include="Eval\SigE.py" />
     <Compile Include="Eval\utils.py" />
     <Compile Include="Eval\Protocol.py" />
     <Compile Include="Eval\PCA.py" />
     <Compile Include="Model\Parameters.py" />
     <Compile Include="DataHelper\Probe.py" />
+    <Compile Include="Output\CorrelationHLS.py" />
+    <Compile Include="Output\EpochsHLSwK95Heatmap.py" />
+    <Compile Include="Output\K95HLS.py" />
+    <Compile Include="Output\MatrixCorrelation.py" />
+    <Compile Include="Output\Protocol.py" />
     <Compile Include="Output\schema\dependencies.py" />
     <Compile Include="Output\schema\OutputSpec.py" />
     <Compile Include="Output\schema\PlotOutput.py" />
     <Compile Include="DataHelper\utils.py" />
-    <Compile Include="Eval\Pearson.py" />
+    <Compile Include="Eval\Correlation.py" />
     <Compile Include="DataHelper\SpecialDataLoader.py" />
+    <Compile Include="Output\SeriesCorrelation.py" />
+    <Compile Include="Output\SigEHLS.py" />
+    <Compile Include="Output\utils.py" />
+    <Compile Include="Output\WithinVsBetweenCorrelation.py" />
     <Compile Include="program.py" />
     <Compile Include="Model\NeuralNetwork.py" />
     <Compile Include="Model\StandardModel.py" />

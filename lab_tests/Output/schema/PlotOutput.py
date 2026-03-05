@@ -143,7 +143,11 @@ def plot_output(spec: OutputSpec, save_dir: str) -> str:
             elif s.kind == PlotKind.BAR:
                 kw = {}
                 kw.update(_get_color(s))
-                ax.bar(x, y, label=s.label, **kw)
+                yerr = _get_err(s)
+                if yerr is not None and len(yerr) == len(x):
+                    ax.bar(x, y, yerr=yerr, capsize=4, label=s.label, **kw)
+                else:
+                    ax.bar(x, y, label=s.label, **kw)
 
         ax1.set_xlabel(spec.x_label or "", fontsize=12)
         ax1.set_ylabel(spec.y_label or "", fontsize=12)
@@ -183,7 +187,7 @@ def plot_output(spec: OutputSpec, save_dir: str) -> str:
 
         leg_fs = spec.legend_fontsize if spec.legend_fontsize is not None else 8
         leg_loc = spec.legend_loc or "best"
-        leg_ncol = spec.legend_ncol
+        leg_ncol = spec.legend_ncol if spec.legend_ncol is not None else 1
 
         if ax2 is not None:
             all_lines = left_lines + right_lines

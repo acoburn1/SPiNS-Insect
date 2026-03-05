@@ -1,17 +1,20 @@
 from dataclasses import dataclass
+from Eval.Correlation import LossEvaluator
 from configs.utils import resolve_cfgs
 import numpy as np
 import DataHelper.utils as DataUtils
 from DataHelper.Probe import build_probe
 import time
 import os
+from pathlib import Path
 from Model.StandardModel import StandardModel
 import DriverUtils.Visual as Visual
 from torch import kl_div, nn
 from DataHelper import SpecialDataLoader as SDL
 from DriverUtils.Zarr import build_zarr_from_results
 from DriverUtils.RMutils import get_reference_matrices_m_l
-from Output.schema.PlotOutput import * 
+from DriverUtils.Organize import group_graphs_by_name
+from Output.schema.PlotOutput import plot_output
 from Output.schema.dependencies import get_dependencies
 from Statistics.StatHelper import stats_over_models
 
@@ -56,6 +59,8 @@ class RunConfig:
         self.activations_dir = f"{dir_cfg['activation_data']}/{self.training_name}"
         self.analysis_dir = f"{dir_cfg['analysis_data']}/{self.training_name}"
         self.output_dir = f"{dir_cfg['output']}/{self.training_name}"
+
+        self.dependencies = get_dependencies(self.o_cfg)
 
     def train(self):
         """
@@ -124,13 +129,14 @@ class RunConfig:
         Evaluates activations and saves the results to npz files.
         sig_epoch data is organized as a binary mask of shape (M, E) indicating whether each epoch is significant or not.
         The rest of the data is saved as a dictionary with keys 'raw', 'mean', 'std', 'se', 'ci_lo', 'ci_hi', and 'n', where
-        'raw' is always organized as one value/object per condition, per epoch, per model with shape (M, E, C, D) and 
-        the rest of the keys are arrays of shape (E, C, D) with statistics computed across models
+        'raw' is always organized as one value/object per condition(s), per epoch, per model with shape (M, E, C1, ..., Cn, D) and 
+        the rest of the keys are arrays of shape (E, C1, ..., Cn, D) with statistics computed across models
         """
-        dependencies, sige = get_dependencies(self.o_cfg)
+        evaluators = self.dependencies.evaluation_fns
+        sige = self.dependencies.sige
 
         pair_n = int(len(self.hidden_layer_range) * len(self.learning_rate_range))
-        eval_n = int(len(dependencies) + (1 if sige else 0))
+        eval_n = int(len(evaluators) + (1 if sige else 0))
 
         vis = None
         if self.visual:
@@ -160,7 +166,7 @@ class RunConfig:
                         vis.lr = float(LR)
                         vis.pair_i = int(pair_i)
 
-                    for ev_i, evaluator in enumerate(dependencies):
+                    for ev_i, evaluator in enumerate(evaluators):
                         if vis is not None:
                             vis.set_eval(evaluator.name, ev_i)
 
@@ -197,7 +203,29 @@ class RunConfig:
                 vis.close()
 
     def generate_output(self):
-        pass
+        print(Visual.get_dim(f"Saving plots to {self.output_dir} (or subdirectories)..."))
+
+        hyperd_out_fns = self.dependencies.hyperd_output_fns
+        out_fns = self.dependencies.output_fns
+        cfgs = self.dependencies.cfgs
+
+        for fn in hyperd_out_fns:
+            os.makedirs(self.output_dir, exist_ok=True)
+            specs = fn.generate_output(cfgs[fn], self.analysis_dir)
+            for spec in specs:
+                plot_output(spec, f"{self.output_dir}/{fn.name}")
+
+        for HLS in self.hidden_layer_range:
+            for LR in self.learning_rate_range:
+                output_dir = self._add_suffix(self.output_dir, HLS, LR)
+                analysis_dir = self._add_suffix(self.analysis_dir, HLS, LR)
+                for fn in out_fns:
+                    os.makedirs(output_dir, exist_ok=True)
+                    specs = fn.generate_output(cfgs[fn], analysis_dir)
+                    for spec in specs:
+                        plot_output(spec, f"{output_dir}/{fn.name}")
+        
+        group_graphs_by_name(Path(self.output_dir).parent)
 
     @staticmethod
     def _add_suffix(d: str, hls: int, lr: float) -> str:
