@@ -39,6 +39,8 @@ class MatrixCorrelationOutput:
                             grid=False,
                             figsize=(10, 8),
                             dpi=300,
+                            matrix_vmin=0.0,
+                            matrix_vmax=1.0,
                         )
                     )
 

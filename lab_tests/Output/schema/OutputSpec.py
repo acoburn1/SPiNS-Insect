@@ -1,4 +1,3 @@
-# OutputSpec.py
 from dataclasses import dataclass
 from enum import Enum
 from typing import Optional, List, Tuple
@@ -63,6 +62,7 @@ class Series:
     xerr: Optional[List[float]] = None
     ci_lower: Optional[List[float]] = None
     ci_upper: Optional[List[float]] = None
+    ci_caps: Optional[bool] = False
 
     color: Optional[Color] = None
     linestyle: Optional[LineStyle] = None
@@ -111,3 +111,12 @@ class OutputSpec:
 
     figsize: Tuple[float, float] = (12, 8)
     dpi: int = 300
+
+    # matrix-specific options
+    matrix_vmin: Optional[float] = None
+    matrix_vmax: Optional[float] = None
+    matrix_split: Optional[float] = None
+    matrix_cmap_neg: str = "Blues"
+    matrix_cmap_pos: str = "Greens"
+    matrix_center_color: str = "white"
+    matrix_colorbar: bool = True

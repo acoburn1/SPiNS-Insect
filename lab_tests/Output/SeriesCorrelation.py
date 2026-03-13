@@ -13,7 +13,7 @@ class SeriesCorrelationOutput:
         loss_mean, loss_lo, loss_hi = load_mean_ci(os.path.join(analysis_dir, "Loss.npz"))
 
         n_epochs = corr_mean.shape[0]
-        epochs = np.arange(1, n_epochs + 1, dtype=np.float64)
+        epochs = np.arange(n_epochs, dtype=np.float64)
 
         spec_h = OutputSpec(
             figure_id=spec_cfg.get("name", "series_correlation_hidden"),
@@ -21,6 +21,7 @@ class SeriesCorrelationOutput:
             x_label="Epoch",
             y_label="Correlation Value",
             y2_label="Loss",
+            x_lim=[0, n_epochs - 1],
             y_lim=[0.0, 1.0],
             legend_loc="upper right",
             legend_fontsize=10,

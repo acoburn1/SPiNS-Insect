@@ -1,0 +1,4 @@
+MatrixCorrelation:
+  present: true
+  per_epoch: true
+  epochs: all

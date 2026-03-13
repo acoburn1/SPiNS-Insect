@@ -22,7 +22,7 @@ def group_graphs_by_name(output_dir: str) -> None:
         run_name = run_dir.name
 
         for graph_type_dir in run_dir.iterdir():
-            if not graph_type_dir.is_dir():
+            if not graph_type_dir.is_dir() or len(list(graph_type_dir.iterdir())) > 10:
                 continue
 
             for file_path in graph_type_dir.iterdir():

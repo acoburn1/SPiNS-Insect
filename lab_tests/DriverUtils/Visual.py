@@ -1,4 +1,5 @@
 import time
+import sys
 from dataclasses import dataclass
 from tqdm import tqdm
 
@@ -36,7 +37,11 @@ def print_cfgs(cfgs):
 
     print(f"\n{CYAN}{BOLD}\\ --------------------------------{RESET}\n")
 
-def get_dim(s: str):
+def status(msg: str):
+        sys.stdout.write("\r\033[K" + _get_dim(msg))
+        sys.stdout.flush()
+
+def _get_dim(s: str):
     return f"{DIM}{s}{RESET}"
 
 
@@ -70,8 +75,9 @@ class ModelVisualInfo:
     def note(self, s: str):
         self._note = str(s)
         self._render(epoch_i=None, loss=None)
-        def next_model(self, model_i: int):
-            self.model_i = model_i
+
+    def next_model(self, model_i: int):
+        self.model_i = model_i
 
     def _render(self, epoch_i, loss):
         if self._line is None:

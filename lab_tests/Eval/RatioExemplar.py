@@ -1,4 +1,3 @@
-import os
 import numpy as np
 from DriverUtils.Zarr import load_slice
 from Eval.utils import *
@@ -7,17 +6,45 @@ from Eval.utils import *
 class RatioTestEvaluator:
     name = "RatioTest"
 
-    def run(self, cfg, zarr_path: str, vis=None) -> np.ndarray:
-        alt = cfg.alt
-        ratio_labels, ratio_to_pos = _ratio_positions(alt=alt)
-        n_sets = 7
+    def run(self, cfg, zarr_path: str, vis=None):
+        ratio_labels, ratio_to_pos = _ratio_positions(alt=cfg.alt)
+        set_labels = _set_axis_labels(cfg.probe_index)
 
-        mod_exemplar_ids = _ids_for_conditions(cfg.probe_index, source="exemplar", category="mod")
-        lat_exemplar_ids = _ids_for_conditions(cfg.probe_index, source="exemplar", category="lat")
+        n_ratios = len(ratio_labels)
+        n_sets = len(set_labels)
 
-        ratio_ids_by_label = {r: get_ratio_ids(cfg.probe_index, r) for r in ratio_labels}
+        mod_exemplar_ids = _ids_for_conditions(
+            cfg.probe_index,
+            source="exemplar",
+            category="mod",
+        )
+        lat_exemplar_ids = _ids_for_conditions(
+            cfg.probe_index,
+            source="exemplar",
+            category="lat",
+        )
 
-        all_ratio_ids = np.concatenate([v for v in ratio_ids_by_label.values() if v.size], axis=0) if ratio_ids_by_label else np.asarray([], dtype=np.int64)
+        ratio_set_ids = {}
+        trial_counts = np.zeros((n_ratios, n_sets), dtype=np.int64)
+
+        for r in ratio_labels:
+            r_idx = ratio_to_pos[r]
+            for s_idx, s in enumerate(set_labels):
+                ids = _ids_for_conditions(
+                    cfg.probe_index,
+                    source="ratio",
+                    ratio=r,
+                    sets=s,
+                )
+                ratio_set_ids[(r, s)] = ids
+                trial_counts[r_idx, s_idx] = int(ids.size)
+
+        all_ratio_ids = [ids for ids in ratio_set_ids.values() if ids.size > 0]
+        all_ratio_ids = (
+            np.concatenate(all_ratio_ids, axis=0)
+            if all_ratio_ids
+            else np.asarray([], dtype=np.int64)
+        )
 
         probe_ids = np.asarray(
             sorted(
@@ -29,58 +56,85 @@ class RatioTestEvaluator:
         )
 
         hid, _, _ = load_slice(zarr_path, probe_ids=probe_ids)
-        reps = np.asarray(hid, dtype=np.float64)  # (M,E,Psel,H)
+        reps = np.asarray(hid, dtype=np.float64)  # (M, E, Psel, H)
 
         M, E = int(reps.shape[0]), int(reps.shape[1])
         assert_data_shape([M, E], [cfg.num_models, cfg.eval_epochs], ["M", "E"])
-        out = np.full((M, E, n_sets), np.nan, dtype=np.float64)
+
+        out = np.full((M, E, n_ratios, n_sets), np.nan, dtype=np.float64)
 
         mod_local = _to_local(probe_ids, mod_exemplar_ids)
         lat_local = _to_local(probe_ids, lat_exemplar_ids)
 
-        ratio_locals = []
-        ratio_pos_for_rows = []
-
+        ratio_set_locals = {}
         for r in ratio_labels:
-            ids = ratio_ids_by_label[r]
-            if ids.size == 0:
-                continue
-            local = _to_local(probe_ids, ids)
-            if local.size == 0:
-                continue
-            pos = ratio_to_pos[r]
-            ratio_locals.append(local)
-            ratio_pos_for_rows.append(np.full((local.size,), pos, dtype=np.int64))
+            for s in set_labels:
+                ratio_set_locals[(r, s)] = _to_local(probe_ids, ratio_set_ids[(r, s)])
 
-        if mod_local.size == 0 or lat_local.size == 0 or not ratio_locals:
-            return out
+        metadata = {
+            "ratio_labels": ratio_labels,
+            "set_labels": set_labels,
+            "trial_counts": trial_counts,
+        }
 
-        all_ratio_local = np.concatenate(ratio_locals, axis=0).astype(np.int64, copy=False)
-        pos_of_trial_row = np.concatenate(ratio_pos_for_rows, axis=0).astype(np.int64, copy=False)
+        if mod_local.size == 0 or lat_local.size == 0:
+            return out, metadata
 
         for m in range(M):
             for e in range(E):
                 if vis is not None:
                     vis.update(m, e)
 
-                mod_ex = reps[m, e, mod_local, :]  # (Em,H)
-                lat_ex = reps[m, e, lat_local, :]  # (El,H)
-                trials = reps[m, e, all_ratio_local, :]  # (T,H)
+                mod_ex = reps[m, e, mod_local, :]
+                lat_ex = reps[m, e, lat_local, :]
 
-                pref = _trial_prefers_mod(trials, mod_ex, lat_ex)  # (T,) bool or empty
-                if pref.size == 0:
-                    continue
+                for r in ratio_labels:
+                    r_idx = ratio_to_pos[r]
 
-                pref_i = pref.astype(np.int64, copy=False)
-                sums = np.bincount(pos_of_trial_row, weights=pref_i, minlength=n_sets).astype(np.float64, copy=False)
-                cnts = np.bincount(pos_of_trial_row, minlength=n_sets).astype(np.float64, copy=False)
+                    for s_idx, s in enumerate(set_labels):
+                        local = ratio_set_locals[(r, s)]
+                        if local.size == 0:
+                            continue
 
-                with np.errstate(divide="ignore", invalid="ignore"):
-                    rates = sums / cnts
+                        trials = reps[m, e, local, :]
+                        pref = _trial_prefers_mod(trials, mod_ex, lat_ex)
 
-                out[m, e, :] = rates
+                        if pref.size == 0:
+                            continue
 
-        return out
+                        out[m, e, r_idx, s_idx] = float(np.mean(pref.astype(np.float64, copy=False)))
+
+        return out, metadata
+
+def _set_axis_labels(probe_index: dict) -> list[str]:
+    preferred = [
+        "both-core",
+        "both-core-whole",
+        "both-wrong",
+        "lat-core",
+        "mod-core",
+        "no-core",
+    ]
+
+    present = []
+    for s in preferred:
+        ids = _ids_for_conditions(probe_index, source="ratio", sets=s)
+        if ids.size > 0:
+            present.append(s)
+
+    extras = []
+    for k in probe_index.keys():
+        if not k.startswith("sets="):
+            continue
+        s = k.split("=", 1)[1].strip("'\"")
+        if s in present or s in preferred:
+            continue
+        ids = _ids_for_conditions(probe_index, source="ratio", sets=s)
+        if ids.size > 0:
+            extras.append(s)
+
+    return present + sorted(extras)
+
 
 def _to_local(sorted_probe_ids: np.ndarray, ids: np.ndarray) -> np.ndarray:
     ids = np.asarray(ids, dtype=np.int64)
@@ -117,8 +171,8 @@ def _trial_prefers_mod(trials: np.ndarray, mod_exemplars: np.ndarray, lat_exempl
     if H <= 0:
         return np.asarray([], dtype=bool)
 
-    mod_corrs = (zT @ zM.T) / H  # (T,Em)
-    lat_corrs = (zT @ zL.T) / H  # (T,El)
+    mod_corrs = (zT @ zM.T) / H
+    lat_corrs = (zT @ zL.T) / H
 
     avg_mod = np.nanmean(mod_corrs, axis=1)
     avg_lat = np.nanmean(lat_corrs, axis=1)
@@ -132,17 +186,37 @@ def _trial_prefers_mod(trials: np.ndarray, mod_exemplars: np.ndarray, lat_exempl
 def _ids_for_conditions(probe_index: dict, **conds) -> np.ndarray:
     hit = None
     for k, v in conds.items():
-        ids = probe_index.get(f"{k}={v}", [])
+        ids = _get_ids_for_value(probe_index, k, v)
         s = set(int(i) for i in ids)
         hit = s if hit is None else (hit & s)
+
     if not hit:
         return np.asarray([], dtype=np.int64)
+
     return np.asarray(sorted(hit), dtype=np.int64)
+
+
+def _get_ids_for_value(probe_index: dict, key: str, value) -> np.ndarray:
+    candidates = [f"{key}={value}"]
+    if isinstance(value, str):
+        candidates.append(f"{key}='{value}'")
+        candidates.append(f'{key}="{value}"')
+
+    found = set()
+    for cand in candidates:
+        ids = probe_index.get(cand, [])
+        found.update(int(i) for i in ids)
+
+    if not found:
+        return np.asarray([], dtype=np.int64)
+
+    return np.asarray(sorted(found), dtype=np.int64)
 
 
 def _ratio_positions(alt: bool):
     if not alt:
         ratios = ["0:6", "1:5", "2:4", "3:3", "4:2", "5:1", "6:0"]
         return ratios, {r: i for i, r in enumerate(ratios)}
+
     ratios = ["0:5", "1:4", "2:3", "2:2", "3:2", "4:1", "5:0"]
     return ratios, {r: i for i, r in enumerate(ratios)}

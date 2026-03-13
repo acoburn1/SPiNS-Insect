@@ -37,7 +37,7 @@ class WithinVsBetweenCorrelationOutput:
         hi = st["ci_hi"]
 
         n_epochs = mean.shape[0]
-        epochs = np.arange(1, n_epochs + 1, dtype=np.float64)
+        epochs = np.arange(n_epochs, dtype=np.float64)
 
         spec_h = OutputSpec(
             figure_id=spec_cfg.get("name", "within_vs_between_hidden"),
@@ -45,6 +45,7 @@ class WithinVsBetweenCorrelationOutput:
             x_label="Epoch",
             y_label="Within - Between",
             y2_label="Loss",
+            x_lim=[0, n_epochs - 1],
             y_lim=[0,1],
             legend_loc="upper right",
             legend_fontsize=10,
@@ -171,8 +172,8 @@ def _lat_score(cm: np.ndarray) -> float:
     row_scores = []
     n = 8
     for i in range(n):
-        within_idx = [((i - 2) % n), ((i - 1) % n), ((i + 1) % n), ((i + 2) % n)]
-        between_idx = [j for j in range(n) if j != i and j not in within_idx]
+        within_idx = [((i - 1) % n), ((i + 1) % n)]
+        between_idx = [j for j in range(n) if j != i and j not in (within_idx + [((i - 2) % n), ((i + 2) % n)])]
 
         within_mean = np.nanmean(X[i, within_idx])
         between_mean = np.nanmean(X[i, between_idx])

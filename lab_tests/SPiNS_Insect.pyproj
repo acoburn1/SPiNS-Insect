@@ -14,7 +14,7 @@
     <RootNamespace>lab_tests</RootNamespace>
     <SuppressConfigureTestFrameworkPrompt>true</SuppressConfigureTestFrameworkPrompt>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <CommandLineArguments>-g -v -m "hls10-100-10.yaml"</CommandLineArguments>
+    <CommandLineArguments>-g -m "hls4-20-2.yaml" -o "epochshlswk95heatmap.yaml"</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -33,24 +33,28 @@
     <Compile Include="DriverUtils\RunConfig.py" />
     <Compile Include="DriverUtils\Visual.py" />
     <Compile Include="DriverUtils\Zarr.py" />
-    <Compile Include="Eval\RatioExemplar-corrected.py" />
+    <Compile Include="Eval\RatioExemplar.py" />
     <Compile Include="Eval\SigE.py" />
     <Compile Include="Eval\utils.py" />
     <Compile Include="Eval\Protocol.py" />
     <Compile Include="Eval\PCA.py" />
     <Compile Include="Model\Parameters.py" />
     <Compile Include="DataHelper\Probe.py" />
+    <Compile Include="Output\AllModels33OverEpochs.py" />
+    <Compile Include="Output\AllModelsSCurve.py" />
     <Compile Include="Output\CorrelationHLS.py" />
     <Compile Include="Output\EpochsHLSwK95Heatmap.py" />
     <Compile Include="Output\K95HLS.py" />
     <Compile Include="Output\MatrixCorrelation.py" />
     <Compile Include="Output\Protocol.py" />
+    <Compile Include="Output\RatioOverEpochs.py" />
     <Compile Include="Output\schema\dependencies.py" />
     <Compile Include="Output\schema\OutputSpec.py" />
     <Compile Include="Output\schema\PlotOutput.py" />
     <Compile Include="DataHelper\utils.py" />
     <Compile Include="Eval\Correlation.py" />
     <Compile Include="DataHelper\SpecialDataLoader.py" />
+    <Compile Include="Output\SCurve.py" />
     <Compile Include="Output\SeriesCorrelation.py" />
     <Compile Include="Output\SigEHLS.py" />
     <Compile Include="Output\utils.py" />
@@ -59,7 +63,6 @@
     <Compile Include="Model\NeuralNetwork.py" />
     <Compile Include="Model\StandardModel.py" />
     <Compile Include="Statistics\StatHelper.py" />
-    <Compile Include="Eval\RatioExemplar.py" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="configs\model\" />
@@ -96,9 +99,15 @@
     <Content Include="configs\data\mod-lat2_5-5_whole.yaml" />
     <Content Include="configs\data\default.yaml" />
     <Content Include="configs\model\default.yaml" />
+    <Content Include="configs\model\hls4-20-2.yaml" />
     <Content Include="configs\model\hls10-100-10.yaml" />
+    <Content Include="configs\output\allmodels33overepochs.yaml" />
+    <Content Include="configs\output\allmodelsscurve.yaml" />
     <Content Include="configs\output\default.yaml" />
     <Content Include="configs\directory\default.yaml" />
+    <Content Include="configs\output\epochshlswk95heatmap.yaml" />
+    <Content Include="configs\output\matrixcorrelation.yaml" />
+    <Content Include="configs\output\scurve.yaml" />
     <Content Include="configs\probe\default.yaml" />
     <Content Include="Data\Exemplar\alt-lat_exemplars.csv" />
     <Content Include="Data\Exemplar\original_exemplars.csv" />

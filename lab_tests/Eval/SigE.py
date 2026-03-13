@@ -20,7 +20,7 @@ class SignificantEpochEvaluator:
             np.isfinite(mod_r) & np.isfinite(lat_r) &
             np.isfinite(mod_p) & np.isfinite(lat_p) &
             (mod_p < 0.05) & (lat_p < 0.05) &
-            ((mod_r - lat_r) >= diff_threshold)
+            (np.absolute(mod_r - lat_r) <= diff_threshold)
         )
 
-        return ok.astype(np.uint8)
+        return ok.astype(np.uint8), None

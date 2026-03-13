@@ -8,7 +8,14 @@ MatrixCorrelation:
 RatioOverEpochs:
   present: true
   per_epoch: false
+AllModels33OverEpochs:
+  present: true
+  per_epoch: false
 SCurve:
+  present: true
+  per_epoch: true
+  epochs: sig
+AllModelsSCurve:
   present: true
   per_epoch: true
   epochs: sig

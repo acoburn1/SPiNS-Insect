@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import colors, cm
 from Output.schema.OutputSpec import OutputSpec, PlotKind, YAxis, Aspect
 
 
@@ -27,6 +28,7 @@ def plot_output(spec: OutputSpec, save_dir: str) -> str:
                     color=rl.color.value,
                     alpha=float(rl.alpha),
                     linewidth=float(rl.linewidth),
+                    zorder=1
                 )
             else:
                 ax.axhline(
@@ -35,6 +37,7 @@ def plot_output(spec: OutputSpec, save_dir: str) -> str:
                     color=rl.color.value,
                     alpha=float(rl.alpha),
                     linewidth=float(rl.linewidth),
+                    zorder=1
                 )
 
     def _get_color(s):
@@ -84,6 +87,8 @@ def plot_output(spec: OutputSpec, save_dir: str) -> str:
             x = np.asarray(s.x, dtype=float)
             y = np.asarray(s.y, dtype=float)
 
+            capthick = 0 if not s.ci_caps else 2
+
             style = {}
             style.update(_get_color(s))
             style.update(_get_linestyle(s))
@@ -107,12 +112,23 @@ def plot_output(spec: OutputSpec, save_dir: str) -> str:
                 yerr = _get_err(s)
 
                 if lo is not None and hi is not None and len(lo) == len(x) == len(hi):
+                    style.setdefault("zorder", 4)
                     lines = ax.plot(x, y, label=s.label, **style)
+
+                    err_color = style.get("color", None)
+                    err_alpha = min(0.9, style.get("alpha", 1.0))
+                    err_z = style.get("zorder", 4)
+                    cap_halfwidth = 0.04 if getattr(s, "ci_caps", False) else 0.0
+
                     for xi, l, u in zip(x, lo, hi):
                         if np.isfinite(xi) and np.isfinite(l) and np.isfinite(u):
-                            ax.plot([xi, xi], [l, u], linewidth=1, alpha=min(0.9, style.get("alpha", 1.0)), **{k: v for k, v in style.items() if k in ("color",)})
+                            ax.plot([xi, xi], [l, u], color=err_color, linewidth=1.5, alpha=err_alpha, zorder=err_z)
+
+                            if cap_halfwidth > 0:
+                                ax.plot([xi - cap_halfwidth, xi + cap_halfwidth], [l, l], color=err_color, linewidth=1.5, alpha=err_alpha, zorder=err_z)
+                                ax.plot([xi - cap_halfwidth, xi + cap_halfwidth], [u, u], color=err_color, linewidth=1.5, alpha=err_alpha, zorder=err_z)
                 elif yerr is not None and len(yerr) == len(x):
-                    ax.errorbar(x, y, yerr=yerr, label=s.label, capsize=4, **style)
+                    ax.errorbar(x, y, yerr=yerr, label=s.label, capsize=4, capthick=capthick, **style)
                     lines = []
                 else:
                     lines = ax.plot(x, y, label=s.label, **style)
@@ -201,11 +217,52 @@ def plot_output(spec: OutputSpec, save_dir: str) -> str:
 
     else:
         mat = np.asarray(spec.matrix, dtype=float)
-        im = ax1.imshow(mat, aspect="auto")
-        fig.colorbar(im, ax=ax1)
+
+        vmin = spec.matrix_vmin
+        vmax = spec.matrix_vmax
+
+        if vmin is None:
+            vmin = float(np.nanmin(mat))
+        if vmax is None:
+            vmax = float(np.nanmax(mat))
+
+        if vmin >= vmax:
+            raise ValueError("matrix_vmin must be less than matrix_vmax.")
+
+        imshow_kwargs = {
+            "aspect": "auto",
+            "vmin": vmin,
+            "vmax": vmax,
+        }
+
+        if spec.matrix_split is not None:
+            imshow_kwargs["cmap"] = _build_split_cmap(
+                vmin=vmin,
+                split=float(spec.matrix_split),
+                vmax=vmax,
+                neg_name=spec.matrix_cmap_neg,
+                pos_name=spec.matrix_cmap_pos,
+                center_color=spec.matrix_center_color,
+            )
+
+        im = ax1.imshow(mat, **imshow_kwargs)
+
+        if spec.matrix_colorbar:
+            fig.colorbar(im, ax=ax1)
+
         ax1.set_title(spec.title or "", fontsize=14)
         ax1.set_xlabel(spec.x_label or "", fontsize=12)
         ax1.set_ylabel(spec.y_label or "", fontsize=12)
+
+        if spec.x_ticks is not None:
+            ax1.set_xticks([float(v) for v in spec.x_ticks])
+        if spec.y_ticks is not None:
+            ax1.set_yticks([float(v) for v in spec.y_ticks])
+
+        if spec.x_ticklabels is not None:
+            ax1.set_xticklabels([str(v) for v in spec.x_ticklabels])
+        if spec.y_ticklabels is not None:
+            ax1.set_yticklabels([str(v) for v in spec.y_ticklabels])
 
         if spec.grid:
             ax1.grid(False)
@@ -215,3 +272,27 @@ def plot_output(spec: OutputSpec, save_dir: str) -> str:
     plt.savefig(save_path, dpi=int(spec.dpi), bbox_inches="tight")
     plt.close(fig)
     return save_path
+
+
+def _build_split_cmap(vmin, split, vmax, neg_name="Blues", pos_name="Reds", center_color="white", n=512):
+    if not (vmin < split < vmax):
+        raise ValueError("matrix_split must be strictly between matrix_vmin and matrix_vmax.")
+
+    split_pos = (split - vmin) / (vmax - vmin)
+
+    neg_n = max(2, int(round(n * split_pos)))
+    pos_n = max(2, n - neg_n)
+
+    neg_base = cm.get_cmap(neg_name)
+    pos_base = cm.get_cmap(pos_name)
+
+    center_rgba = colors.to_rgba(center_color)
+
+    neg_colors = neg_base(np.linspace(1.0, 0.15, neg_n))
+    pos_colors = pos_base(np.linspace(0.15, 1.0, pos_n))
+
+    neg_colors[-1] = center_rgba
+    pos_colors[0] = center_rgba
+
+    all_colors = np.vstack([neg_colors, pos_colors])
+    return colors.ListedColormap(all_colors, name="split_abs_cmap")

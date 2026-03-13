@@ -30,7 +30,7 @@ class K95Evaluator:
                 if vis is not None:
                     vis.update(m, e)
 
-        return out
+        return out, None
         
 
 def pca_embedding(A_rows, target=0.95):
@@ -47,11 +47,11 @@ def pca_embedding(A_rows, target=0.95):
     var_ratio = evals / evals.sum()
     cume = np.cumsum(var_ratio)
     k95 = np.searchsorted(cume, target) + 1
-    return X_proj, evals, var_ratio, cume, k95
+    return k95, X_proj
 
 
 def get_pcns_mod_lat(activations, num_features):
-    _, _, _, _, km = pca_embedding(activations[:num_features])
-    _, _, _, _, kl = pca_embedding(activations[num_features:])
+    km, _ = pca_embedding(activations[:num_features])
+    kl, _ = pca_embedding(activations[num_features:])
     return km, kl
     

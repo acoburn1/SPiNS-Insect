@@ -1,5 +1,3 @@
 training_data: Data/Training
 reference_matrices: Data/ReferenceMatrices
-activation_data: Results/ActivationData
-analysis_data: Results/AnalysisData
-output: Results/Output
+results: Results

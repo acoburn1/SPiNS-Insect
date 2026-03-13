@@ -61,7 +61,7 @@ class EpochsHLSwK95HeatmapOutput:
                     x_ticks=[float(i) for i in range(len(hls_values))],
                     x_ticklabels=[str(h) for h in hls_values],
                     y_ticks=[float(i) for i in range(len(sample_epochs))],
-                    y_ticklabels=[str(e) for e in sample_epochs],
+                    y_ticklabels=[str(e) for e in sample_epochs]
                 )
             )
 
@@ -86,6 +86,7 @@ class EpochsHLSwK95HeatmapOutput:
                     x_ticklabels=[str(h) for h in hls_values],
                     y_ticks=[float(i) for i in range(len(sample_epochs))],
                     y_ticklabels=[str(e) for e in sample_epochs],
+                    matrix_split=0.0 
                 )
             )
 
