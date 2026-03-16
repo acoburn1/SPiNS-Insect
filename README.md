@@ -3,37 +3,23 @@ working summary: https://docs.google.com/document/d/1QnrTfTMwoMHdTw7BSiUTkRQp3Au
 
 # Category Learning Pipeline
 
-This project is a Python research pipeline for training neural network models on category learning tasks, saving their activations, running post-training evaluations, and generating plots from those evaluation results.
+This project trains neural network models on category learning tasks, saves hidden and output activations, runs evaluation modules on the saved activations, and generates plots from the resulting analysis files.
 
-## Overview
-
-The pipeline is organized into five main stages:
-
-1. Train models
-2. Save hidden and output activations
-3. Run evaluation modules on saved activations
-4. Save evaluator results to analysis files
-5. Generate plots from those analysis files
-
-The main idea is that training and evaluation are separated. Models are trained once, activations are saved once, and many different evaluators can then reuse those saved activations without rerunning training.
-
-## High-Level Workflow
+## Pipeline
 
 ```text
 Train models
     ↓
 Save activations to Zarr
     ↓
-Run evaluator modules
+Run evaluators
     ↓
-Save evaluation outputs to NPZ
+Save analysis outputs to NPZ
     ↓
-Generate plots from output functions
+Generate plots
 ```
 
-## Directory Structure
-
-Typical directories look like this:
+## Directory Layout
 
 ```text
 Data/
@@ -41,12 +27,12 @@ Data/
     ReferenceMatrices/
 
 Results/
-    ActivationData/   # saved Zarr activations
-    AnalysisData/     # evaluator outputs (.npz)
-    Output/           # generated plots
+    ActivationData/
+    AnalysisData/
+    Output/
 ```
 
-When running hyperparameter sweeps, each hidden-layer-size / learning-rate pair gets its own suffixed directory. For example:
+For hyperparameter sweeps, results are written to suffixed directories such as:
 
 ```text
 Results/ActivationData/..._hls10_lr0p04
@@ -54,57 +40,42 @@ Results/AnalysisData/..._hls10_lr0p04
 Results/Output/..._hls10_lr0p04
 ```
 
-## Main Components
+## Main Parts
 
 ### Training
 
 Training is handled by `StandardModel`.
 
-Its job is to:
+It trains the model over epochs and records:
 
-- initialize the model
-- train it over epochs
-- probe the model after initialization and after each epoch
-- return hidden activations, output activations, and losses
-
-The training stage is responsible for producing the raw activation data that everything else depends on.
+- hidden activations
+- output activations
+- losses
 
 ### Activation Storage
 
-Activations are saved in Zarr format.
+Activations are saved in Zarr.
 
-This is useful because evaluators usually only need a subset of the probe rows, and Zarr allows those subsets to be loaded efficiently without rerunning the model.
+Evaluators use `DriverUtils/Zarr.py` and `load_slice(...)` to load only the probe rows they need.
 
-Important utility location:
-
-- `DriverUtils/Zarr.py`
-
-Important helper:
-
-- `load_slice(...)`
-
-This helper is used by evaluators to load only the probe activations they need.
-
-### Probe System
+### Probe Index
 
 Probe examples are organized through a `probe_index`.
 
-The probe index maps metadata conditions to probe IDs, so evaluators can request subsets such as:
+This is used to select subsets such as:
 
-- exemplars vs ratio trials
+- exemplar vs ratio trials
 - modular vs lattice
-- specific ratio conditions like `3:3`
-- specific set labels within a ratio
+- specific ratios
+- specific set labels
 
-This lets evaluation code stay clean and modular.
+### Evaluators
 
-### Evaluation
+Evaluators are located in `Eval/`.
 
-Evaluators live in `Eval/`.
+Each evaluator reads saved activations and returns raw evaluation output, optionally with metadata.
 
-Each evaluator reads saved activations and computes a metric from them.
-
-Typical evaluator interface:
+Typical interface:
 
 ```python
 class SomeEvaluator:
@@ -115,25 +86,17 @@ class SomeEvaluator:
         return raw
 ```
 
-Some evaluators may also return metadata:
+or
 
 ```python
 return raw, metadata
 ```
 
-Examples of evaluator outputs include:
-
-- correlation statistics
-- matrix correlations
-- ratio test scores
-- PCA / K95 values
-- loss values
-
-Evaluator results are saved as `.npz` files in `Results/AnalysisData/`.
+Evaluator outputs are saved as `.npz` files in `Results/AnalysisData/`.
 
 ### Analysis Files
 
-Each analysis file usually contains things like:
+Analysis files usually contain:
 
 - `raw`
 - `mean`
@@ -143,33 +106,15 @@ Each analysis file usually contains things like:
 - `ci_hi`
 - `n`
 
-Some files may also include metadata such as:
+Some also include metadata such as axis labels, ratio labels, set labels, source labels, category labels, or trial counts.
 
-- ratio labels
-- set labels
-- trial counts
-- source labels
-- category labels
+### Output Functions
 
-This makes the saved analysis files more self-describing and helps output functions avoid hardcoding axis meanings.
+Output functions are located in `Output/`.
 
-### Output / Plotting
+They read saved analysis files and build `OutputSpec` objects, which are then rendered by the plotting layer.
 
-Output functions live in `Output/`.
-
-Each output function reads one or more saved analysis files and converts them into `OutputSpec` objects.
-
-Those `OutputSpec` objects are then rendered by the plotting layer.
-
-This keeps:
-
-- evaluation logic
-- statistical summaries
-- plotting logic
-
-separate from one another.
-
-Typical output interface:
+Typical interface:
 
 ```python
 class SomeOutput:
@@ -181,80 +126,20 @@ class SomeOutput:
         return [spec1, spec2, ...]
 ```
 
-Hyperparameter-dependent outputs may instead read from the shared analysis root and combine information across multiple HLS/LR subdirectories.
+Some outputs read from a single analysis directory. Others combine data across multiple HLS/LR directories.
 
-## Design Goals
+## Run Structure
 
-### Post-Training Evaluation
+A typical run consists of:
 
-Evaluations operate on saved activations rather than being embedded directly into training.
-
-This makes the pipeline easier to debug, reuse, and extend.
-
-### Reusable Activations
-
-Hidden and output activations are saved once and reused by many evaluators.
-
-This avoids repeated forward passes and keeps evaluation modular.
-
-### Separation of Concerns
-
-Training, storage, evaluation, statistics, and plotting are intentionally separated.
-
-That makes it easier to:
-
-- add new evaluators
-- add new output functions
-- change plotting without rewriting evaluators
-- compare multiple outputs from the same saved activations
-
-### Config-Driven Organization
-
-The pipeline is config-driven.
-
-Different configuration groups control:
-
-- data behavior
-- model behavior
-- output behavior
-- probe definitions
-- directory structure
-
-This helps keep experiments organized and reproducible.
-
-## Typical Pipeline Behavior
-
-A normal run looks like this:
-
-```text
-Train
-  -> save Zarr activations
-  -> run evaluators
-  -> save NPZ analysis files
-  -> generate plots
-```
-
-In practice, this means:
-
-1. a model is trained
-2. activations and losses are saved
-3. evaluators compute metrics from those saved activations
-4. outputs read evaluator results and build plots
+1. training a model or sweep
+2. saving activations
+3. running evaluators
+4. saving analysis files
+5. generating plots
 
 ## Notes
 
-- Hyperparameter-dependent outputs can combine data across multiple HLS/LR directories
-- Analysis files may include metadata when the axis meaning is not obvious
-- Output functions should prefer reading saved metadata instead of hardcoding labels or axis assumptions
-- The plotting layer is intentionally downstream of evaluation so that metrics and visualizations remain decoupled
-
-## Summary
-
-The architecture is built around a simple idea:
-
-- train once
-- save activations once
-- evaluate many ways
-- plot many ways
-
-This makes the pipeline easier to extend and much easier to reason about than a design where all metrics are computed directly during training.
+- Hyperparameter-dependent outputs may combine data across multiple HLS/LR directories.
+- Output functions should use saved metadata when it is available.
+- Plot generation is driven from saved analysis files rather than directly from training.
