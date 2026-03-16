@@ -1,2 +1,8 @@
 numpy
 torch
+matplotlib
+pandas
+zarr
+xarray
+scipy
+tqdm
