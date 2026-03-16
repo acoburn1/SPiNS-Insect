@@ -238,7 +238,10 @@ class RunConfig:
                         Visual.status(f"Saving {fn.name} output to {output_dir} ...")
                     specs = fn.generate_output(cfgs[fn], analysis_dir)
                     for spec in specs:
-                        plot_output(spec, f"{output_dir}/{fn.name}")
+                        if cfgs[fn].get("per_epoch", False):
+                            plot_output(spec, f"{output_dir}/{fn.name}_{cfgs[fn].get('epochs', '')}")
+                        else:
+                            plot_output(spec, f"{output_dir}/{fn.name}")
         
         if self.visual:
             Visual.status(f"Organizing files ...")

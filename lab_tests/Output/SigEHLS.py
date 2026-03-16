@@ -65,10 +65,7 @@ class SigEHLSOutput:
                     x_ticks=[float(h) for h in hls_values],
                     x_ticklabels=[str(h) for h in hls_values],
                     x_lim=[min(hls_values) - 0.6, max(hls_values) + 0.6],
-                    y_lim=[
-                        float(spec_cfg.get("y_min", 0.0)),
-                        float(spec_cfg.get("y_max", ymax + float(spec_cfg.get("top_pad", 1.0)))),
-                    ],
+                    y_lim=[0.0, 120.0],
                     grid=True,
                     legend_loc=spec_cfg.get("legend_loc", "best"),
                     legend_ncol=spec_cfg.get("legend_ncol", 1),

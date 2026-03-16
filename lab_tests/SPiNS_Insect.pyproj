@@ -104,6 +104,7 @@
     <Content Include="configs\model\hls10-100-10.yaml" />
     <Content Include="configs\output\allmodels33overepochs.yaml" />
     <Content Include="configs\output\allmodelsscurve.yaml" />
+    <Content Include="configs\output\correlationhls.yaml" />
     <Content Include="configs\output\default.yaml" />
     <Content Include="configs\directory\default.yaml" />
     <Content Include="configs\output\epochshlswk95heatmap.yaml" />
@@ -111,6 +112,7 @@
     <Content Include="configs\output\matrixcorrelation.yaml" />
     <Content Include="configs\output\scurve.yaml" />
     <Content Include="configs\output\seriescorrelation.yaml" />
+    <Content Include="configs\output\sigehls.yaml" />
     <Content Include="configs\probe\default.yaml" />
     <Content Include="Data\Exemplar\alt-lat_exemplars.csv" />
     <Content Include="Data\Exemplar\original_exemplars.csv" />

@@ -70,9 +70,6 @@ class CorrelationHLSOutput:
             if not np.isfinite(ymax):
                 ymax = 1.0
 
-            y_min = float(spec_cfg.get("y_min", 0.0))
-            y_max = float(spec_cfg.get("y_max", min(1.0, ymax + float(spec_cfg.get("top_pad", 0.05)))))
-
             title_base = spec_cfg.get("title")
             if title_base is None:
                 src_label = "Hidden" if source_idx == 0 else "Output"
@@ -90,7 +87,7 @@ class CorrelationHLSOutput:
                     x_ticks=x_ticks,
                     x_ticklabels=x_labels,
                     x_lim=[min(x_ticks) - 0.6, max(x_ticks) + 0.6],
-                    y_lim=[y_min, y_max],
+                    y_lim=[0.0, 1.0],
                     grid=True,
                     legend_loc=legend_loc,
                     legend_ncol=legend_ncol,
@@ -120,7 +117,7 @@ class CorrelationHLSOutput:
                     x_ticks=x_ticks,
                     x_ticklabels=x_labels,
                     x_lim=[min(x_ticks) - 0.6, max(x_ticks) + 0.6],
-                    y_lim=[y_min, y_max],
+                    y_lim=[0.0, 1.0],
                     grid=True,
                     legend_loc=legend_loc,
                     legend_ncol=legend_ncol,

@@ -1,4 +1,4 @@
 SCurve:
   present: true
   per_epoch: true
-  epochs: sig
+  epochs: all
