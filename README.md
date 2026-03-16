@@ -1,3 +1,6 @@
+overview by chatgpt until I get around to writing proper documentation.  
+working summary: https://docs.google.com/document/d/1QnrTfTMwoMHdTw7BSiUTkRQp3Au_E98HAMIwpIvE99o/edit?usp=sharing   
+
 # Category Learning Pipeline
 
 This project is a Python research pipeline for training neural network models on category learning tasks, saving their activations, running post-training evaluations, and generating plots from those evaluation results.
