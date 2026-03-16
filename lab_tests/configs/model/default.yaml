@@ -1,7 +1,7 @@
 num_features: 11
 hidden_layer_range: 
-  start: 100
-  end: 100
+  start: 400
+  end: 400
   step: 10
 learning_rate: 
   start: 0.04

@@ -235,7 +235,7 @@ def plot_output(spec: OutputSpec, save_dir: str) -> str:
             "vmax": vmax,
         }
 
-        if spec.matrix_split is not None:
+        if spec.matrix_split is not None and vmin < float(spec.matrix_split) < vmax:
             imshow_kwargs["cmap"] = _build_split_cmap(
                 vmin=vmin,
                 split=float(spec.matrix_split),

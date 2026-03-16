@@ -1,0 +1,4 @@
+K95-HLS:
+  present: true
+  per_epoch: true
+  epochs: sig

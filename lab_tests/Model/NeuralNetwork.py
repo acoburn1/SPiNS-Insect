@@ -6,7 +6,7 @@ class NeuralNetwork(nn.Module):
         super().__init__()
         self.encoder = nn.Sequential(
             nn.Linear(2*num_features, size_hidden_layer),
-            nn.ReLU()
+            nn.ReLU(),
         ) 
         self.decoder = nn.Sequential(
             nn.Linear(size_hidden_layer, 2*num_features)

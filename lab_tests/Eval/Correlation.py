@@ -41,11 +41,13 @@ class CorrelationEvaluator:
 
                 h_mod_cm = _pairwise_corr_matrix(h_mod_vecs)
                 h_lat_cm = _pairwise_corr_matrix(h_lat_vecs)
+                o_mod_cm = _pairwise_corr_matrix(o_mod_vecs)
+                o_lat_cm = _pairwise_corr_matrix(o_lat_vecs)
 
                 h_r_m, h_p_m = _flat_corr_with_p(h_mod_cm, cfg.mod_rm)
                 h_r_l, h_p_l = _flat_corr_with_p(h_lat_cm, cfg.lat_rm)
-                o_r_m, o_p_m = _flat_corr_with_p(o_mod_vecs, cfg.mod_rm)
-                o_r_l, o_p_l = _flat_corr_with_p(o_lat_vecs, cfg.lat_rm)
+                o_r_m, o_p_m = _flat_corr_with_p(o_mod_cm, cfg.mod_rm)
+                o_r_l, o_p_l = _flat_corr_with_p(o_lat_cm, cfg.lat_rm)
 
                 res[m, e, 0, 0, 0] = h_r_m
                 res[m, e, 0, 0, 1] = h_p_m
@@ -90,8 +92,8 @@ class MatrixCorrelationEvaluator:
                 o_lat_vecs = O[nf:]
                 res[m, e, 0, 0, :, :] = _pairwise_corr_matrix(h_mod_vecs)
                 res[m, e, 0, 1, :, :] = _pairwise_corr_matrix(h_lat_vecs)
-                res[m, e, 1, 0, :, :] = o_mod_vecs
-                res[m, e, 1, 1, :, :] = o_lat_vecs
+                res[m, e, 1, 0, :, :] = _pairwise_corr_matrix(o_mod_vecs)
+                res[m, e, 1, 1, :, :] = _pairwise_corr_matrix(o_lat_vecs)
 
         return res, None
 

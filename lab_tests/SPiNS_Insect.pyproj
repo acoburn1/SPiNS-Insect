@@ -98,6 +98,7 @@
     <Content Include="configs\data\mod-lat2_5-5_missing-core.yaml" />
     <Content Include="configs\data\mod-lat2_5-5_whole.yaml" />
     <Content Include="configs\data\default.yaml" />
+    <Content Include="configs\directory\test.yaml" />
     <Content Include="configs\model\default.yaml" />
     <Content Include="configs\model\hls4-20-2.yaml" />
     <Content Include="configs\model\hls10-100-10.yaml" />
@@ -106,8 +107,10 @@
     <Content Include="configs\output\default.yaml" />
     <Content Include="configs\directory\default.yaml" />
     <Content Include="configs\output\epochshlswk95heatmap.yaml" />
+    <Content Include="configs\output\k95hls.yaml" />
     <Content Include="configs\output\matrixcorrelation.yaml" />
     <Content Include="configs\output\scurve.yaml" />
+    <Content Include="configs\output\seriescorrelation.yaml" />
     <Content Include="configs\probe\default.yaml" />
     <Content Include="Data\Exemplar\alt-lat_exemplars.csv" />
     <Content Include="Data\Exemplar\original_exemplars.csv" />

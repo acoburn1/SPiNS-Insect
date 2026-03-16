@@ -37,6 +37,11 @@ class K95HLSOutput:
             hls_values = []
             ymax = -np.inf
 
+            offset = 0.5
+
+            if len(lr_runs) > 1:
+                offset = 0.1 * np.abs(lr_runs[0]["hls"] - lr_runs[1]["hls"])
+
             for run in lr_runs:
                 hls = run["hls"]
                 raw = run["raw"]  # expected (M, E, 2, 1) or (M, E, 2)
@@ -47,8 +52,8 @@ class K95HLSOutput:
 
                 hls_values.append(hls)
 
-                x_mod_center = hls - 0.6
-                x_lat_center = hls + 0.6
+                x_mod_center = hls - offset
+                x_lat_center = hls + offset
 
                 x_mod_pts = _spread_x(x_mod_center, mod_vals.size, width=0.10)
                 x_lat_pts = _spread_x(x_lat_center, lat_vals.size, width=0.10)
@@ -97,7 +102,7 @@ class K95HLSOutput:
                     y_label="Mean K95 Across Epochs",
                     x_ticks=[float(h) for h in hls_values],
                     x_ticklabels=[str(h) for h in hls_values],
-                    x_lim=[min(hls_values) - 0.6, max(hls_values) + 0.6],
+                    x_lim=[min(hls_values) - (4*offset), max(hls_values) + (4*offset)],
                     y_lim=[
                         float(spec_cfg.get("y_min", 0.0)),
                         float(spec_cfg.get("y_max", y_top)),
