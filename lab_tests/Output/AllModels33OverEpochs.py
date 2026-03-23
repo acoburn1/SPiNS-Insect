@@ -8,7 +8,7 @@ class AllModels33OverEpochsOutput:
     name = "AllModels33OverEpochs"
     hyperd = False
 
-    def generate_output(self, spec_cfg: dict, analysis_dir: str) -> list[OutputSpec]:
+    def generate_output(self, sub_cfg: dict, analysis_dir: str) -> list[OutputSpec]:
         path = os.path.join(analysis_dir, "RatioTest.npz")
         data = np.load(path, allow_pickle=True)
 
@@ -37,14 +37,12 @@ class AllModels33OverEpochsOutput:
         if trial_counts is None:
             raise ValueError("RatioTest.npz is missing trial_counts metadata.")
 
-        ratio_name = str(spec_cfg.get("ratio", "3:3"))
+        ratio_name = str(sub_cfg.get("ratio", "3:3"))
         if ratio_name not in ratio_labels:
             raise ValueError(f"Requested ratio '{ratio_name}' not found. Available: {ratio_labels}")
 
         r_idx = ratio_labels.index(ratio_name)
 
-        # raw[:, :, r_idx, :] -> (M, E, S)
-        # weighted average across sets for this one ratio -> (M, E)
         model_curves = _weighted_single_ratio(raw[:, :, r_idx, :], trial_counts[r_idx, :])
 
         n_models, n_epochs = model_curves.shape
@@ -78,7 +76,7 @@ class AllModels33OverEpochsOutput:
 
         r_lines = [
                 RLine(
-                    val=float(spec_cfg.get("mid_y", 0.5)),
+                    val=float(sub_cfg.get("mid_y", 0.5)),
                     color=Color.GRAY,
                     linestyle=LineStyle.DASHED,
                     linewidth=1.5,
@@ -87,14 +85,14 @@ class AllModels33OverEpochsOutput:
 
         return [
             OutputSpec(
-                figure_id=spec_cfg.get("name", "all_models_33_over_epochs"),
-                title=spec_cfg.get("title", "All Models 3:3 Modular Response Across Epochs - Hidden"),
+                figure_id=sub_cfg.get("name", "all_models_33_over_epochs"),
+                title=sub_cfg.get("title", "All Models 3:3 Modular Response Across Epochs - Hidden"),
                 x_label="Epoch",
                 y_label="% Modular Response",
                 y_lim=[0.0, 1.0],
                 x_lim=[0.0, float(n_epochs - 1)],
                 legend_loc=None,
-                legend_fontsize=spec_cfg.get("legend_fontsize"),
+                legend_fontsize=sub_cfg.get("legend_fontsize"),
                 figsize=(12, 8),
                 dpi=300,
                 y_ref=r_lines,

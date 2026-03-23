@@ -1,15 +1,17 @@
-import os
-import re
 import numpy as np
 from scipy.stats import ttest_rel
 from Output.schema.OutputSpec import *
+from Output.utils import get_hyperparameter_runs_with_data
+
 
 class K95HLSOutput:
     name = "K95-HLS"
     hyperd = True
 
-    def generate_output(self, spec_cfg: dict, analysis_root: str) -> list[OutputSpec]:
-        runs = _discover_k95_runs(analysis_root)
+    def generate_output(self, sub_cfg: dict, analysis_root: str) -> list[OutputSpec]:
+        runs = get_hyperparameter_runs_with_data(analysis_root, ["K95"])
+        runs = [run for run in runs if "K95" in run]
+
         if not runs:
             raise FileNotFoundError(f"No K95.npz files found under {analysis_root}")
 
@@ -38,15 +40,14 @@ class K95HLSOutput:
             ymax = -np.inf
 
             offset = 0.5
-
             if len(lr_runs) > 1:
                 offset = 0.1 * np.abs(lr_runs[0]["hls"] - lr_runs[1]["hls"])
 
             for run in lr_runs:
                 hls = run["hls"]
-                raw = run["raw"]  # expected (M, E, 2, 1) or (M, E, 2)
+                raw = np.asarray(run["K95"]["raw"], dtype=np.float64)
 
-                per_model = _avg_over_epochs_per_model(raw)  # (M, 2)
+                per_model = _avg_over_epochs_per_model(raw)
                 mod_vals = per_model[:, 0]
                 lat_vals = per_model[:, 1]
 
@@ -77,41 +78,33 @@ class K95HLSOutput:
                 ymax = max(ymax, local_max)
 
                 p = _paired_p_value(mod_vals, lat_vals)
-                if np.isfinite(p) and p < float(spec_cfg.get("alpha", 0.05)):
+                if np.isfinite(p) and p < 0.05:
                     sig_x.append(float(hls))
-                    sig_y.append(float(local_max + spec_cfg.get("sig_y_pad", 0.35)))
+                    sig_y.append(float(local_max + 0.35))
 
             if not np.isfinite(ymax):
                 ymax = 1.0
 
             y_top = max(
-                ymax + float(spec_cfg.get("top_pad", 0.8)),
-                max(sig_y) + float(spec_cfg.get("sig_top_extra", 0.25)) if sig_y else ymax + 0.8,
+                ymax + 0.8,
+                max(sig_y) + 0.25 if sig_y else ymax + 0.8,
             )
-
-            figure_id = _lr_figure_id(spec_cfg.get("name", "k95_hls"), lr)
-            title = spec_cfg.get("title", f"K95 vs Hidden Layer Size (LR={_fmt_lr(lr)})")
-            if "title" not in spec_cfg:
-                title = f"K95 vs Hidden Layer Size (LR={_fmt_lr(lr)})"
 
             specs.append(
                 OutputSpec(
-                    figure_id=figure_id,
-                    title=title,
+                    figure_id=f"k95_hls_lr{str(lr).replace('.', 'p')}",
+                    title=f"K95 vs Hidden Layer Size (LR={lr:g})",
                     x_label="Hidden Layer Size",
                     y_label="Mean K95 Across Epochs",
                     x_ticks=[float(h) for h in hls_values],
                     x_ticklabels=[str(h) for h in hls_values],
-                    x_lim=[min(hls_values) - (4*offset), max(hls_values) + (4*offset)],
-                    y_lim=[
-                        float(spec_cfg.get("y_min", 0.0)),
-                        float(spec_cfg.get("y_max", y_top)),
-                    ],
+                    x_lim=[min(hls_values) - (4 * offset), max(hls_values) + (4 * offset)],
+                    y_lim=[0.0, float(y_top)],
                     grid=True,
-                    legend_loc=spec_cfg.get("legend_loc", "upper left"),
-                    legend_fontsize=spec_cfg.get("legend_fontsize", 9),
-                    figsize=tuple(spec_cfg.get("figsize", (12, 8))),
-                    dpi=int(spec_cfg.get("dpi", 300)),
+                    legend_loc="upper left",
+                    legend_fontsize=9,
+                    figsize=(12, 8),
+                    dpi=300,
                     series_list=[
                         _marker_series(
                             label="Mod models",
@@ -119,8 +112,8 @@ class K95HLSOutput:
                             y=mod_y,
                             color=Color.BLUE,
                             marker="o",
-                            markersize=float(spec_cfg.get("model_marker_size", 5.0)),
-                            alpha=float(spec_cfg.get("model_alpha", 0.35)),
+                            markersize=5.0,
+                            alpha=0.35,
                         ),
                         _marker_series(
                             label="Lat models",
@@ -128,8 +121,8 @@ class K95HLSOutput:
                             y=lat_y,
                             color=Color.RED,
                             marker="o",
-                            markersize=float(spec_cfg.get("model_marker_size", 5.0)),
-                            alpha=float(spec_cfg.get("model_alpha", 0.35)),
+                            markersize=5.0,
+                            alpha=0.35,
                         ),
                         _marker_series(
                             label="Mod mean",
@@ -137,7 +130,7 @@ class K95HLSOutput:
                             y=mod_mean_y,
                             color=Color.BLUE,
                             marker="x",
-                            markersize=float(spec_cfg.get("mean_marker_size", 10.0)),
+                            markersize=10.0,
                             alpha=1.0,
                         ),
                         _marker_series(
@@ -146,16 +139,16 @@ class K95HLSOutput:
                             y=lat_mean_y,
                             color=Color.RED,
                             marker="x",
-                            markersize=float(spec_cfg.get("mean_marker_size", 10.0)),
+                            markersize=10.0,
                             alpha=1.0,
                         ),
                         _marker_series(
-                            label=f"p < {spec_cfg.get('alpha', 0.05)}",
+                            label="p < 0.05",
                             x=sig_x,
                             y=sig_y,
                             color=Color.BLACK,
                             marker="*",
-                            markersize=float(spec_cfg.get("sig_marker_size", 12.0)),
+                            markersize=12.0,
                             alpha=1.0,
                         ),
                     ],
@@ -165,59 +158,7 @@ class K95HLSOutput:
         return specs
 
 
-def _discover_k95_runs(analysis_root: str) -> list[dict]:
-    """
-    Find directories like:
-        <analysis_root>_hls10_lr0p04
-    containing K95.npz
-    """
-    parent = os.path.dirname(analysis_root.rstrip("/\\"))
-    base = os.path.basename(analysis_root.rstrip("/\\"))
-    if not parent:
-        parent = "."
-
-    pattern = re.compile(rf"^{re.escape(base)}_hls(\d+)_lr([A-Za-z0-9p\-]+)$")
-
-    runs = []
-    for name in os.listdir(parent):
-        full = os.path.join(parent, name)
-        if not os.path.isdir(full):
-            continue
-
-        m = pattern.match(name)
-        if not m:
-            continue
-
-        k95_path = os.path.join(full, "K95.npz")
-        if not os.path.exists(k95_path):
-            continue
-
-        hls = int(m.group(1))
-        lr = _parse_lr_token(m.group(2))
-
-        data = np.load(k95_path)
-        raw = np.asarray(data["raw"], dtype=np.float64)
-
-        runs.append(
-            {
-                "analysis_dir": full,
-                "hls": hls,
-                "lr": lr,
-                "raw": raw,
-            }
-        )
-
-    return runs
-
-
 def _avg_over_epochs_per_model(raw: np.ndarray) -> np.ndarray:
-    """
-    Accepts:
-        (M, E, 2, 1) or (M, E, 2)
-
-    Returns:
-        (M, 2)
-    """
     x = np.asarray(raw, dtype=np.float64)
 
     if x.ndim == 4:
@@ -275,15 +216,3 @@ def _marker_series(
         linewidth=0.0,
         alpha=float(alpha),
     )
-
-
-def _parse_lr_token(token: str) -> float:
-    return float(token.replace("p", "."))
-
-
-def _fmt_lr(lr: float) -> str:
-    return f"{lr:g}"
-
-
-def _lr_figure_id(base: str, lr: float) -> str:
-    return f"{base}_lr{str(lr).replace('.', 'p')}"

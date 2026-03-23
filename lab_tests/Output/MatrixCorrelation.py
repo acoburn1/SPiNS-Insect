@@ -7,11 +7,11 @@ class MatrixCorrelationOutput:
     name = "MatrixCorrelation"
     hyperd = False
 
-    def generate_output(self, spec_cfg: dict, analysis_dir: str) -> list[OutputSpec]:
+    def generate_output(self, sub_cfg: dict, analysis_dir: str) -> list[OutputSpec]:
         data = np.load(os.path.join(analysis_dir, "MatrixCorrelation.npz"))
         mean = np.asarray(data["mean"], dtype=np.float64)
 
-        mode = str(spec_cfg.get("epochs", "all")).lower()
+        mode = str(sub_cfg.get("epochs", "all")).lower()
         if mode == "all":
             chosen_epochs = list(range(1, mean.shape[0] + 1))
         else:

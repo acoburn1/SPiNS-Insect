@@ -7,7 +7,7 @@ class AllModelsSCurveOutput:
     name = "AllModelsSCurve"
     hyperd = False
 
-    def generate_output(self, spec_cfg: dict, analysis_dir: str) -> list[OutputSpec]:
+    def generate_output(self, sub_cfg: dict, analysis_dir: str) -> list[OutputSpec]:
         path = os.path.join(analysis_dir, "RatioTest.npz")
         data = np.load(path, allow_pickle=True)
 
@@ -43,23 +43,21 @@ class AllModelsSCurveOutput:
 
         x_vals = np.asarray([_mod_count_from_ratio(r) for r in ratio_labels], dtype=np.float64)
 
-        mode = str(spec_cfg.get("epochs", "all")).lower()
+        mode = str(sub_cfg.get("epochs", "all")).lower()
         if mode == "all":
-            return _build_all_epoch_specs(spec_cfg, raw, x_vals, trial_counts)
+            return _build_all_epoch_specs(sub_cfg, raw, x_vals, trial_counts)
         elif mode == "sig":
-            return [_build_sig_spec(spec_cfg, analysis_dir, raw, x_vals, trial_counts)]
+            return [_build_sig_spec(sub_cfg, analysis_dir, raw, x_vals, trial_counts)]
         else:
             raise ValueError(f"Unsupported epochs mode: {mode}. Expected 'all' or 'sig'.")
 
 
-def _build_all_epoch_specs(spec_cfg: dict, raw: np.ndarray, x_vals: np.ndarray, trial_counts: np.ndarray) -> list[OutputSpec]:
+def _build_all_epoch_specs(sub_cfg: dict, raw: np.ndarray, x_vals: np.ndarray, trial_counts: np.ndarray) -> list[OutputSpec]:
     M, E, R, S = raw.shape
     specs = []
 
     for e in range(E):
-        # raw[:, e, :, :] -> (M, R, S)
-        # weighted average across set axis using static trial counts
-        per_model_curve = _weighted_ratio_average(raw[:, e, :, :], trial_counts)  # (M, R)
+        per_model_curve = _weighted_ratio_average(raw[:, e, :, :], trial_counts)
 
         series_list = []
         for m in range(M):
@@ -97,7 +95,7 @@ def _build_all_epoch_specs(spec_cfg: dict, raw: np.ndarray, x_vals: np.ndarray, 
                 dpi=300,
                 x_ref=[
                     RLine(
-                        val=float(spec_cfg.get("mid_x", 3.0)),
+                        val=float(sub_cfg.get("mid_x", 3.0)),
                         color=Color.GRAY,
                         linestyle=LineStyle.DASHED,
                         linewidth=1.5,
@@ -120,7 +118,7 @@ def _build_all_epoch_specs(spec_cfg: dict, raw: np.ndarray, x_vals: np.ndarray, 
     return specs
 
 
-def _build_sig_spec(spec_cfg: dict, analysis_dir: str, raw: np.ndarray, x_vals: np.ndarray, trial_counts: np.ndarray) -> OutputSpec:
+def _build_sig_spec(sub_cfg: dict, analysis_dir: str, raw: np.ndarray, x_vals: np.ndarray, trial_counts: np.ndarray) -> OutputSpec:
     sig_epochs = _first_sig_epochs(analysis_dir, raw.shape[0], raw.shape[1])
 
     per_model_curves = np.full((raw.shape[0], raw.shape[2]), np.nan, dtype=np.float64)
@@ -156,18 +154,18 @@ def _build_sig_spec(spec_cfg: dict, analysis_dir: str, raw: np.ndarray, x_vals: 
 
     return OutputSpec(
         figure_id="all_models_s_curve_sig",
-        title=spec_cfg.get("title", "Modular Response by Feature Composition - Hidden"),
+        title=sub_cfg.get("title", "Modular Response by Feature Composition - Hidden"),
         x_label="# mod feats",
         y_label="% mod resp",
-        x_lim=spec_cfg.get("x_lim", [-0.3, 6.3]),
-        y_lim=spec_cfg.get("y_lim", [0.0, 1.0]),
-        legend_loc=spec_cfg.get("legend_loc"),
-        legend_fontsize=spec_cfg.get("legend_fontsize"),
-        figsize=tuple(spec_cfg.get("figsize", (12, 8))),
-        dpi=int(spec_cfg.get("dpi", 300)),
+        x_lim=sub_cfg.get("x_lim", [-0.3, 6.3]),
+        y_lim=sub_cfg.get("y_lim", [0.0, 1.0]),
+        legend_loc=sub_cfg.get("legend_loc"),
+        legend_fontsize=sub_cfg.get("legend_fontsize"),
+        figsize=tuple(sub_cfg.get("figsize", (12, 8))),
+        dpi=int(sub_cfg.get("dpi", 300)),
         x_ref=[
             RLine(
-                val=float(spec_cfg.get("mid_x", 3.0)),
+                val=float(sub_cfg.get("mid_x", 3.0)),
                 color=Color.GRAY,
                 linestyle=LineStyle.DASHED,
                 linewidth=1.5,
@@ -176,7 +174,7 @@ def _build_sig_spec(spec_cfg: dict, analysis_dir: str, raw: np.ndarray, x_vals: 
         ],
         y_ref=[
             RLine(
-                val=float(spec_cfg.get("mid_y", 0.5)),
+                val=float(sub_cfg.get("mid_y", 0.5)),
                 color=Color.GRAY,
                 linestyle=LineStyle.DASHED,
                 linewidth=1.5,

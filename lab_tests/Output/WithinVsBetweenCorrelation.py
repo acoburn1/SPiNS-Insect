@@ -10,7 +10,7 @@ class WithinVsBetweenCorrelationOutput:
     name = "WithinVsBetweenCorrelation"
     hyperd = False
 
-    def generate_output(self, spec_cfg: dict, analysis_dir: str) -> list[OutputSpec]:
+    def generate_output(self, sub_cfg: dict, analysis_dir: str) -> list[OutputSpec]:
         data = np.load(os.path.join(analysis_dir, "MatrixCorrelation.npz"))
         raw = np.asarray(data["raw"], dtype=np.float64)  # (M, E, 2, 2, 11, 11)
 
@@ -19,10 +19,6 @@ class WithinVsBetweenCorrelationOutput:
 
         loss_mean, loss_lo, loss_hi = load_mean_ci(os.path.join(analysis_dir, "Loss.npz"))
 
-        # build per-model / per-epoch structure scores
-        # out shape: (M, E, 2, 2)
-        # C1=0 hid, C1=1 out
-        # C2=0 mod, C2=1 lat
         scores = np.full(raw.shape[:4], np.nan, dtype=np.float64)
 
         for src in range(2):
@@ -32,7 +28,7 @@ class WithinVsBetweenCorrelationOutput:
                     scores[m, e, src, 1] = _lat_score(raw[m, e, src, 1])
 
         st = stats_over_models(scores)
-        mean = st["mean"]   # (E, 2, 2)
+        mean = st["mean"]
         lo = st["ci_lo"]
         hi = st["ci_hi"]
 
@@ -40,8 +36,8 @@ class WithinVsBetweenCorrelationOutput:
         epochs = np.arange(n_epochs, dtype=np.float64)
 
         spec_h = OutputSpec(
-            figure_id=spec_cfg.get("name", "within_vs_between_hidden"),
-            title=spec_cfg.get("title", "Within vs Between Across Epochs"),
+            figure_id=sub_cfg.get("name", "within_vs_between_hidden"),
+            title=sub_cfg.get("title", "Within vs Between Across Epochs"),
             x_label="Epoch",
             y_label="Within - Between",
             y2_label="Loss",
@@ -165,7 +161,7 @@ def _lat_score(cm: np.ndarray) -> float:
     between = the remaining 3 non-self positions.
     Final score = mean_row( mean(within row) - mean(between row) ).
     """
-    X = np.asarray(cm, dtype=np.float64)[3:, 3:]  # (8, 8)
+    X = np.asarray(cm, dtype=np.float64)[3:, 3:]
     if X.shape != (8, 8):
         raise ValueError(f"Expected 8x8 non-core lattice block, got {X.shape}")
 

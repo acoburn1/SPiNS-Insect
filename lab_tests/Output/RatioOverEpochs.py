@@ -8,7 +8,7 @@ class RatioOverEpochsOutput:
     name = "RatioOverEpochs"
     hyperd = False
 
-    def generate_output(self, spec_cfg: dict, analysis_dir: str) -> list[OutputSpec]:
+    def generate_output(self, sub_cfg: dict, analysis_dir: str) -> list[OutputSpec]:
         path = os.path.join(analysis_dir, "RatioTest.npz")
         data = np.load(path, allow_pickle=True)
 
@@ -34,19 +34,18 @@ class RatioOverEpochsOutput:
         if not ratio_labels or not set_labels:
             raise ValueError("RatioTest.npz is missing ratio/set labels metadata.")
 
-        ratio_name = str(spec_cfg.get("ratio", "3:3"))
+        ratio_name = str(sub_cfg.get("ratio", "3:3"))
         if ratio_name not in ratio_labels:
             raise ValueError(f"Requested ratio '{ratio_name}' not found. Available: {ratio_labels}")
 
         r_idx = ratio_labels.index(ratio_name)
 
-        # selected raw for one ratio: (M, E, S)
         selected = raw[:, :, r_idx, :]
         st = stats_over_models(selected)
 
-        mean = np.asarray(st["mean"], dtype=np.float64)    # (E, S)
-        ci_lo = np.asarray(st["ci_lo"], dtype=np.float64)  # (E, S)
-        ci_hi = np.asarray(st["ci_hi"], dtype=np.float64)  # (E, S)
+        mean = np.asarray(st["mean"], dtype=np.float64)
+        ci_lo = np.asarray(st["ci_lo"], dtype=np.float64)
+        ci_hi = np.asarray(st["ci_hi"], dtype=np.float64)
 
         n_epochs = mean.shape[0]
         epochs = np.arange(n_epochs, dtype=np.float64)
@@ -90,16 +89,16 @@ class RatioOverEpochsOutput:
             )
 
         spec = OutputSpec(
-            figure_id=spec_cfg.get("name", f"ratio_over_epochs_{ratio_name.replace(':', '_')}"),
-            title=spec_cfg.get("title", f"{ratio_name} Ratio Modular Response Across Epochs - Hidden"),
+            figure_id=sub_cfg.get("name", f"ratio_over_epochs_{ratio_name.replace(':', '_')}"),
+            title=sub_cfg.get("title", f"{ratio_name} Ratio Modular Response Across Epochs - Hidden"),
             x_label="Epoch",
             y_label="% Modular Response",
             x_lim=[0, n_epochs-1],
             y_lim=[0.0, 1.0],
-            legend_loc=spec_cfg.get("legend_loc", "upper right"),
-            legend_fontsize=spec_cfg.get("legend_fontsize", 10),
-            figsize=tuple(spec_cfg.get("figsize", (12, 8))),
-            dpi=int(spec_cfg.get("dpi", 300)),
+            legend_loc=sub_cfg.get("legend_loc", "upper right"),
+            legend_fontsize=sub_cfg.get("legend_fontsize", 10),
+            figsize=tuple(sub_cfg.get("figsize", (12, 8))),
+            dpi=int(sub_cfg.get("dpi", 300)),
             y_ref=[
                 RLine(
                 val=0.5,

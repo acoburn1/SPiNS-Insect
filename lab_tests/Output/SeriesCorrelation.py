@@ -8,7 +8,7 @@ class SeriesCorrelationOutput:
     name = "SeriesCorrelation"
     hyperd = False
 
-    def generate_output(self, spec_cfg: dict, analysis_dir: str) -> list[OutputSpec]:
+    def generate_output(self, sub_cfg: dict, analysis_dir: str) -> list[OutputSpec]:
         corr_mean, corr_lo, corr_hi = load_mean_ci(os.path.join(analysis_dir, "Correlation.npz"))
         loss_mean, loss_lo, loss_hi = load_mean_ci(os.path.join(analysis_dir, "Loss.npz"))
 
@@ -16,8 +16,8 @@ class SeriesCorrelationOutput:
         epochs = np.arange(n_epochs, dtype=np.float64)
 
         spec_h = OutputSpec(
-            figure_id=spec_cfg.get("name", "series_correlation_hidden"),
-            title=spec_cfg.get("title", "Means Across Epochs"),
+            figure_id=sub_cfg.get("name", "series_correlation_hidden"),
+            title=sub_cfg.get("title", "Means Across Epochs"),
             x_label="Epoch",
             y_label="Correlation Value",
             y2_label="Loss",
@@ -81,8 +81,6 @@ class SeriesCorrelationOutput:
                 )
             ]
         )
-
-
 
         return [spec_h, spec_all]
 
