@@ -297,7 +297,7 @@ class RunConfig:
             write_stage_metadata(
                 result_dir=self.result_dir,
                 stage_name="output",
-                stage_dir=self.output_dir,
+                stage_dir=f"{self.result_dir}/Output",
                 started_at_utc=stage_started,
                 finished_at_utc=utc_now_iso(),
                 status="success" if stage_success else "failed",
