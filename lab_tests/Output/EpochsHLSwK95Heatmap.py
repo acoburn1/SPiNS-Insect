@@ -1,7 +1,7 @@
 import numpy as np
 
 from Output.schema.OutputSpec import OutputSpec
-from Output.utils import get_hyperparameter_runs_with_data
+from Output.utils import epoch_k95_summaries, get_hyperparameter_runs_with_data, sample_epochs
 
 
 class EpochsHLSwK95HeatmapOutput:
@@ -27,18 +27,18 @@ class EpochsHLSwK95HeatmapOutput:
             if not lr_runs:
                 continue
 
-            sample_epochs = _sample_epochs(np.asarray(lr_runs[0]["K95"]["raw"], dtype=np.float64), step=step)
+            epoch_samples = sample_epochs(np.asarray(lr_runs[0]["K95"]["raw"], dtype=np.float64), step=step)
 
             hls_values = [run["hls"] for run in lr_runs]
-            mean_avg_mat = np.full((len(sample_epochs), len(lr_runs)), np.nan, dtype=np.float64)
-            diff_mat = np.full((len(sample_epochs), len(lr_runs)), np.nan, dtype=np.float64)
+            mean_avg_mat = np.full((len(epoch_samples), len(lr_runs)), np.nan, dtype=np.float64)
+            diff_mat = np.full((len(epoch_samples), len(lr_runs)), np.nan, dtype=np.float64)
 
             for j, run in enumerate(lr_runs):
                 raw = np.asarray(run["K95"]["raw"], dtype=np.float64)
-                per_epoch_mean_avg, per_epoch_diff = _epoch_k95_summaries(raw)
+                per_epoch_mean_avg, per_epoch_diff = epoch_k95_summaries(raw)
 
-                mean_avg_mat[:, j] = per_epoch_mean_avg[sample_epochs]
-                diff_mat[:, j] = per_epoch_diff[sample_epochs]
+                mean_avg_mat[:, j] = per_epoch_mean_avg[epoch_samples]
+                diff_mat[:, j] = per_epoch_diff[epoch_samples]
 
             lr_str = f"{lr:g}"
 
@@ -54,8 +54,8 @@ class EpochsHLSwK95HeatmapOutput:
                     dpi=300,
                     x_ticks=[float(i) for i in range(len(hls_values))],
                     x_ticklabels=[str(h) for h in hls_values],
-                    y_ticks=[float(i) for i in range(len(sample_epochs))],
-                    y_ticklabels=[str(e) for e in sample_epochs],
+                    y_ticks=[float(i) for i in range(len(epoch_samples))],
+                    y_ticklabels=[str(e) for e in epoch_samples],
                 )
             )
 
@@ -71,42 +71,11 @@ class EpochsHLSwK95HeatmapOutput:
                     dpi=300,
                     x_ticks=[float(i) for i in range(len(hls_values))],
                     x_ticklabels=[str(h) for h in hls_values],
-                    y_ticks=[float(i) for i in range(len(sample_epochs))],
-                    y_ticklabels=[str(e) for e in sample_epochs],
+                    y_ticks=[float(i) for i in range(len(epoch_samples))],
+                    y_ticklabels=[str(e) for e in epoch_samples],
                     matrix_split=0.0,
                 )
             )
 
         return specs
 
-
-def _epoch_k95_summaries(raw: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    x = np.asarray(raw, dtype=np.float64)
-
-    if x.ndim == 4:
-        if x.shape[2] != 2 or x.shape[3] != 1:
-            raise ValueError(f"Expected K95 raw shape (M, E, 2, 1), got {x.shape}")
-        x = x[..., 0]
-    elif x.ndim == 3:
-        if x.shape[2] != 2:
-            raise ValueError(f"Expected K95 raw shape (M, E, 2), got {x.shape}")
-    else:
-        raise ValueError(f"Expected K95 raw ndim 3 or 4, got shape {x.shape}")
-
-    mod = x[:, :, 0]
-    lat = x[:, :, 1]
-
-    mean_avg = np.nanmean((mod + lat) / 2.0, axis=0)
-    diff = np.nanmean(mod - lat, axis=0)
-
-    return mean_avg, diff
-
-
-def _sample_epochs(raw: np.ndarray, step: int = 3) -> np.ndarray:
-    x = np.asarray(raw)
-    if x.ndim < 2:
-        raise ValueError(f"Expected raw with epoch axis, got shape {x.shape}")
-
-    n_epochs = int(x.shape[1])
-    last = n_epochs // 2
-    return np.arange(0, last + 1, step, dtype=np.int64)

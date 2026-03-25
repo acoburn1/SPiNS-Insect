@@ -1,6 +1,6 @@
 import numpy as np
 from Output.schema.OutputSpec import *
-from Output.utils import get_hyperparameter_runs_with_data
+from Output.utils import first_sig_epochs, get_hyperparameter_runs_with_data, spread_x
 
 
 class SigEHLSOutput:
@@ -33,27 +33,14 @@ class SigEHLSOutput:
                 if sig_mask.ndim != 2:
                     raise ValueError(f"Expected sige results shape (M, E), got {sig_mask.shape}")
 
-                first_sig = np.full((sig_mask.shape[0],), np.nan, dtype=np.float64)
-                for m in range(sig_mask.shape[0]):
-                    idx = np.flatnonzero(sig_mask[m])
-                    if idx.size > 0:
-                        first_sig[m] = float(idx[0])
+                first_sig = first_sig_epochs(run["analysis_dir"], sig_mask.shape[0], sig_mask.shape[1])
 
                 good = np.isfinite(first_sig)
                 vals = first_sig[good]
                 if vals.size == 0:
                     continue
 
-                jitter_width = 0.18
-                if vals.size == 1:
-                    pts_x = np.asarray([float(hls)], dtype=np.float64)
-                else:
-                    pts_x = np.linspace(
-                        float(hls) - jitter_width / 2.0,
-                        float(hls) + jitter_width / 2.0,
-                        vals.size,
-                        dtype=np.float64,
-                    )
+                pts_x = spread_x(float(hls), vals.size, width=0.18)
 
                 xs.extend(pts_x.tolist())
                 ys.extend(vals.tolist())
