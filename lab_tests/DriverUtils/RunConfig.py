@@ -45,7 +45,12 @@ class RunConfig:
         self.eval_epochs = self.training_epochs + 1
         self.num_models = self.m_cfg['num_models']
 
-        self.X_probe, self.probe_metadata, self.probe_index = build_probe(self.p_cfg)
+        data_root = str(Path(self.dir_cfg["training_data"]).parent)
+        self.X_probe, self.probe_metadata, self.probe_index = build_probe(
+            self.p_cfg,
+            probe_folder=f"{data_root}/Probes",
+            data_folder=data_root,
+        )
 
         self.training_data_filename = f"{self.dir_cfg['training_data']}/{self.training_name}.csv"
         self.training_inputs, self.training_outputs = DataUtils.csv_training_data_to_numpy(self.training_data_filename, num_features=self.num_features)
@@ -53,7 +58,11 @@ class RunConfig:
         self.dataloader = DataUtils.get_dataloader(self.training_inputs, self.training_outputs) if not self.special_dl else SDL.SpecialDataLoader(self.training_inputs, self.training_outputs, self.num_mod_trials)
 
         self.modular_p_m_filename = f"{self.dir_cfg['reference_matrices']}/cooc-jaccard-mod.csv"
-        self.lattice_p_m_filename = f"{self.dir_cfg['reference_matrices']}/cooc-jaccard-lat.csv" if not self.alt else "Data/ReferenceMatrices/cooc-jaccard-lat-alt.csv"
+        self.lattice_p_m_filename = (
+            f"{self.dir_cfg['reference_matrices']}/cooc-jaccard-lat.csv"
+            if not self.alt
+            else f"{self.dir_cfg['reference_matrices']}/cooc-jaccard-lat-alt.csv"
+        )
         self.mod_rm, self.lat_rm = get_reference_matrices_m_l(self.modular_p_m_filename, self.lattice_p_m_filename, self.num_mod_trials, self.training_inputs, self.generate_rms)
         self.result_dir = f"{self.dir_cfg['results']}/{get_stub(args)}"
         self.activations_dir = f"{self.result_dir}/ActivationData/{self.training_name}"

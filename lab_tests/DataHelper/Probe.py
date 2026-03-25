@@ -10,7 +10,7 @@ from DataHelper.utils import (
     generate_exemplar_parquet,
 )
 
-def build_probe(probe_cfg, probe_folder: str = "Data/Probes"):
+def build_probe(probe_cfg, probe_folder: str = "Data/Probes", data_folder: str = "data"):
     """
     Always rebuilds probe from sources to avoid stale data.
 
@@ -27,7 +27,6 @@ def build_probe(probe_cfg, probe_folder: str = "Data/Probes"):
     cfg_name = probe_cfg["name"]
 
     sources_folder = os.path.join(probe_folder, "Sources")
-    data_folder = "Data"
     _ensure_dir(probe_folder)
     _ensure_dir(sources_folder)
 
@@ -134,4 +133,3 @@ def _build_index(metadata_df: pd.DataFrame) -> dict:
             index.setdefault(key, []).append(i)
 
     return index
-
