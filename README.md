@@ -1,145 +1,124 @@
-overview by chatgpt until I get around to writing proper documentation.  
+AI-generated overview (to be replaced with fuller manual docs).  
 working summary: https://docs.google.com/document/d/1QnrTfTMwoMHdTw7BSiUTkRQp3Au_E98HAMIwpIvE99o/edit?usp=sharing   
 
-# Category Learning Pipeline
+# SPiNS Insect: Category Learning Pipeline
 
-This project trains neural network models on category learning tasks, saves hidden and output activations, runs evaluation modules on the saved activations, and generates plots from the resulting analysis files.
+This repository trains neural-network models on category-learning tasks, records model activations over training, computes analysis metrics, and renders publication-style plots from those saved analysis artifacts.
 
-## Pipeline
+---
 
-```text
-Train models
-    ↓
-Save activations to Zarr
-    ↓
-Run evaluators
-    ↓
-Save analysis outputs to NPZ
-    ↓
-Generate plots
-```
-
-## Directory Layout
+## End-to-end flow
 
 ```text
-Data/
-    Training/
-    ReferenceMatrices/
-
-Results/
-    ActivationData/
-    AnalysisData/
-    Output/
+Train model(s)
+  -> save hidden/output activations (Zarr)
+  -> run evaluators on saved activations
+  -> save analysis outputs (.npz)
+  -> generate plots from analysis outputs
 ```
 
-For hyperparameter sweeps, results are written to suffixed directories such as:
+The important design choice is that plotting is driven by saved analysis files, not by re-running training.
+
+---
+
+## Repository layout (high-level)
 
 ```text
-Results/ActivationData/..._hls10_lr0p04
-Results/AnalysisData/..._hls10_lr0p04
-Results/Output/..._hls10_lr0p04
+lab_tests/
+  program.py                 # CLI entrypoint
+  DriverUtils/               # run orchestration + helpers
+  Model/                     # network definitions + training wrapper
+  DataHelper/                # training/probe data loading + conversion
+  Eval/                      # analysis/evaluator modules
+  Output/                    # output specs + plotting entry points
+  Statistics/                # shared stats utilities
+  configs/
+    data/
+    model/
+    output/
+    probe/
+    directory/
 ```
 
-## Main Parts
+Input data is expected under configured data directories (see `configs/directory/*.yaml`), and run artifacts are written under the configured results directory.
 
-### Training
+---
 
-Training is handled by `StandardModel`.
+## What each stage produces
 
-It trains the model over epochs and records:
+### 1) Training
+For each requested hidden-layer size and learning-rate pair:
+- train `num_models` models
+- track per-epoch loss
+- collect probe hidden/output activations each epoch
 
-- hidden activations
-- output activations
-- losses
+### 2) Activation storage
+Activation/loss tensors are stored in Zarr for efficient slicing in downstream evaluators.
 
-### Activation Storage
+### 3) Evaluation
+Enabled evaluators load activation slices and produce `.npz` analysis files (typically including `raw`, `mean`, `std`, `se`, confidence intervals, and `n`).
 
-Activations are saved in Zarr.
+### 4) Output generation
+Output modules read analysis `.npz` files and emit plots.  
+Some outputs are per-run; others aggregate across hyperparameter sweeps.
 
-Evaluators use `DriverUtils/Zarr.py` and `load_slice(...)` to load only the probe rows they need.
+---
 
-### Probe Index
+## Running the pipeline
 
-Probe examples are organized through a `probe_index`.
+From `lab_tests/`, run:
 
-This is used to select subsets such as:
-
-- exemplar vs ratio trials
-- modular vs lattice
-- specific ratios
-- specific set labels
-
-### Evaluators
-
-Evaluators are located in `Eval/`.
-
-Each evaluator reads saved activations and returns raw evaluation output, optionally with metadata.
-
-Typical interface:
-
-```python
-class SomeEvaluator:
-    name = "SomeEvaluator"
-
-    def run(self, cfg, zarr_path, vis=None):
-        ...
-        return raw
+```bash
+python program.py --train
+python program.py --evaluate
+python program.py --graph
 ```
 
-or
+Or run all enabled stages:
 
-```python
-return raw, metadata
+```bash
+python program.py --all
 ```
 
-Evaluator outputs are saved as `.npz` files in `Results/AnalysisData/`.
+Use specific configs when needed:
 
-### Analysis Files
-
-Analysis files usually contain:
-
-- `raw`
-- `mean`
-- `std`
-- `se`
-- `ci_lo`
-- `ci_hi`
-- `n`
-
-Some also include metadata such as axis labels, ratio labels, set labels, source labels, category labels, or trial counts.
-
-### Output Functions
-
-Output functions are located in `Output/`.
-
-They read saved analysis files and build `OutputSpec` objects, which are then rendered by the plotting layer.
-
-Typical interface:
-
-```python
-class SomeOutput:
-    name = "SomeOutput"
-    hyperd = False
-
-    def generate_output(self, spec_cfg: dict, analysis_dir: str):
-        ...
-        return [spec1, spec2, ...]
+```bash
+python program.py \
+  --data-config <name-or-path> \
+  --model-config <name-or-path> \
+  --output-config <name-or-path> \
+  --probe-config <name-or-path> \
+  --directory-config <name-or-path>
 ```
 
-Some outputs read from a single analysis directory. Others combine data across multiple HLS/LR directories.
+If you pass a bare config name, it resolves to `configs/<type>/<name>.yaml`.
 
-## Run Structure
+---
 
-A typical run consists of:
+## Key configuration files
 
-1. training a model or sweep
-2. saving activations
-3. running evaluators
-4. saving analysis files
-5. generating plots
+- `configs/data/*`: dataset/trial settings
+- `configs/model/*`: model/training sweep settings
+- `configs/probe/*`: probe composition settings (exemplar/ratio/onehot)
+- `configs/output/*`: which evaluators/outputs are enabled
+- `configs/directory/*`: training/reference/results directories
 
-## Notes
+---
 
-- Hyperparameter-dependent outputs may combine data across multiple HLS/LR directories.
-- Output functions should use saved metadata when it is available.
-- Plot generation is driven from saved analysis files rather than directly from training.
+## Outputs and metadata
+
+Run outputs are organized under the configured `results` root, typically into:
+- `ActivationData/`
+- `AnalysisData/`
+- `Output/`
+- `RunMetadata/`
+
+Stage metadata includes timestamps, git info, stage status, and stage-specific details to support reproducibility/debugging.
+
+---
+
+## Development notes
+
+- Keep evaluator/output contracts stable (`Eval/Protocol.py`, `Output/Protocol.py`).
+- Add new outputs by wiring dependencies in `Output/schema/dependencies.py` and adding corresponding config entries.
+- Prefer consuming saved analysis artifacts rather than recomputing training outputs in plot code.
