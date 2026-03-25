@@ -7,7 +7,7 @@ from Eval.utils import *
 class K95Evaluator:
     name = "K95"
 
-    def run(self, cfg, zarr_path: str, vis=None) -> np.ndarray:
+    def run(self, cfg, zarr_path: str, vis=None) -> tuple[np.ndarray, dict]:
         """
         Data shape is (M, E, C=2, D=1) with C = [mod, lat]
         """

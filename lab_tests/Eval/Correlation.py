@@ -9,7 +9,7 @@ from DriverUtils.Visual import EvalVisualInfo
 class CorrelationEvaluator:
     name = "Correlation"
 
-    def run(self, cfg, zarr_path: str, vis: EvalVisualInfo = None) -> np.ndarray:
+    def run(self, cfg, zarr_path: str, vis: EvalVisualInfo = None) -> tuple[np.ndarray, dict]:
         """
           C1=0 hid, C1=1 out
           C2=0 mod, C2=1 lat

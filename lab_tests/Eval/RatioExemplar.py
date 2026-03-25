@@ -6,7 +6,7 @@ from Eval.utils import *
 class RatioTestEvaluator:
     name = "RatioTest"
 
-    def run(self, cfg, zarr_path: str, vis=None):
+    def run(self, cfg, zarr_path: str, vis=None) -> tuple[np.ndarray, dict]:
         ratio_labels, ratio_to_pos = _ratio_positions(alt=cfg.alt)
         set_labels = _set_axis_labels(cfg.probe_index)
 

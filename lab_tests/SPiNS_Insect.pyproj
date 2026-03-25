@@ -45,6 +45,9 @@
     <Compile Include="Output\AllModelsSCurve.py" />
     <Compile Include="Output\CorrelationHLS.py" />
     <Compile Include="Output\EpochsHLSwK95Heatmap.py" />
+    <Compile Include="Output\GeneralizationCorrelationDiff.py" />
+    <Compile Include="Output\K95CorrelationDiff.py" />
+    <Compile Include="Output\K95Generalization.py" />
     <Compile Include="Output\K95HLS.py" />
     <Compile Include="Output\MatrixCorrelation.py" />
     <Compile Include="Output\Protocol.py" />

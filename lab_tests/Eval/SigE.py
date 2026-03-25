@@ -1,7 +1,7 @@
 import numpy as np
 
 class SignificantEpochEvaluator:
-    def run(self, corr_np: np.ndarray, diff_threshold: float = 0.05) -> np.ndarray:
+    def run(self, corr_np: np.ndarray, diff_threshold: float = 0.05) -> tuple[np.ndarray, dict]:
         """
         corr_np: (M,E,C1,C2,D) from CorrelationEvaluator where
           C1=0 hid, C1=1 out
