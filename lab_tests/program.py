@@ -14,7 +14,7 @@ runcfg.save_configuration()
 if args.all:
     runcfg.train()
     runcfg.evaluate()
-    runcfg.graph()
+    runcfg.generate_output()
 else:
     if args.train:
         runcfg.train()
