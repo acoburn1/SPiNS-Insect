@@ -1,6 +1,11 @@
-import os
 import numpy as np
 from Output.schema.OutputSpec import *
+from Output.utils import (
+    first_sig_epochs,
+    load_ratio_test_bundle,
+    mod_count_from_ratio,
+    weighted_ratio_average,
+)
 
 
 class AllModelsSCurveOutput:
@@ -8,28 +13,10 @@ class AllModelsSCurveOutput:
     hyperd = False
 
     def generate_output(self, sub_cfg: dict, analysis_dir: str) -> list[OutputSpec]:
-        path = os.path.join(analysis_dir, "RatioTest.npz")
-        data = np.load(path, allow_pickle=True)
-
-        raw = np.asarray(data["raw"], dtype=np.float64)  # (M, E, R, S)
-
-        metadata = None
-        if "metadata" in data:
-            metadata = data["metadata"].item()
-
-        ratio_labels = None
-        trial_counts = None
-
-        if metadata is not None:
-            ratio_labels = list(metadata.get("ratio_labels", []))
-            if "trial_counts" in metadata:
-                trial_counts = np.asarray(metadata["trial_counts"], dtype=np.float64)
-
-        if (not ratio_labels) and "ratio_labels" in data:
-            ratio_labels = [str(v) for v in data["ratio_labels"].tolist()]
-
-        if trial_counts is None and "trial_counts" in data:
-            trial_counts = np.asarray(data["trial_counts"], dtype=np.float64)
+        bundle = load_ratio_test_bundle(analysis_dir)
+        raw = bundle["raw"]
+        ratio_labels = bundle["ratio_labels"]
+        trial_counts = bundle["trial_counts"]
 
         if not ratio_labels:
             raise ValueError("RatioTest.npz is missing ratio_labels metadata.")
@@ -41,7 +28,7 @@ class AllModelsSCurveOutput:
                 f"trial_counts shape {trial_counts.shape} does not match raw ratio/set shape {raw.shape[2:4]}"
             )
 
-        x_vals = np.asarray([_mod_count_from_ratio(r) for r in ratio_labels], dtype=np.float64)
+        x_vals = np.asarray([mod_count_from_ratio(r) for r in ratio_labels], dtype=np.float64)
 
         mode = str(sub_cfg.get("epochs", "all")).lower()
         if mode == "all":
@@ -57,7 +44,7 @@ def _build_all_epoch_specs(sub_cfg: dict, raw: np.ndarray, x_vals: np.ndarray, t
     specs = []
 
     for e in range(E):
-        per_model_curve = _weighted_ratio_average(raw[:, e, :, :], trial_counts)
+        per_model_curve = weighted_ratio_average(raw[:, e, :, :], trial_counts)
 
         series_list = []
         for m in range(M):
@@ -119,7 +106,7 @@ def _build_all_epoch_specs(sub_cfg: dict, raw: np.ndarray, x_vals: np.ndarray, t
 
 
 def _build_sig_spec(sub_cfg: dict, analysis_dir: str, raw: np.ndarray, x_vals: np.ndarray, trial_counts: np.ndarray) -> OutputSpec:
-    sig_epochs = _first_sig_epochs(analysis_dir, raw.shape[0], raw.shape[1])
+    sig_epochs = first_sig_epochs(analysis_dir, raw.shape[0], raw.shape[1])
 
     per_model_curves = np.full((raw.shape[0], raw.shape[2]), np.nan, dtype=np.float64)
 
@@ -128,7 +115,7 @@ def _build_sig_spec(sub_cfg: dict, analysis_dir: str, raw: np.ndarray, x_vals: n
         if not np.isfinite(e):
             continue
         e = int(e)
-        per_model_curves[m, :] = _weighted_ratio_average(raw[m, e, :, :][None, ...], trial_counts)[0]
+        per_model_curves[m, :] = weighted_ratio_average(raw[m, e, :, :][None, ...], trial_counts)[0]
 
     series_list = []
     for m in range(per_model_curves.shape[0]):
@@ -184,58 +171,3 @@ def _build_sig_spec(sub_cfg: dict, analysis_dir: str, raw: np.ndarray, x_vals: n
         series_list=series_list
     )
 
-
-def _weighted_ratio_average(x: np.ndarray, trial_counts: np.ndarray) -> np.ndarray:
-    """
-    x: (M, R, S)
-    trial_counts: (R, S)
-
-    Returns:
-        (M, R) weighted average across sets for each ratio,
-        using trial counts as fixed weights and ignoring NaNs.
-    """
-    x = np.asarray(x, dtype=np.float64)
-    w = np.asarray(trial_counts, dtype=np.float64)
-
-    if x.ndim != 3:
-        raise ValueError(f"Expected x shape (M, R, S), got {x.shape}")
-    if w.shape != x.shape[1:]:
-        raise ValueError(f"Weight shape {w.shape} does not match ratio/set shape {x.shape[1:]}")
-
-    valid = np.isfinite(x)
-    w_b = np.broadcast_to(w[None, :, :], x.shape)
-
-    weighted_sum = np.nansum(np.where(valid, x * w_b, np.nan), axis=2)
-    weight_sum = np.sum(np.where(valid, w_b, 0.0), axis=2)
-
-    out = np.full((x.shape[0], x.shape[1]), np.nan, dtype=np.float64)
-    good = weight_sum > 0
-    out[good] = weighted_sum[good] / weight_sum[good]
-    return out
-
-
-def _first_sig_epochs(analysis_dir: str, M: int, E: int) -> np.ndarray:
-    path = os.path.join(analysis_dir, "sige.npz")
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"Missing sige.npz for SCurve sig mode: {path}")
-
-    data = np.load(path, allow_pickle=True)
-    if "results" not in data:
-        raise ValueError("sige.npz is missing 'results'.")
-
-    sig = np.asarray(data["results"]).astype(bool)
-    if sig.shape != (M, E):
-        raise ValueError(f"Expected sige results shape {(M, E)}, got {sig.shape}")
-
-    out = np.full((M,), np.nan, dtype=np.float64)
-    for m in range(M):
-        idx = np.flatnonzero(sig[m])
-        if idx.size > 0:
-            out[m] = float(idx[0])
-
-    return out
-
-
-def _mod_count_from_ratio(ratio_label: str) -> int:
-    left = str(ratio_label).split(":")[0].strip()
-    return int(left)

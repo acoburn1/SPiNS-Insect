@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.stats import ttest_rel
 from Output.schema.OutputSpec import *
-from Output.utils import get_hyperparameter_runs_with_data
+from Output.utils import avg_over_epochs_per_model, get_hyperparameter_runs_with_data, spread_x
 
 
 class K95HLSOutput:
@@ -47,7 +47,7 @@ class K95HLSOutput:
                 hls = run["hls"]
                 raw = np.asarray(run["K95"]["raw"], dtype=np.float64)
 
-                per_model = _avg_over_epochs_per_model(raw)
+                per_model = avg_over_epochs_per_model(raw)
                 mod_vals = per_model[:, 0]
                 lat_vals = per_model[:, 1]
 
@@ -56,8 +56,8 @@ class K95HLSOutput:
                 x_mod_center = hls - offset
                 x_lat_center = hls + offset
 
-                x_mod_pts = _spread_x(x_mod_center, mod_vals.size, width=0.10)
-                x_lat_pts = _spread_x(x_lat_center, lat_vals.size, width=0.10)
+                x_mod_pts = spread_x(x_mod_center, mod_vals.size, width=0.10)
+                x_lat_pts = spread_x(x_lat_center, lat_vals.size, width=0.10)
 
                 mod_x.extend(x_mod_pts.tolist())
                 mod_y.extend(mod_vals.tolist())
@@ -158,22 +158,6 @@ class K95HLSOutput:
         return specs
 
 
-def _avg_over_epochs_per_model(raw: np.ndarray) -> np.ndarray:
-    x = np.asarray(raw, dtype=np.float64)
-
-    if x.ndim == 4:
-        if x.shape[2] != 2 or x.shape[3] != 1:
-            raise ValueError(f"Expected K95 raw shape (M, E, 2, 1), got {x.shape}")
-        x = x[..., 0]
-    elif x.ndim == 3:
-        if x.shape[2] != 2:
-            raise ValueError(f"Expected K95 raw shape (M, E, 2), got {x.shape}")
-    else:
-        raise ValueError(f"Expected K95 raw ndim 3 or 4, got shape {x.shape}")
-
-    return np.nanmean(x, axis=1)
-
-
 def _paired_p_value(mod_vals: np.ndarray, lat_vals: np.ndarray) -> float:
     mod_vals = np.asarray(mod_vals, dtype=np.float64)
     lat_vals = np.asarray(lat_vals, dtype=np.float64)
@@ -185,14 +169,6 @@ def _paired_p_value(mod_vals: np.ndarray, lat_vals: np.ndarray) -> float:
     res = ttest_rel(mod_vals[good], lat_vals[good], nan_policy="omit")
     p = getattr(res, "pvalue", np.nan)
     return float(p) if np.isfinite(p) else np.nan
-
-
-def _spread_x(center: float, n: int, width: float = 0.10) -> np.ndarray:
-    if n <= 0:
-        return np.asarray([], dtype=np.float64)
-    if n == 1:
-        return np.asarray([center], dtype=np.float64)
-    return np.linspace(center - width / 2.0, center + width / 2.0, n, dtype=np.float64)
 
 
 def _marker_series(

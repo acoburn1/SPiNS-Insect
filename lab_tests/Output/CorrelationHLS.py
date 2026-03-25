@@ -1,7 +1,7 @@
 import numpy as np
 from Output.schema.OutputSpec import *
 from Statistics.StatHelper import stats_over_models
-from Output.utils import get_hyperparameter_runs_with_data
+from Output.utils import get_hyperparameter_runs_with_data, spread_x
 
 
 class CorrelationHLSOutput:
@@ -54,7 +54,7 @@ class CorrelationHLSOutput:
                 x_labels.append(str(hls))
 
                 if vals.size > 0:
-                    xs = _spread_x(float(hls), vals.size, width=0.18)
+                    xs = spread_x(float(hls), vals.size, width=0.18)
                     scatter_x.extend(xs.tolist())
                     scatter_y.extend(vals.tolist())
 
@@ -160,10 +160,3 @@ def _scores_at_first_sig_epoch(corr_raw: np.ndarray, sig_mask: np.ndarray, sourc
 
     return out
 
-
-def _spread_x(center: float, n: int, width: float = 0.18) -> np.ndarray:
-    if n <= 0:
-        return np.asarray([], dtype=np.float64)
-    if n == 1:
-        return np.asarray([center], dtype=np.float64)
-    return np.linspace(center - width / 2.0, center + width / 2.0, n, dtype=np.float64)

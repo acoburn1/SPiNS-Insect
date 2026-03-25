@@ -1,7 +1,7 @@
-import os
 import numpy as np
 from Output.schema.OutputSpec import *
 from Statistics.StatHelper import stats_over_models
+from Output.utils import load_ratio_test_bundle
 
 
 class RatioOverEpochsOutput:
@@ -9,27 +9,10 @@ class RatioOverEpochsOutput:
     hyperd = False
 
     def generate_output(self, sub_cfg: dict, analysis_dir: str) -> list[OutputSpec]:
-        path = os.path.join(analysis_dir, "RatioTest.npz")
-        data = np.load(path, allow_pickle=True)
-
-        raw = np.asarray(data["raw"], dtype=np.float64)  # (M, E, R, S)
-
-        metadata = None
-        if "metadata" in data:
-            metadata = data["metadata"].item()
-
-        ratio_labels = None
-        set_labels = None
-
-        if metadata is not None:
-            ratio_labels = list(metadata.get("ratio_labels", []))
-            set_labels = list(metadata.get("set_labels", []))
-
-        if (not ratio_labels) and "ratio_labels" in data:
-            ratio_labels = [str(v) for v in data["ratio_labels"].tolist()]
-
-        if (not set_labels) and "set_labels" in data:
-            set_labels = [str(v) for v in data["set_labels"].tolist()]
+        bundle = load_ratio_test_bundle(analysis_dir)
+        raw = bundle["raw"]
+        ratio_labels = bundle["ratio_labels"]
+        set_labels = bundle["set_labels"]
 
         if not ratio_labels or not set_labels:
             raise ValueError("RatioTest.npz is missing ratio/set labels metadata.")

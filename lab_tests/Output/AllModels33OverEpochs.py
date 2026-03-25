@@ -1,7 +1,7 @@
-import os
 import numpy as np
 
 from Output.schema.OutputSpec import *
+from Output.utils import load_ratio_test_bundle, weighted_single_ratio
 
 
 class AllModels33OverEpochsOutput:
@@ -9,28 +9,10 @@ class AllModels33OverEpochsOutput:
     hyperd = False
 
     def generate_output(self, sub_cfg: dict, analysis_dir: str) -> list[OutputSpec]:
-        path = os.path.join(analysis_dir, "RatioTest.npz")
-        data = np.load(path, allow_pickle=True)
-
-        raw = np.asarray(data["raw"], dtype=np.float64)  # (M, E, R, S)
-
-        metadata = None
-        if "metadata" in data:
-            metadata = data["metadata"].item()
-
-        ratio_labels = None
-        trial_counts = None
-
-        if metadata is not None:
-            ratio_labels = list(metadata.get("ratio_labels", []))
-            if "trial_counts" in metadata:
-                trial_counts = np.asarray(metadata["trial_counts"], dtype=np.float64)
-
-        if (not ratio_labels) and "ratio_labels" in data:
-            ratio_labels = [str(v) for v in data["ratio_labels"].tolist()]
-
-        if trial_counts is None and "trial_counts" in data:
-            trial_counts = np.asarray(data["trial_counts"], dtype=np.float64)
+        bundle = load_ratio_test_bundle(analysis_dir)
+        raw = bundle["raw"]
+        ratio_labels = bundle["ratio_labels"]
+        trial_counts = bundle["trial_counts"]
 
         if not ratio_labels:
             raise ValueError("RatioTest.npz is missing ratio_labels metadata.")
@@ -43,7 +25,7 @@ class AllModels33OverEpochsOutput:
 
         r_idx = ratio_labels.index(ratio_name)
 
-        model_curves = _weighted_single_ratio(raw[:, :, r_idx, :], trial_counts[r_idx, :])
+        model_curves = weighted_single_ratio(raw[:, :, r_idx, :], trial_counts[r_idx, :])
 
         n_models, n_epochs = model_curves.shape
         epochs = np.arange(n_epochs, dtype=np.float64)
@@ -100,34 +82,6 @@ class AllModels33OverEpochsOutput:
             )
         ]
 
-
-def _weighted_single_ratio(x: np.ndarray, weights: np.ndarray) -> np.ndarray:
-    """
-    x: (M, E, S)
-    weights: (S,)
-
-    Returns:
-        (M, E) weighted average across sets for the selected ratio,
-        using trial counts as fixed weights and ignoring NaNs.
-    """
-    x = np.asarray(x, dtype=np.float64)
-    w = np.asarray(weights, dtype=np.float64)
-
-    if x.ndim != 3:
-        raise ValueError(f"Expected x shape (M, E, S), got {x.shape}")
-    if w.shape != (x.shape[2],):
-        raise ValueError(f"Weight shape {w.shape} does not match set axis {(x.shape[2],)}")
-
-    valid = np.isfinite(x)
-    w_b = np.broadcast_to(w[None, None, :], x.shape)
-
-    weighted_sum = np.nansum(np.where(valid, x * w_b, np.nan), axis=2)
-    weight_sum = np.sum(np.where(valid, w_b, 0.0), axis=2)
-
-    out = np.full((x.shape[0], x.shape[1]), np.nan, dtype=np.float64)
-    good = weight_sum > 0
-    out[good] = weighted_sum[good] / weight_sum[good]
-    return out
 
 def _smooth_1d(y: np.ndarray, window: int = 5) -> np.ndarray:
     y = np.asarray(y, dtype=np.float64)
