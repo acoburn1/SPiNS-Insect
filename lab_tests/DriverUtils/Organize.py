@@ -1,5 +1,30 @@
 from pathlib import Path
+import re
 import shutil
+from collections import defaultdict
+
+
+_RUN_DIR_PATTERN = re.compile(r"hls(?P<hls>[^_]+).*lr(?P<lr>[^_]+)", re.IGNORECASE)
+
+
+def _parse_run_parameters(run_dir_name: str) -> tuple[str, str] | None:
+    match = _RUN_DIR_PATTERN.search(run_dir_name)
+    if not match:
+        return None
+    return match.group("hls"), match.group("lr")
+
+
+def _collect_graph_files(run_dir: Path, valid_exts: set[str]) -> list[Path]:
+    graph_files: list[Path] = []
+    for graph_type_dir in run_dir.iterdir():
+        if not graph_type_dir.is_dir() or len(list(graph_type_dir.iterdir())) > 10:
+            continue
+
+        for file_path in graph_type_dir.iterdir():
+            if file_path.is_file() and file_path.suffix.lower() in valid_exts:
+                graph_files.append(file_path)
+
+    return graph_files
 
 
 def group_graphs_by_name(output_dir: str) -> None:
@@ -9,33 +34,43 @@ def group_graphs_by_name(output_dir: str) -> None:
 
     valid_exts = {".png", ".jpg", ".jpeg", ".pdf", ".svg"}
 
-    run_dirs = []
-    for p in root.iterdir():
-        if not p.is_dir():
+    parsed_run_dirs: list[tuple[Path, str, str]] = []
+    for candidate in root.iterdir():
+        if not candidate.is_dir():
             continue
 
-        name = p.name.lower()
-        if "hls" in name and "lr" in name:
-            run_dirs.append(p)
+        run_params = _parse_run_parameters(candidate.name.lower())
+        if run_params is None:
+            continue
 
-    for run_dir in run_dirs:
-        run_name = run_dir.name
+        hls, lr = run_params
+        parsed_run_dirs.append((candidate, hls, lr))
 
-        for graph_type_dir in run_dir.iterdir():
-            if not graph_type_dir.is_dir() or len(list(graph_type_dir.iterdir())) > 10:
-                continue
+    run_dirs_by_hls: dict[str, list[Path]] = defaultdict(list)
+    run_dirs_by_lr: dict[str, list[Path]] = defaultdict(list)
+    for run_dir, hls, lr in parsed_run_dirs:
+        run_dirs_by_hls[hls].append(run_dir)
+        run_dirs_by_lr[lr].append(run_dir)
 
-            for file_path in graph_type_dir.iterdir():
-                if not file_path.is_file():
-                    continue
+    groupings_root = root / "Groupings"
+    groupings_root.mkdir(exist_ok=True)
 
-                ext = file_path.suffix.lower()
-                if ext not in valid_exts:
-                    continue
-
+    for hls, run_dirs in run_dirs_by_hls.items():
+        hls_group_dir = groupings_root / f"hls{hls}"
+        hls_group_dir.mkdir(parents=True, exist_ok=True)
+        for run_dir in run_dirs:
+            for file_path in _collect_graph_files(run_dir, valid_exts):
                 graph_name = file_path.stem
-                target_dir = root / graph_name
-                target_dir.mkdir(exist_ok=True)
+                target_dir = hls_group_dir / graph_name
+                target_dir.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(file_path, target_dir / f"{run_dir.name}{file_path.suffix.lower()}")
 
-                target_path = target_dir / f"{run_name}{ext}"
-                shutil.copy2(file_path, target_path)
+    for lr, run_dirs in run_dirs_by_lr.items():
+        lr_group_dir = groupings_root / f"lr{lr}"
+        lr_group_dir.mkdir(parents=True, exist_ok=True)
+        for run_dir in run_dirs:
+            for file_path in _collect_graph_files(run_dir, valid_exts):
+                graph_name = file_path.stem
+                target_dir = lr_group_dir / graph_name
+                target_dir.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(file_path, target_dir / f"{run_dir.name}{file_path.suffix.lower()}")
