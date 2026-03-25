@@ -55,22 +55,36 @@ def group_graphs_by_name(output_dir: str) -> None:
     groupings_root = root / "Groupings"
     groupings_root.mkdir(exist_ok=True)
 
-    for hls, run_dirs in run_dirs_by_hls.items():
-        hls_group_dir = groupings_root / f"hls{hls}"
-        hls_group_dir.mkdir(parents=True, exist_ok=True)
-        for run_dir in run_dirs:
-            for file_path in _collect_graph_files(run_dir, valid_exts):
-                graph_name = file_path.stem
-                target_dir = hls_group_dir / graph_name
-                target_dir.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(file_path, target_dir / f"{run_dir.name}{file_path.suffix.lower()}")
+    unique_hls = set(run_dirs_by_hls.keys())
+    unique_lr = set(run_dirs_by_lr.keys())
 
-    for lr, run_dirs in run_dirs_by_lr.items():
-        lr_group_dir = groupings_root / f"lr{lr}"
-        lr_group_dir.mkdir(parents=True, exist_ok=True)
-        for run_dir in run_dirs:
-            for file_path in _collect_graph_files(run_dir, valid_exts):
-                graph_name = file_path.stem
-                target_dir = lr_group_dir / graph_name
-                target_dir.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(file_path, target_dir / f"{run_dir.name}{file_path.suffix.lower()}")
+    create_hls_groups = len(unique_lr) > 1
+    create_lr_groups = len(unique_hls) > 1
+
+    if create_hls_groups:
+        for hls, run_dirs in run_dirs_by_hls.items():
+            _write_group(groupings_root / f"hls{hls}", run_dirs, valid_exts)
+
+    if create_lr_groups:
+        for lr, run_dirs in run_dirs_by_lr.items():
+            _write_group(groupings_root / f"lr{lr}", run_dirs, valid_exts)
+
+
+def _write_group(group_dir: Path, run_dirs: list[Path], valid_exts: set[str]) -> None:
+    grouped_files: dict[str, list[tuple[Path, Path]]] = defaultdict(list)
+    group_dir.mkdir(parents=True, exist_ok=True)
+
+    for run_dir in run_dirs:
+        for file_path in _collect_graph_files(run_dir, valid_exts):
+            grouped_files[file_path.stem].append((run_dir, file_path))
+
+    for graph_name, entries in grouped_files.items():
+        if len(entries) <= 1:
+            run_dir, file_path = entries[0]
+            shutil.copy2(file_path, group_dir / f"{run_dir.name}{file_path.suffix.lower()}")
+            continue
+
+        target_dir = group_dir / graph_name
+        target_dir.mkdir(parents=True, exist_ok=True)
+        for run_dir, file_path in entries:
+            shutil.copy2(file_path, target_dir / f"{run_dir.name}{file_path.suffix.lower()}")
