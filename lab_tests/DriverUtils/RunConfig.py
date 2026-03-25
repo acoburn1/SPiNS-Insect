@@ -7,9 +7,7 @@ from DataHelper.Probe import build_probe
 import time
 import os
 import json
-import subprocess
 from pathlib import Path
-from datetime import datetime, timezone
 from Model.StandardModel import StandardModel
 import DriverUtils.Visual as Visual
 from torch import kl_div, nn
@@ -20,6 +18,7 @@ from DriverUtils.Organize import group_graphs_by_name
 from Output.schema.PlotOutput import plot_output
 from Output.schema.dependencies import get_dependencies
 from Statistics.StatHelper import stats_over_models
+from DriverUtils.RunMetadata import git_branch, git_commit, utc_now_iso
 
 @dataclass
 class RunConfig:
@@ -256,9 +255,9 @@ class RunConfig:
                 "data_config": self.d_cfg,
                 "model_config": self.m_cfg,
                 "probe_config": self.p_cfg,
-                "generated_at_utc": datetime.now(timezone.utc).isoformat(),
-                "git_branch": self._git_branch(),
-                "git_commit": self._git_commit(),
+                "generated_at_utc": utc_now_iso(),
+                "git_branch": git_branch(),
+                "git_commit": git_commit(),
             }
 
             with open(f"{self.result_dir}/config.json", "w") as f:
@@ -269,32 +268,9 @@ class RunConfig:
         lr_str = f"{lr}".replace(".", "p")
         return d + f"_hls{hls}_lr{lr_str}"
 
-    @staticmethod
-    def _git_branch() -> str | None:
-        try:
-            return subprocess.check_output(
-                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-                stderr=subprocess.DEVNULL,
-                text=True,
-            ).strip()
-        except Exception:
-            return None
-
-    @staticmethod
-    def _git_commit() -> str | None:
-        try:
-            return subprocess.check_output(
-                ["git", "rev-parse", "HEAD"],
-                stderr=subprocess.DEVNULL,
-                text=True,
-            ).strip()
-        except Exception:
-            return None
-
 def confirm_configuration():
     response = input("does the above configuration look correct? (y/n): ").strip().lower()
     if response != 'y':
         print("execution cancelled.")
         exit(0)
-
 
