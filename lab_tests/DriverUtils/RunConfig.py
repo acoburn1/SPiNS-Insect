@@ -18,7 +18,7 @@ from DriverUtils.Organize import group_graphs_by_name
 from Output.schema.PlotOutput import plot_output
 from Output.schema.dependencies import get_dependencies
 from Statistics.StatHelper import stats_over_models
-from DriverUtils.RunMetadata import git_branch, git_commit, utc_now_iso
+from DriverUtils.RunMetadata import git_branch, git_commit, utc_now_iso, write_stage_metadata
 
 @dataclass
 class RunConfig:
@@ -84,6 +84,9 @@ class RunConfig:
         global_model_i = 0
         pair_i = 0
 
+        stage_started = utc_now_iso()
+        stage_success = False
+
         try:
             for HLS in self.hidden_layer_range:
                 for LR in self.learning_rate_range:
@@ -124,10 +127,28 @@ class RunConfig:
 
                     pair_i += 1
 
+            stage_success = True
+
         finally:
             if vis is not None:
                 vis.progress_done()
                 time.sleep(0.1)
+
+            write_stage_metadata(
+                result_dir=self.result_dir,
+                stage_name="activation_data",
+                stage_dir=self.activations_dir,
+                started_at_utc=stage_started,
+                finished_at_utc=utc_now_iso(),
+                status="success" if stage_success else "failed",
+                config_path=f"{self.result_dir}/config.json",
+                details={
+                    "training_name": self.training_name,
+                    "num_models": int(self.num_models),
+                    "hidden_layer_range": [int(v) for v in self.hidden_layer_range.tolist()],
+                    "learning_rate_range": [float(v) for v in self.learning_rate_range.tolist()],
+                },
+            )
 
     def evaluate(self):
         """
@@ -157,6 +178,9 @@ class RunConfig:
             vis.start()
 
         pair_i = 0
+        stage_started = utc_now_iso()
+        stage_success = False
+
         try:
             for HLS in self.hidden_layer_range:
                 for LR in self.learning_rate_range:
@@ -211,42 +235,79 @@ class RunConfig:
 
                     pair_i += 1
 
+            stage_success = True
+
         finally:
             if vis is not None:
                 vis.close()
                 time.sleep(0.1)
+
+            write_stage_metadata(
+                result_dir=self.result_dir,
+                stage_name="analysis_data",
+                stage_dir=self.analysis_dir,
+                started_at_utc=stage_started,
+                finished_at_utc=utc_now_iso(),
+                status="success" if stage_success else "failed",
+                config_path=f"{self.result_dir}/config.json",
+                details={
+                    "training_name": self.training_name,
+                    "evaluators": [ev.name for ev in evaluators],
+                    "sig_epoch_enabled": bool(sige),
+                },
+            )
 
     def generate_output(self):
         hyperd_out_fns = self.dependencies.hyperd_output_fns
         out_fns = self.dependencies.output_fns
         cfgs = self.dependencies.cfgs
 
-        for fn in hyperd_out_fns:
-            os.makedirs(self.output_dir, exist_ok=True)
-            if self.visual:
-                Visual.status(f"Saving {fn.name} output to {self.output_dir} ...")
-            specs = fn.generate_output(cfgs[fn], self.analysis_dir)
-            for spec in specs:
-                plot_output(spec, f"{self.output_dir}/{fn.name}")
+        stage_started = utc_now_iso()
+        stage_success = False
 
-        for HLS in self.hidden_layer_range:
-            for LR in self.learning_rate_range:
-                output_dir = self._add_suffix(self.output_dir, HLS, LR)
-                analysis_dir = self._add_suffix(self.analysis_dir, HLS, LR)
-                for fn in out_fns:
-                    os.makedirs(output_dir, exist_ok=True)
-                    if self.visual:
-                        Visual.status(f"Saving {fn.name} output to {output_dir} ...")
-                    specs = fn.generate_output(cfgs[fn], analysis_dir)
-                    for spec in specs:
-                        if cfgs[fn].get("per_epoch", False):
-                            plot_output(spec, f"{output_dir}/{fn.name}_{cfgs[fn].get('epochs', '')}")
-                        else:
-                            plot_output(spec, f"{output_dir}/{fn.name}")
-        
-        if self.visual:
-            Visual.status(f"Organizing files ...")
-        group_graphs_by_name(Path(self.output_dir).parent)
+        try:
+            for fn in hyperd_out_fns:
+                os.makedirs(self.output_dir, exist_ok=True)
+                if self.visual:
+                    Visual.status(f"Saving {fn.name} output to {self.output_dir} ...")
+                specs = fn.generate_output(cfgs[fn], self.analysis_dir)
+                for spec in specs:
+                    plot_output(spec, f"{self.output_dir}/{fn.name}")
+
+            for HLS in self.hidden_layer_range:
+                for LR in self.learning_rate_range:
+                    output_dir = self._add_suffix(self.output_dir, HLS, LR)
+                    analysis_dir = self._add_suffix(self.analysis_dir, HLS, LR)
+                    for fn in out_fns:
+                        os.makedirs(output_dir, exist_ok=True)
+                        if self.visual:
+                            Visual.status(f"Saving {fn.name} output to {output_dir} ...")
+                        specs = fn.generate_output(cfgs[fn], analysis_dir)
+                        for spec in specs:
+                            if cfgs[fn].get("per_epoch", False):
+                                plot_output(spec, f"{output_dir}/{fn.name}_{cfgs[fn].get('epochs', '')}")
+                            else:
+                                plot_output(spec, f"{output_dir}/{fn.name}")
+
+            if self.visual:
+                Visual.status(f"Organizing files ...")
+            group_graphs_by_name(Path(self.output_dir).parent)
+            stage_success = True
+        finally:
+            write_stage_metadata(
+                result_dir=self.result_dir,
+                stage_name="output",
+                stage_dir=self.output_dir,
+                started_at_utc=stage_started,
+                finished_at_utc=utc_now_iso(),
+                status="success" if stage_success else "failed",
+                config_path=f"{self.result_dir}/config.json",
+                details={
+                    "training_name": self.training_name,
+                    "hyperd_output_functions": [fn.name for fn in hyperd_out_fns],
+                    "output_functions": [fn.name for fn in out_fns],
+                },
+            )
 
     def save_configuration(self):
         os.makedirs(self.result_dir, exist_ok=True)
@@ -273,4 +334,3 @@ def confirm_configuration():
     if response != 'y':
         print("execution cancelled.")
         exit(0)
-
