@@ -266,6 +266,8 @@ class RunConfig:
         stage_success = False
 
         try:
+            grouped_output_names: set[str] = set()
+
             for fn in hyperd_out_fns:
                 os.makedirs(self.output_dir, exist_ok=True)
                 if self.visual:
@@ -282,6 +284,8 @@ class RunConfig:
                         os.makedirs(output_dir, exist_ok=True)
                         if self.visual:
                             Visual.status(f"Saving {fn.name} output to {output_dir} ...")
+                        if cfgs[fn].get("group", False):
+                            grouped_output_names.add(fn.name)
                         specs = fn.generate_output(cfgs[fn], analysis_dir)
                         for spec in specs:
                             if cfgs[fn].get("per_epoch", False):
@@ -291,7 +295,7 @@ class RunConfig:
 
             if self.visual:
                 Visual.status(f"Organizing files ...")
-            group_graphs_by_name(Path(self.output_dir).parent)
+            group_graphs_by_name(Path(self.output_dir).parent, grouped_output_names)
             stage_success = True
         finally:
             write_stage_metadata(

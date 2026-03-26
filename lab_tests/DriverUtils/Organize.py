@@ -14,10 +14,16 @@ def _parse_run_parameters(run_dir_name: str) -> tuple[str, str] | None:
     return match.group("hls"), match.group("lr")
 
 
-def _collect_graph_files(run_dir: Path, valid_exts: set[str]) -> list[Path]:
+def _collect_graph_files(run_dir: Path, valid_exts: set[str], grouped_output_names: set[str]) -> list[Path]:
     graph_files: list[Path] = []
     for graph_type_dir in run_dir.iterdir():
-        if not graph_type_dir.is_dir() or len(list(graph_type_dir.iterdir())) > 10:
+        if not graph_type_dir.is_dir():
+            continue
+
+        if not any(
+            graph_type_dir.name == output_name or graph_type_dir.name.startswith(f"{output_name}_")
+            for output_name in grouped_output_names
+        ):
             continue
 
         for file_path in graph_type_dir.iterdir():
@@ -27,10 +33,12 @@ def _collect_graph_files(run_dir: Path, valid_exts: set[str]) -> list[Path]:
     return graph_files
 
 
-def group_graphs_by_name(output_dir: str) -> None:
+def group_graphs_by_name(output_dir: str, grouped_output_names: set[str]) -> None:
     root = Path(output_dir).resolve()
     if not root.is_dir():
         raise NotADirectoryError(f"Not a valid directory: {root}")
+    if not grouped_output_names:
+        return
 
     valid_exts = {".png", ".jpg", ".jpeg", ".pdf", ".svg"}
 
@@ -63,19 +71,19 @@ def group_graphs_by_name(output_dir: str) -> None:
 
     if create_hls_groups:
         for hls, run_dirs in run_dirs_by_hls.items():
-            _write_group(groupings_root / f"hls{hls}", run_dirs, valid_exts)
+            _write_group(groupings_root / f"hls{hls}", run_dirs, valid_exts, grouped_output_names)
 
     if create_lr_groups:
         for lr, run_dirs in run_dirs_by_lr.items():
-            _write_group(groupings_root / f"lr{lr}", run_dirs, valid_exts)
+            _write_group(groupings_root / f"lr{lr}", run_dirs, valid_exts, grouped_output_names)
 
 
-def _write_group(group_dir: Path, run_dirs: list[Path], valid_exts: set[str]) -> None:
+def _write_group(group_dir: Path, run_dirs: list[Path], valid_exts: set[str], grouped_output_names: set[str]) -> None:
     grouped_files: dict[str, list[tuple[Path, Path]]] = defaultdict(list)
     group_dir.mkdir(parents=True, exist_ok=True)
 
     for run_dir in run_dirs:
-        for file_path in _collect_graph_files(run_dir, valid_exts):
+        for file_path in _collect_graph_files(run_dir, valid_exts, grouped_output_names):
             grouped_files[file_path.stem].append((run_dir, file_path))
 
     for graph_name, entries in grouped_files.items():
