@@ -46,8 +46,9 @@
     <Compile Include="Output\CorrelationHLS.py" />
     <Compile Include="Output\EpochsHLSwK95Heatmap.py" />
     <Compile Include="Output\GeneralizationCorrelationDiff.py" />
-    <Compile Include="Output\K95CorrelationDiff.py" />
-    <Compile Include="Output\K95Generalization.py" />
+    <Compile Include="Output\K95Correlation.py" />
+    <Compile Include="Output\K95DiffCorrelationDiff.py" />
+    <Compile Include="Output\K95DiffGeneralization.py" />
     <Compile Include="Output\K95HLS.py" />
     <Compile Include="Output\MatrixCorrelation.py" />
     <Compile Include="Output\Protocol.py" />
@@ -60,6 +61,7 @@
     <Compile Include="DataHelper\SpecialDataLoader.py" />
     <Compile Include="Output\SCurve.py" />
     <Compile Include="Output\SeriesCorrelation.py" />
+    <Compile Include="Output\SeriesK95.py" />
     <Compile Include="Output\SigEHLS.py" />
     <Compile Include="Output\utils.py" />
     <Compile Include="Output\WithinVsBetweenCorrelation.py" />
