@@ -17,6 +17,11 @@ from Output.RatioOverEpochs import RatioOverEpochsOutput
 from Output.SCurve import SCurveOutput
 from Output.AllModels33OverEpochs import AllModels33OverEpochsOutput
 from Output.AllModelsSCurve import AllModelsSCurveOutput
+from Output.GeneralizationCorrelationDiff import GeneralizationCorrelationDiffOutput
+from Output.K95Correlation import K95CorrelationOutput
+from Output.K95DiffCorrelationDiff import K95DiffCorrelationDiffOutput
+from Output.K95DiffGeneralization import K95DiffGeneralizationOutput
+from Output.SeriesK95 import SeriesK95Output
 
 @dataclass
 class Dep:
@@ -48,6 +53,11 @@ dependencies = {
     "Correlation-HLS": Dep([CorrelationEvaluator], CorrelationHLSOutput, hyperd=True),
     "Epochs-HLSwK95Heatmap": Dep([K95Evaluator], EpochsHLSwK95HeatmapOutput, hyperd=True),
     "SigE-HLS": Dep([CorrelationEvaluator], SigEHLSOutput, hyperd=True),
+    "GeneralizationCorrelationDiff": Dep([RatioTestEvaluator, CorrelationEvaluator], GeneralizationCorrelationDiffOutput),
+    "K95Correlation": Dep([K95Evaluator, CorrelationEvaluator], K95CorrelationOutput),
+    "K95DiffCorrelationDiff": Dep([K95Evaluator, CorrelationEvaluator], K95DiffCorrelationDiffOutput),
+    "K95DiffGeneralization": Dep([K95Evaluator, RatioTestEvaluator], K95DiffGeneralizationOutput),
+    "SeriesK95": Dep([K95Evaluator], SeriesK95Output),
 }
 
 
