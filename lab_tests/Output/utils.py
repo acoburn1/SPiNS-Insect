@@ -1,6 +1,7 @@
 import os
 import re
 import numpy as np
+from scipy.stats import linregress
 
 
 def load_mean_ci(path: str) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -206,6 +207,77 @@ def resolve_epoch_range(
         raise ValueError(f"Epoch range start {start} must be <= stop {stop}.")
 
     return list(range(start, stop + 1, step))
+
+
+def finite_xy(x: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    xv = np.asarray(x, dtype=np.float64)
+    yv = np.asarray(y, dtype=np.float64)
+    good = np.isfinite(xv) & np.isfinite(yv)
+    return xv[good], yv[good]
+
+
+def points_at_epochs(x_arr: np.ndarray, y_arr: np.ndarray, epochs: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    x = np.full((x_arr.shape[0],), np.nan, dtype=np.float64)
+    y = np.full((y_arr.shape[0],), np.nan, dtype=np.float64)
+
+    for m in range(x_arr.shape[0]):
+        e = epochs[m]
+        if not np.isfinite(e):
+            continue
+        ei = int(e)
+        x[m] = x_arr[m, ei]
+        y[m] = y_arr[m, ei]
+
+    return finite_xy(x, y)
+
+
+def points_for_epoch_list(x_arr: np.ndarray, y_arr: np.ndarray, epoch_indices: list[int]) -> tuple[list[np.ndarray], list[np.ndarray]]:
+    x_list = []
+    y_list = []
+    for e in epoch_indices:
+        x, y = finite_xy(x_arr[:, e], y_arr[:, e])
+        x_list.append(x)
+        y_list.append(y)
+    return x_list, y_list
+
+
+def shared_limits(
+    arrays: list[np.ndarray],
+    *,
+    fallback: list[float] | None = None,
+    clamp_01: bool = False,
+    padding: float = 0.05,
+) -> list[float] | None:
+    if clamp_01:
+        return [0.0, 1.0]
+
+    vals = np.concatenate([a[np.isfinite(a)] for a in arrays if a.size > 0]) if arrays else np.asarray([], dtype=np.float64)
+    if vals.size == 0:
+        return fallback
+
+    lo = float(np.nanmin(vals))
+    hi = float(np.nanmax(vals))
+    if lo == hi:
+        return [lo - 0.5, hi + 0.5]
+
+    span = hi - lo
+    return [lo - padding * span, hi + padding * span]
+
+
+def fit_line_with_stats(x: np.ndarray, y: np.ndarray, *, label_prefix: str = "fit") -> tuple[np.ndarray, np.ndarray, str]:
+    xv, yv = finite_xy(x, y)
+    if xv.size < 2:
+        return np.asarray([], dtype=np.float64), np.asarray([], dtype=np.float64), f"{label_prefix} unavailable"
+
+    reg = linregress(xv, yv)
+    x0 = float(np.nanmin(xv))
+    x1 = float(np.nanmax(xv))
+    if x0 == x1:
+        return np.asarray([], dtype=np.float64), np.asarray([], dtype=np.float64), f"{label_prefix} unavailable"
+
+    fx = np.asarray([x0, x1], dtype=np.float64)
+    fy = reg.slope * fx + reg.intercept
+    return fx, fy, f"{label_prefix} (r={reg.rvalue:.3f}, p={reg.pvalue:.3g})"
 
 
 def get_hyperparameter_runs_with_data(analysis_root: str, data_names: list[str]):

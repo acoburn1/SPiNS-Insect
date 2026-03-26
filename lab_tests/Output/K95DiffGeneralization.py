@@ -1,9 +1,18 @@
 import os
 import numpy as np
-from scipy.stats import linregress
 
 from Output.schema.OutputSpec import *
-from Output.utils import first_sig_epochs, normalize_k95_raw, resolve_epoch_range, weighted_single_ratio
+from Output.utils import (
+    finite_xy,
+    first_sig_epochs,
+    fit_line_with_stats,
+    load_ratio_test_bundle,
+    normalize_k95_raw,
+    points_at_epochs,
+    resolve_epoch_range,
+    shared_limits,
+    weighted_single_ratio,
+)
 
 
 class K95DiffGeneralizationOutput:
@@ -13,14 +22,14 @@ class K95DiffGeneralizationOutput:
     def generate_output(self, sub_cfg: dict, analysis_dir: str) -> list[OutputSpec]:
         ratio_name = str(sub_cfg.get("ratio", "3:3"))
 
-        ratio_np = np.load(os.path.join(analysis_dir, "RatioTest.npz"), allow_pickle=True)
+        ratio_bundle = load_ratio_test_bundle(analysis_dir)
         k95_np = np.load(os.path.join(analysis_dir, "K95.npz"))
 
-        raw_ratio = np.asarray(ratio_np["raw"], dtype=np.float64)  # (M,E,R,S)
+        raw_ratio = np.asarray(ratio_bundle["raw"], dtype=np.float64)  # (M,E,R,S)
         raw_k95 = normalize_k95_raw(np.asarray(k95_np["raw"], dtype=np.float64))
 
-        ratio_labels = _get_ratio_labels(ratio_np)
-        trial_counts = _get_trial_counts(ratio_np)
+        ratio_labels = ratio_bundle["ratio_labels"]
+        trial_counts = np.asarray(ratio_bundle["trial_counts"], dtype=np.float64)
 
         if ratio_name not in ratio_labels:
             raise ValueError(f"Requested ratio '{ratio_name}' not found. Available: {ratio_labels}")
@@ -32,9 +41,9 @@ class K95DiffGeneralizationOutput:
         mode = str(sub_cfg.get("epochs", "sig")).lower()
         if mode == "sig":
             sig_epochs = first_sig_epochs(analysis_dir, pref.shape[0], pref.shape[1])
-            x, y = _points_at_epochs(k95_diff, pref, sig_epochs)
+            x, y = points_at_epochs(k95_diff, pref, sig_epochs)
             y_lim = [0.0, 1.0]
-            x_lim = _shared_lim([x])
+            x_lim = shared_limits([x])
             return [
                 _build_spec(
                     sub_cfg,
@@ -51,10 +60,10 @@ class K95DiffGeneralizationOutput:
             epoch_indices = resolve_epoch_range(sub_cfg, pref.shape[1], default_start=0)
             per_epoch = []
             for e in epoch_indices:
-                x, y = _finite_pair(k95_diff[:, e], pref[:, e])
+                x, y = finite_xy(k95_diff[:, e], pref[:, e])
                 per_epoch.append((x, y))
 
-            x_lim = _shared_lim([p[0] for p in per_epoch])
+            x_lim = shared_limits([p[0] for p in per_epoch])
             y_lim = [0.0, 1.0]
 
             specs = []
@@ -85,7 +94,7 @@ def _build_spec(
     x_lim: list[float] | None,
     y_lim: list[float],
 ) -> OutputSpec:
-    fit_x, fit_y, fit_label = _fit_line(x, y)
+    fit_x, fit_y, fit_label = fit_line_with_stats(x, y)
     series_list = [
         Series(
             kind=PlotKind.SCATTER,
@@ -126,81 +135,3 @@ def _build_spec(
         dpi=int(sub_cfg.get("dpi", 300)),
         series_list=series_list,
     )
-
-
-def _points_at_epochs(x_arr: np.ndarray, y_arr: np.ndarray, epochs: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    x = np.full((x_arr.shape[0],), np.nan, dtype=np.float64)
-    y = np.full((y_arr.shape[0],), np.nan, dtype=np.float64)
-
-    for m in range(x_arr.shape[0]):
-        e = epochs[m]
-        if not np.isfinite(e):
-            continue
-        ei = int(e)
-        x[m] = x_arr[m, ei]
-        y[m] = y_arr[m, ei]
-
-    return _finite_pair(x, y)
-
-
-def _finite_pair(x: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    x = np.asarray(x, dtype=np.float64)
-    y = np.asarray(y, dtype=np.float64)
-    good = np.isfinite(x) & np.isfinite(y)
-    return x[good], y[good]
-
-
-def _shared_lim(arrays: list[np.ndarray]) -> list[float] | None:
-    vals = np.concatenate([a[np.isfinite(a)] for a in arrays if a.size > 0]) if arrays else np.asarray([], dtype=np.float64)
-    if vals.size == 0:
-        return None
-
-    lo = float(np.nanmin(vals))
-    hi = float(np.nanmax(vals))
-    if lo == hi:
-        return [lo - 0.5, hi + 0.5]
-
-    span = hi - lo
-    return [lo - 0.05 * span, hi + 0.05 * span]
-
-
-def _fit_line(x: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray, str]:
-    good = np.isfinite(x) & np.isfinite(y)
-    if np.sum(good) < 2:
-        return np.asarray([], dtype=np.float64), np.asarray([], dtype=np.float64), "fit unavailable"
-
-    xv = x[good]
-    yv = y[good]
-    reg = linregress(xv, yv)
-
-    x0 = float(np.nanmin(xv))
-    x1 = float(np.nanmax(xv))
-    if x0 == x1:
-        return np.asarray([], dtype=np.float64), np.asarray([], dtype=np.float64), "fit unavailable"
-
-    fx = np.asarray([x0, x1], dtype=np.float64)
-    fy = reg.slope * fx + reg.intercept
-    label = f"fit (r={reg.rvalue:.3f}, p={reg.pvalue:.3g})"
-    return fx, fy, label
-
-
-def _get_ratio_labels(ratio_np: np.lib.npyio.NpzFile) -> list[str]:
-    metadata = ratio_np["metadata"].item() if "metadata" in ratio_np else None
-    labels = list(metadata.get("ratio_labels", [])) if metadata is not None else []
-    if not labels and "ratio_labels" in ratio_np:
-        labels = [str(v) for v in ratio_np["ratio_labels"].tolist()]
-    return labels
-
-
-def _get_trial_counts(ratio_np: np.lib.npyio.NpzFile) -> np.ndarray:
-    metadata = ratio_np["metadata"].item() if "metadata" in ratio_np else None
-    tc = None
-    if metadata is not None and "trial_counts" in metadata:
-        tc = np.asarray(metadata["trial_counts"], dtype=np.float64)
-    elif "trial_counts" in ratio_np:
-        tc = np.asarray(ratio_np["trial_counts"], dtype=np.float64)
-
-    if tc is None:
-        raise ValueError("RatioTest.npz is missing trial_counts metadata.")
-
-    return tc

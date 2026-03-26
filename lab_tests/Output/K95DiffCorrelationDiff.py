@@ -1,9 +1,8 @@
 import os
 import numpy as np
-from scipy.stats import linregress
 
 from Output.schema.OutputSpec import *
-from Output.utils import normalize_k95_raw, resolve_epoch_range
+from Output.utils import finite_xy, fit_line_with_stats, normalize_k95_raw, resolve_epoch_range, shared_limits
 
 
 class K95DiffCorrelationDiffOutput:
@@ -26,15 +25,15 @@ class K95DiffCorrelationDiffOutput:
         epoch_indices = resolve_epoch_range(sub_cfg, raw_corr.shape[1], default_start=0)
         pts = []
         for e in epoch_indices:
-            x, y = _finite_pair(corr_diff[:, e], k95_diff[:, e])
+            x, y = finite_xy(corr_diff[:, e], k95_diff[:, e])
             pts.append((x, y))
 
-        x_lim = _shared_lim([p[0] for p in pts])
-        y_lim = _shared_lim([p[1] for p in pts])
+        x_lim = shared_limits([p[0] for p in pts])
+        y_lim = shared_limits([p[1] for p in pts])
 
         specs = []
         for e, (x, y) in zip(epoch_indices, pts):
-            fit_x, fit_y, fit_label = _fit_line(x, y)
+            fit_x, fit_y, fit_label = fit_line_with_stats(x, y)
             series_list = [
                 Series(
                     kind=PlotKind.SCATTER,
@@ -79,44 +78,3 @@ class K95DiffCorrelationDiffOutput:
             )
 
         return specs
-
-
-def _finite_pair(x: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    x = np.asarray(x, dtype=np.float64)
-    y = np.asarray(y, dtype=np.float64)
-    good = np.isfinite(x) & np.isfinite(y)
-    return x[good], y[good]
-
-
-def _shared_lim(arrays: list[np.ndarray]) -> list[float] | None:
-    vals = np.concatenate([a[np.isfinite(a)] for a in arrays if a.size > 0]) if arrays else np.asarray([], dtype=np.float64)
-    if vals.size == 0:
-        return None
-
-    lo = float(np.nanmin(vals))
-    hi = float(np.nanmax(vals))
-    if lo == hi:
-        return [lo - 0.5, hi + 0.5]
-
-    span = hi - lo
-    return [lo - 0.05 * span, hi + 0.05 * span]
-
-
-def _fit_line(x: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray, str]:
-    good = np.isfinite(x) & np.isfinite(y)
-    if np.sum(good) < 2:
-        return np.asarray([], dtype=np.float64), np.asarray([], dtype=np.float64), "fit unavailable"
-
-    xv = x[good]
-    yv = y[good]
-    reg = linregress(xv, yv)
-
-    x0 = float(np.nanmin(xv))
-    x1 = float(np.nanmax(xv))
-    if x0 == x1:
-        return np.asarray([], dtype=np.float64), np.asarray([], dtype=np.float64), "fit unavailable"
-
-    fx = np.asarray([x0, x1], dtype=np.float64)
-    fy = reg.slope * fx + reg.intercept
-    label = f"fit (r={reg.rvalue:.3f}, p={reg.pvalue:.3g})"
-    return fx, fy, label
