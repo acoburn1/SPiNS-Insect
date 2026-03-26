@@ -184,6 +184,30 @@ def sample_epochs(raw: np.ndarray, step: int = 3) -> np.ndarray:
     return np.arange(0, last + 1, step, dtype=np.int64)
 
 
+def resolve_epoch_range(
+    sub_cfg: dict,
+    total_epochs: int,
+    *,
+    default_start: int = 0,
+) -> list[int]:
+    range_cfg = sub_cfg.get("range", {}) or {}
+    start = int(range_cfg.get("start", default_start))
+    stop_raw = range_cfg.get("stop", total_epochs - 1)
+    stop = (total_epochs - 1) if stop_raw is None else int(stop_raw)
+    step = int(range_cfg.get("step", 1))
+
+    if step <= 0:
+        raise ValueError(f"Epoch range step must be positive, got {step}.")
+    if not 0 <= start < total_epochs:
+        raise ValueError(f"Epoch range start {start} is out of bounds for 0..{total_epochs - 1}.")
+    if not 0 <= stop < total_epochs:
+        raise ValueError(f"Epoch range stop {stop} is out of bounds for 0..{total_epochs - 1}.")
+    if start > stop:
+        raise ValueError(f"Epoch range start {start} must be <= stop {stop}.")
+
+    return list(range(start, stop + 1, step))
+
+
 def get_hyperparameter_runs_with_data(analysis_root: str, data_names: list[str]):
     runs = _discover_hyperparameter_runs(analysis_root)
 

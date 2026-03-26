@@ -5,6 +5,7 @@ from Output.utils import (
     first_sig_epochs,
     load_ratio_test_bundle,
     mod_count_from_ratio,
+    resolve_epoch_range,
     weighted_ratio_average,
 )
 
@@ -31,20 +32,26 @@ class SCurveOutput:
 
         x_vals = np.asarray([mod_count_from_ratio(r) for r in ratio_labels], dtype=np.float64)
 
-        mode = str(sub_cfg.get("epochs", "all")).lower()
-        if mode == "all":
-            return _build_all_epoch_specs(sub_cfg, raw, x_vals, trial_counts)
+        mode = str(sub_cfg.get("epochs", "range")).lower()
+        if mode == "range":
+            epoch_indices = resolve_epoch_range(sub_cfg, raw.shape[1], default_start=0)
+            return _build_range_epoch_specs(sub_cfg, raw, x_vals, trial_counts, epoch_indices)
         elif mode == "sig":
             return [_build_sig_spec(sub_cfg, analysis_dir, raw, x_vals, trial_counts)]
         else:
-            raise ValueError(f"Unsupported epochs mode: {mode}. Expected 'all' or 'sig'.")
+            raise ValueError(f"Unsupported epochs mode: {mode}. Expected 'range' or 'sig'.")
 
 
-def _build_all_epoch_specs(sub_cfg: dict, raw: np.ndarray, x_vals: np.ndarray, trial_counts: np.ndarray) -> list[OutputSpec]:
-    M, E, R, S = raw.shape
+def _build_range_epoch_specs(
+    sub_cfg: dict,
+    raw: np.ndarray,
+    x_vals: np.ndarray,
+    trial_counts: np.ndarray,
+    epoch_indices: list[int],
+) -> list[OutputSpec]:
     specs = []
 
-    for e in range(E):
+    for e in epoch_indices:
         per_model_curve = weighted_ratio_average(raw[:, e, :, :], trial_counts)
 
         st = stats_over_models(per_model_curve)
@@ -167,4 +174,3 @@ def _build_sig_spec(sub_cfg: dict, analysis_dir: str, raw: np.ndarray, x_vals: n
             )
         ],
     )
-

@@ -1,4 +1,8 @@
 SCurve:
   present: true
   per_epoch: true
-  epochs: all
+  epochs: range
+  range:
+    start: 0
+    stop:
+    step: 1
