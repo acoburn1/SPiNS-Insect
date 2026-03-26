@@ -106,6 +106,7 @@
     <Content Include="configs\data\default.yaml" />
     <Content Include="configs\directory\test.yaml" />
     <Content Include="configs\model\default.yaml" />
+    <Content Include="configs\model\hls20&amp;lr01-06-005.yaml" />
     <Content Include="configs\model\hls4-20-2.yaml" />
     <Content Include="configs\model\hls10-100-10.yaml" />
     <Content Include="configs\output\allmodels33overepochs.yaml" />

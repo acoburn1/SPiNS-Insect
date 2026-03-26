@@ -10,7 +10,7 @@ MatrixCorrelation:
   range:
     start: 0
     stop:
-    step: 5
+    step: 10
 RatioOverEpochs:
   present: true
   group: true
@@ -56,14 +56,14 @@ SigE-HLS:
   per_epoch: false
 GeneralizationCorrelationDiff:
   present: true
-  group: true
+  group: false
   per_epoch: true
   epochs: range
-  ratio: "3:3"
   range:
     start: 0
     stop:
-    step: 5
+    step: 10
+  ratio: "3:3"
 K95Correlation:
   present: true
   group: true
@@ -71,13 +71,13 @@ K95Correlation:
   epochs: sig
 K95DiffCorrelationDiff:
   present: true
-  group: true
+  group: false
   per_epoch: true
   epochs: range
   range:
     start: 0
     stop:
-    step: 5
+    step: 10
 K95DiffGeneralization:
   present: true
   group: true

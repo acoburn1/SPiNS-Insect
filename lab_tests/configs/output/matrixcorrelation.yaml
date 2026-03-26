@@ -1,8 +1,9 @@
 MatrixCorrelation:
   present: true
+  group: false
   per_epoch: true
   epochs: range
   range:
     start: 0
     stop:
-    step: 5
+    step: 10

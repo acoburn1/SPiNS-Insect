@@ -40,7 +40,7 @@ class RunConfig:
 
         self.num_features = self.m_cfg['num_features']
         self.hidden_layer_range = np.arange(self.m_cfg['hidden_layer_range']['start'], self.m_cfg['hidden_layer_range']['end'] + self.m_cfg['hidden_layer_range']['step'], self.m_cfg['hidden_layer_range']['step'])
-        self.learning_rate_range = np.linspace(self.m_cfg['learning_rate']['start'],self.m_cfg['learning_rate']['end'], self.m_cfg['learning_rate']['num'])
+        self.learning_rate_range = np.arange(self.m_cfg['learning_rate']['start'],self.m_cfg['learning_rate']['end'] + self.m_cfg['learning_rate']['step'], self.m_cfg['learning_rate']['step']) # TODO: fix fp rounding errors
         self.training_epochs = self.m_cfg['num_epochs']
         self.eval_epochs = self.training_epochs + 1
         self.num_models = self.m_cfg['num_models']
@@ -146,7 +146,7 @@ class RunConfig:
                     "training_name": self.training_name,
                     "num_models": int(self.num_models),
                     "hidden_layer_range": [int(v) for v in self.hidden_layer_range.tolist()],
-                    "learning_rate_range": [float(v) for v in self.learning_rate_range.tolist()],
+                    "learning_rate_range":[float(v) for v in self.learning_rate_range.tolist()],
                 },
             )
 
