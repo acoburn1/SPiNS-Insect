@@ -54,3 +54,37 @@ Epochs-HLSwK95Heatmap:
 SigE-HLS:
   present: true
   per_epoch: false
+GeneralizationCorrelationDiff:
+  present: true
+  group: true
+  per_epoch: true
+  epochs: range
+  ratio: "3:3"
+  range:
+    start: 0
+    stop:
+    step: 5
+K95Correlation:
+  present: true
+  group: true
+  per_epoch: true
+  epochs: sig
+K95DiffCorrelationDiff:
+  present: true
+  group: true
+  per_epoch: true
+  epochs: range
+  range:
+    start: 0
+    stop:
+    step: 5
+K95DiffGeneralization:
+  present: true
+  group: true
+  per_epoch: true
+  epochs: sig
+  ratio: "3:3"
+SeriesK95:
+  present: true
+  group: true
+  per_epoch: false
