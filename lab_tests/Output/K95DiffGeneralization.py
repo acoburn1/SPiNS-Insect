@@ -1,5 +1,6 @@
 import os
 import numpy as np
+from scipy.stats import linregress
 
 from Output.schema.OutputSpec import *
 from Output.utils import first_sig_epochs, normalize_k95_raw, resolve_epoch_range, weighted_single_ratio
@@ -84,6 +85,33 @@ def _build_spec(
     x_lim: list[float] | None,
     y_lim: list[float],
 ) -> OutputSpec:
+    fit_x, fit_y, fit_label = _fit_line(x, y)
+    series_list = [
+        Series(
+            kind=PlotKind.SCATTER,
+            label="models",
+            x=[float(v) for v in x],
+            y=[float(v) for v in y],
+            color=Color.BLUE,
+            marker="o",
+            alpha=0.5,
+        )
+    ]
+
+    if fit_x.size > 0:
+        series_list.append(
+            Series(
+                kind=PlotKind.LINE,
+                label=fit_label,
+                x=[float(v) for v in fit_x],
+                y=[float(v) for v in fit_y],
+                color=Color.RED,
+                marker=None,
+                linewidth=2.0,
+                alpha=0.9,
+            )
+        )
+
     return OutputSpec(
         figure_id=figure_id,
         title=f"Modular Preference vs Mod-Lat K95 ({suffix})",
@@ -96,17 +124,7 @@ def _build_spec(
         legend_fontsize=sub_cfg.get("legend_fontsize", 8),
         figsize=tuple(sub_cfg.get("figsize", (12, 8))),
         dpi=int(sub_cfg.get("dpi", 300)),
-        series_list=[
-            Series(
-                kind=PlotKind.SCATTER,
-                label="models",
-                x=[float(v) for v in x],
-                y=[float(v) for v in y],
-                color=Color.BLUE,
-                marker="o",
-                alpha=0.5,
-            )
-        ],
+        series_list=series_list,
     )
 
 
@@ -144,6 +162,26 @@ def _shared_lim(arrays: list[np.ndarray]) -> list[float] | None:
 
     span = hi - lo
     return [lo - 0.05 * span, hi + 0.05 * span]
+
+
+def _fit_line(x: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray, str]:
+    good = np.isfinite(x) & np.isfinite(y)
+    if np.sum(good) < 2:
+        return np.asarray([], dtype=np.float64), np.asarray([], dtype=np.float64), "fit unavailable"
+
+    xv = x[good]
+    yv = y[good]
+    reg = linregress(xv, yv)
+
+    x0 = float(np.nanmin(xv))
+    x1 = float(np.nanmax(xv))
+    if x0 == x1:
+        return np.asarray([], dtype=np.float64), np.asarray([], dtype=np.float64), "fit unavailable"
+
+    fx = np.asarray([x0, x1], dtype=np.float64)
+    fy = reg.slope * fx + reg.intercept
+    label = f"fit (r={reg.rvalue:.3f}, p={reg.pvalue:.3g})"
+    return fx, fy, label
 
 
 def _get_ratio_labels(ratio_np: np.lib.npyio.NpzFile) -> list[str]:

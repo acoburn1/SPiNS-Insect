@@ -1,5 +1,6 @@
 import os
 import numpy as np
+from scipy.stats import linregress
 
 from Output.schema.OutputSpec import *
 from Output.utils import first_sig_epochs, normalize_k95_raw, resolve_epoch_range
@@ -88,6 +89,58 @@ def _build_spec(
     x_lim: list[float],
     y_lim: list[float],
 ) -> OutputSpec:
+    mod_fit_x, mod_fit_y, mod_fit_label = _fit_line(mod_x, mod_y, "mod")
+    lat_fit_x, lat_fit_y, lat_fit_label = _fit_line(lat_x, lat_y, "lat")
+
+    series_list = [
+        Series(
+            kind=PlotKind.SCATTER,
+            label="mod",
+            x=[float(v) for v in mod_x],
+            y=[float(v) for v in mod_y],
+            color=Color.BLUE,
+            marker="o",
+            alpha=0.5,
+        ),
+        Series(
+            kind=PlotKind.SCATTER,
+            label="lat",
+            x=[float(v) for v in lat_x],
+            y=[float(v) for v in lat_y],
+            color=Color.RED,
+            marker="o",
+            alpha=0.5,
+        ),
+    ]
+
+    if mod_fit_x.size > 0:
+        series_list.append(
+            Series(
+                kind=PlotKind.LINE,
+                label=mod_fit_label,
+                x=[float(v) for v in mod_fit_x],
+                y=[float(v) for v in mod_fit_y],
+                color=Color.BLUE,
+                marker=None,
+                linewidth=2.0,
+                alpha=0.9,
+            )
+        )
+
+    if lat_fit_x.size > 0:
+        series_list.append(
+            Series(
+                kind=PlotKind.LINE,
+                label=lat_fit_label,
+                x=[float(v) for v in lat_fit_x],
+                y=[float(v) for v in lat_fit_y],
+                color=Color.RED,
+                marker=None,
+                linewidth=2.0,
+                alpha=0.9,
+            )
+        )
+
     return OutputSpec(
         figure_id=figure_id,
         title=f"K95 vs Hidden Correlation ({suffix})",
@@ -100,26 +153,7 @@ def _build_spec(
         legend_fontsize=sub_cfg.get("legend_fontsize", 8),
         figsize=tuple(sub_cfg.get("figsize", (12, 8))),
         dpi=int(sub_cfg.get("dpi", 300)),
-        series_list=[
-            Series(
-                kind=PlotKind.SCATTER,
-                label="mod",
-                x=[float(v) for v in mod_x],
-                y=[float(v) for v in mod_y],
-                color=Color.BLUE,
-                marker="o",
-                alpha=0.5,
-            ),
-            Series(
-                kind=PlotKind.SCATTER,
-                label="lat",
-                x=[float(v) for v in lat_x],
-                y=[float(v) for v in lat_y],
-                color=Color.RED,
-                marker="o",
-                alpha=0.5,
-            ),
-        ],
+        series_list=series_list,
     )
 
 
@@ -160,3 +194,23 @@ def _shared_lim(arrays: list[np.ndarray], *, fallback: list[float], clamp_01: bo
 
     span = hi - lo
     return [lo - 0.05 * span, hi + 0.05 * span]
+
+
+def _fit_line(x: np.ndarray, y: np.ndarray, prefix: str) -> tuple[np.ndarray, np.ndarray, str]:
+    good = np.isfinite(x) & np.isfinite(y)
+    if np.sum(good) < 2:
+        return np.asarray([], dtype=np.float64), np.asarray([], dtype=np.float64), f"{prefix} fit unavailable"
+
+    xv = x[good]
+    yv = y[good]
+    reg = linregress(xv, yv)
+
+    x0 = float(np.nanmin(xv))
+    x1 = float(np.nanmax(xv))
+    if x0 == x1:
+        return np.asarray([], dtype=np.float64), np.asarray([], dtype=np.float64), f"{prefix} fit unavailable"
+
+    fx = np.asarray([x0, x1], dtype=np.float64)
+    fy = reg.slope * fx + reg.intercept
+    label = f"{prefix} fit (r={reg.rvalue:.3f}, p={reg.pvalue:.3g})"
+    return fx, fy, label
