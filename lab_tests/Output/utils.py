@@ -27,25 +27,19 @@ def load_ratio_test_bundle(analysis_dir: str) -> dict[str, np.ndarray | list[str
     trial_counts = None
 
     if metadata is not None:
-        ratio_labels = list(metadata.get("ratio_labels", []))
-        set_labels = list(metadata.get("set_labels", []))
-
-        if "trial_counts" in metadata:
+        try:
+            ratio_labels = list(metadata.get("ratio_labels", []))
+            set_labels = list(metadata.get("set_labels", []))
             trial_counts = np.asarray(metadata["trial_counts"], dtype=np.float64)
-
-    if (not ratio_labels) and "ratio_labels" in data:
-        ratio_labels = [str(v) for v in data["ratio_labels"].tolist()]
-
-    if (not set_labels) and "set_labels" in data:
-        set_labels = [str(v) for v in data["set_labels"].tolist()]
-
-    if trial_counts is None and "trial_counts" in data:
-        trial_counts = np.asarray(data["trial_counts"], dtype=np.float64)
+        except:
+            raise ValueError("Invalid RatioTest metadata format. Expected 'ratio_labels', 'set_labels', and 'trial_counts'.")
+    else:
+        raise ValueError("RatioTest.npz is missing metadata")
 
     return {
         "raw": raw,
-        "ratio_labels": ratio_labels or [],
-        "set_labels": set_labels or [],
+        "ratio_labels": ratio_labels,
+        "set_labels": set_labels,
         "trial_counts": trial_counts,
     }
 

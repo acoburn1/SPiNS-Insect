@@ -19,7 +19,7 @@ class GeneralizationCorrelationDiffOutput:
     hyperd = False
 
     def generate_output(self, sub_cfg: dict, analysis_dir: str) -> list[OutputSpec]:
-        ratio_name = str(sub_cfg.get("ratio", "3:3"))
+        ratio_name = "3:3"
 
         corr_path = os.path.join(analysis_dir, "Correlation.npz")
 

@@ -27,8 +27,6 @@ from Output.SeriesK95 import SeriesK95Output
 class Dep:
     evaluators: list[type[Evaluator]]
     output_function: type[Output] | None
-    hyperd: bool = False
-
 
 @dataclass
 class DependenciesObject:
@@ -49,10 +47,10 @@ dependencies = {
     "K95Bars": Dep([K95Evaluator], None),
     "K95OverEpochs": Dep([K95Evaluator], None),
     "WithinVsBetweenCorrelation": Dep([MatrixCorrelationEvaluator, LossEvaluator], WithinVsBetweenCorrelationOutput),
-    "K95-HLS": Dep([K95Evaluator], K95HLSOutput, hyperd=True),
-    "Correlation-HLS": Dep([CorrelationEvaluator], CorrelationHLSOutput, hyperd=True),
-    "Epochs-HLSwK95Heatmap": Dep([K95Evaluator], EpochsHLSwK95HeatmapOutput, hyperd=True),
-    "SigE-HLS": Dep([CorrelationEvaluator], SigEHLSOutput, hyperd=True),
+    "K95-HLS": Dep([K95Evaluator], K95HLSOutput),
+    "Correlation-HLS": Dep([CorrelationEvaluator], CorrelationHLSOutput),
+    "Epochs-HLSwK95Heatmap": Dep([K95Evaluator], EpochsHLSwK95HeatmapOutput),
+    "SigE-HLS": Dep([CorrelationEvaluator], SigEHLSOutput),
     "GeneralizationCorrelationDiff": Dep([RatioTestEvaluator, CorrelationEvaluator], GeneralizationCorrelationDiffOutput),
     "K95Correlation": Dep([K95Evaluator, CorrelationEvaluator], K95CorrelationOutput),
     "K95DiffCorrelationDiff": Dep([K95Evaluator, CorrelationEvaluator], K95DiffCorrelationDiffOutput),
@@ -87,7 +85,7 @@ def get_dependencies(o_cfg):
                 if out_cls not in output_map:
                     output_map[out_cls] = out_cls()
                     out_obj = output_map[out_cls]
-                    if dep.hyperd:
+                    if dep.output_function.hyperd:
                         d_obj.hyperd_output_fns.append(out_obj)
                     else:
                         d_obj.output_fns.append(out_obj)
