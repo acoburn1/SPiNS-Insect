@@ -80,6 +80,8 @@ Or run all enabled stages:
 python program.py --all
 ```
 
+Note: Running these commands with the `-v` flag enables a progress display during execution (visual mode).  
+
 Use specific configs when needed:
 
 ```bash
