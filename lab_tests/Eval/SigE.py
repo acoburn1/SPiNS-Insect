@@ -31,7 +31,7 @@ class WithinVsBetweenSignificantEpochEvaluator:
         self,
         wb_corr_np: np.ndarray,
         diff_threshold: float = 0.05,
-        min_corr: float = 0.0,
+        min_corr: float = 0.25,
     ) -> tuple[np.ndarray, dict]:
         """
         wb_corr_np: (M,E,C1,C2) from WithinVsBetweenCorrelationEvaluator where

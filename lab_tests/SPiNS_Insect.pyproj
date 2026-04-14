@@ -14,7 +14,7 @@
     <RootNamespace>lab_tests</RootNamespace>
     <SuppressConfigureTestFrameworkPrompt>true</SuppressConfigureTestFrameworkPrompt>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <CommandLineArguments>python program.py -g -v -m "hls10-100-10" --directory-config "test.yaml" </CommandLineArguments>
+    <CommandLineArguments>python program.py -e -g -v -m "hls4-20-2" --output-config "wb-sig_default.yaml"</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -112,6 +112,7 @@
     <Content Include="configs\output\allmodels33overepochs.yaml" />
     <Content Include="configs\output\allmodelsscurve.yaml" />
     <Content Include="configs\output\correlationhls.yaml" />
+    <Content Include="configs\output\wb-sig_default.yaml" />
     <Content Include="configs\output\default.yaml" />
     <Content Include="configs\directory\default.yaml" />
     <Content Include="configs\output\epochshlswk95heatmap.yaml" />

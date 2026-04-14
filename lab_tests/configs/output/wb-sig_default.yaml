@@ -1,0 +1,89 @@
+SeriesCorrelation:
+  present: true
+  group: true
+  per_epoch: false
+MatrixCorrelation:
+  present: false
+  group: false
+  per_epoch: true
+  epochs: range
+  range:
+    start: 0
+    stop:
+    step: 10
+RatioOverEpochs:
+  present: true
+  group: true
+  per_epoch: false
+AllModels33OverEpochs:
+  present: true
+  group: true
+  per_epoch: false
+SCurve:
+  present: true
+  group: true
+  per_epoch: true
+  epochs: wb-sig
+AllModelsSCurve:
+  present: true
+  group: true
+  per_epoch: true
+  epochs: wb-sig
+K95Bars:
+  present: true
+  group: true
+  per_epoch: true
+  epochs: wb-sig
+K95OverEpochs:
+  present: true
+  group: true
+  per_epoch: false
+WithinVsBetweenCorrelation:
+  present: true
+  group: true
+  per_epoch: false
+K95-HLS:
+  present: true
+  per_epoch: false
+Correlation-HLS:
+  present: true
+  per_epoch: false
+Epochs-HLSwK95Heatmap:
+  present: true
+  per_epoch: false
+SigE-HLS:
+  present: true
+  per_epoch: false
+GeneralizationCorrelationDiff:
+  present: true
+  group: false
+  per_epoch: true
+  epochs: range
+  range:
+    start: 0
+    stop:
+    step: 10
+K95Correlation:
+  present: true
+  group: true
+  per_epoch: true
+  epochs: wb-sig
+K95DiffCorrelationDiff:
+  present: true
+  group: false
+  per_epoch: true
+  epochs: range
+  range:
+    start: 0
+    stop:
+    step: 10
+K95DiffGeneralization:
+  present: true
+  group: true
+  per_epoch: true
+  epochs: wb-sig
+  x_bound: [-3.5, 3.5]
+SeriesK95:
+  present: true
+  group: true
+  per_epoch: false
