@@ -20,7 +20,7 @@ class K95DiffGeneralizationOutput:
     hyperd = False
 
     def generate_output(self, sub_cfg: dict, analysis_dir: str) -> list[OutputSpec]:
-        ratio_name = str(sub_cfg.get("ratio", "3:3"))
+        ratio_name = "3:3"
 
         ratio_bundle = load_ratio_test_bundle(analysis_dir)
         k95_np = np.load(os.path.join(analysis_dir, "K95.npz"))
@@ -43,7 +43,7 @@ class K95DiffGeneralizationOutput:
             sig_epochs = first_sig_epochs(analysis_dir, pref.shape[0], pref.shape[1])
             x, y = points_at_epochs(k95_diff, pref, sig_epochs)
             y_lim = [0.0, 1.0]
-            x_lim = shared_limits([x])
+            x_lim = sub_cfg.get("x_bound", shared_limits([x]))
             return [
                 _build_spec(
                     sub_cfg,
@@ -63,7 +63,7 @@ class K95DiffGeneralizationOutput:
                 x, y = finite_xy(k95_diff[:, e], pref[:, e])
                 per_epoch.append((x, y))
 
-            x_lim = shared_limits([p[0] for p in per_epoch])
+            x_lim = [-3.5, 3.5] #shared_limits([p[0] for p in per_epoch])
             y_lim = [0.0, 1.0]
 
             specs = []

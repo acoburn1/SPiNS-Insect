@@ -63,7 +63,6 @@ GeneralizationCorrelationDiff:
     start: 0
     stop:
     step: 10
-  ratio: "3:3"
 K95Correlation:
   present: true
   group: true
@@ -83,7 +82,7 @@ K95DiffGeneralization:
   group: true
   per_epoch: true
   epochs: sig
-  ratio: "3:3"
+  x_bound: [-3.5, 3.5]
 SeriesK95:
   present: true
   group: true
