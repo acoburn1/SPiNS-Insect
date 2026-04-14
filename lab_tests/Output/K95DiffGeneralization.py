@@ -9,6 +9,7 @@ from Output.utils import (
     load_ratio_test_bundle,
     normalize_k95_raw,
     points_at_epochs,
+    resolve_plot_bound,
     resolve_epoch_range,
     shared_limits,
     weighted_single_ratio,
@@ -43,7 +44,7 @@ class K95DiffGeneralizationOutput:
             sig_epochs = first_sig_epochs(analysis_dir, pref.shape[0], pref.shape[1])
             x, y = points_at_epochs(k95_diff, pref, sig_epochs)
             y_lim = [0.0, 1.0]
-            x_lim = sub_cfg.get("x_bound", shared_limits([x]))
+            x_lim = resolve_plot_bound(sub_cfg, bound_key="x_bound", computed=shared_limits([x]))
             return [
                 _build_spec(
                     sub_cfg,
@@ -63,7 +64,11 @@ class K95DiffGeneralizationOutput:
                 x, y = finite_xy(k95_diff[:, e], pref[:, e])
                 per_epoch.append((x, y))
 
-            x_lim = [-3.5, 3.5] #shared_limits([p[0] for p in per_epoch])
+            x_lim = resolve_plot_bound(
+                sub_cfg,
+                bound_key="x_bound",
+                computed=shared_limits([p[0] for p in per_epoch]),
+            )
             y_lim = [0.0, 1.0]
 
             specs = []

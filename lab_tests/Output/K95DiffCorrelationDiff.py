@@ -2,7 +2,14 @@ import os
 import numpy as np
 
 from Output.schema.OutputSpec import *
-from Output.utils import finite_xy, fit_line_with_stats, normalize_k95_raw, resolve_epoch_range, shared_limits
+from Output.utils import (
+    finite_xy,
+    fit_line_with_stats,
+    normalize_k95_raw,
+    resolve_epoch_range,
+    resolve_plot_bound,
+    shared_limits,
+)
 
 
 class K95DiffCorrelationDiffOutput:
@@ -28,8 +35,8 @@ class K95DiffCorrelationDiffOutput:
             x, y = finite_xy(corr_diff[:, e], k95_diff[:, e])
             pts.append((x, y))
 
-        x_lim = shared_limits([p[0] for p in pts])
-        y_lim = shared_limits([p[1] for p in pts])
+        x_lim = resolve_plot_bound(sub_cfg, bound_key="x_bound", computed=shared_limits([p[0] for p in pts]))
+        y_lim = resolve_plot_bound(sub_cfg, bound_key="y_bound", computed=shared_limits([p[1] for p in pts]))
 
         specs = []
         for e, (x, y) in zip(epoch_indices, pts):

@@ -254,6 +254,20 @@ def shared_limits(
     return [lo - padding * span, hi + padding * span]
 
 
+def resolve_plot_bound(
+    sub_cfg: dict,
+    *,
+    bound_key: str,
+    computed: list[float] | None,
+) -> list[float] | None:
+    cfg_bound = sub_cfg.get(bound_key, None)
+    if cfg_bound is None:
+        return computed
+    if not isinstance(cfg_bound, (list, tuple)) or len(cfg_bound) != 2:
+        raise ValueError(f"{bound_key} must be a 2-item list/tuple, got {cfg_bound!r}")
+    return [float(cfg_bound[0]), float(cfg_bound[1])]
+
+
 def fit_line_with_stats(x: np.ndarray, y: np.ndarray, *, label_prefix: str = "fit") -> tuple[np.ndarray, np.ndarray, str]:
     xv, yv = finite_xy(x, y)
     if xv.size < 2:

@@ -8,6 +8,7 @@ from Output.utils import (
     fit_line_with_stats,
     normalize_k95_raw,
     points_at_epochs,
+    resolve_plot_bound,
     resolve_epoch_range,
     shared_limits,
 )
@@ -38,7 +39,11 @@ class K95CorrelationOutput:
             mod_x, mod_y = points_at_epochs(h_mod, k_mod, sig_epochs)
             lat_x, lat_y = points_at_epochs(h_lat, k_lat, sig_epochs)
             x_lim = shared_limits([mod_x, lat_x], fallback=[0.0, 1.0], clamp_01=True)
-            y_lim = shared_limits([mod_y, lat_y], fallback=[0.0, 1.0], clamp_01=False)
+            y_lim = resolve_plot_bound(
+                sub_cfg,
+                bound_key="y_bound",
+                computed=shared_limits([mod_y, lat_y], fallback=[0.0, 1.0], clamp_01=False),
+            )
             return [
                 _build_spec(
                     sub_cfg,
@@ -62,7 +67,11 @@ class K95CorrelationOutput:
                 per_epoch.append((mod_x, mod_y, lat_x, lat_y))
 
             x_lim = shared_limits([v for p in per_epoch for v in (p[0], p[2])], fallback=[0.0, 1.0], clamp_01=True)
-            y_lim = shared_limits([v for p in per_epoch for v in (p[1], p[3])], fallback=[0.0, 1.0], clamp_01=False)
+            y_lim = resolve_plot_bound(
+                sub_cfg,
+                bound_key="y_bound",
+                computed=shared_limits([v for p in per_epoch for v in (p[1], p[3])], fallback=[0.0, 1.0], clamp_01=False),
+            )
 
             specs = []
             for e, (mod_x, mod_y, lat_x, lat_y) in zip(epoch_indices, per_epoch):

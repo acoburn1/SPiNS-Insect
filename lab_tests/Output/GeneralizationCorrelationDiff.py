@@ -8,6 +8,7 @@ from Output.utils import (
     load_ratio_test_bundle,
     points_at_epochs,
     points_for_epoch_list,
+    resolve_plot_bound,
     resolve_epoch_range,
     shared_limits,
     weighted_single_ratio,
@@ -49,12 +50,13 @@ class GeneralizationCorrelationDiffOutput:
         if mode == "sig":
             sig_epochs = first_sig_epochs(analysis_dir, raw_corr.shape[0], raw_corr.shape[1])
             x, y = points_at_epochs(hidden_diff, pref_over_epochs, sig_epochs)
-            return [_build_spec(sub_cfg, x, y, figure_id=sub_cfg.get("name", "gen_corrdiff_sig"), suffix="sig")]
+            x_lim = resolve_plot_bound(sub_cfg, bound_key="x_bound", computed=shared_limits([x], padding=0.05))
+            return [_build_spec(sub_cfg, x, y, figure_id=sub_cfg.get("name", "gen_corrdiff_sig"), suffix="sig", x_lim=x_lim)]
 
         if mode == "range":
             epoch_indices = resolve_epoch_range(sub_cfg, raw_corr.shape[1], default_start=0)
             x_list, y_list = points_for_epoch_list(hidden_diff, pref_over_epochs, epoch_indices)
-            x_lim = shared_limits(x_list, padding=0.05)
+            x_lim = resolve_plot_bound(sub_cfg, bound_key="x_bound", computed=shared_limits(x_list, padding=0.05))
             specs = []
             for e, x, y in zip(epoch_indices, x_list, y_list):
                 specs.append(
