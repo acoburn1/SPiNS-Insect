@@ -103,18 +103,23 @@ def weighted_single_ratio(x: np.ndarray, weights: np.ndarray) -> np.ndarray:
     return _weighted_average_over_sets(x, weights)
 
 
-def first_sig_epochs(analysis_dir: str, n_models: int, n_epochs: int) -> np.ndarray:
-    path = os.path.join(analysis_dir, "sige.npz")
+def first_sig_epochs(analysis_dir: str, n_models: int, n_epochs: int, mode: str = "sig") -> np.ndarray:
+    mode = str(mode).lower()
+    filename = "sige.npz" if mode == "sig" else "wb-sige.npz" if mode == "wb-sig" else None
+    if filename is None:
+        raise ValueError(f"Unsupported significance mode: {mode}. Expected 'sig' or 'wb-sig'.")
+
+    path = os.path.join(analysis_dir, filename)
     if not os.path.exists(path):
-        raise FileNotFoundError(f"Missing sige.npz: {path}")
+        raise FileNotFoundError(f"Missing {filename}: {path}")
 
     data = np.load(path, allow_pickle=True)
     if "results" not in data:
-        raise ValueError("sige.npz is missing 'results'.")
+        raise ValueError(f"{filename} is missing 'results'.")
 
     sig = np.asarray(data["results"]).astype(bool)
     if sig.shape != (n_models, n_epochs):
-        raise ValueError(f"Expected sige results shape {(n_models, n_epochs)}, got {sig.shape}")
+        raise ValueError(f"Expected {mode} results shape {(n_models, n_epochs)}, got {sig.shape}")
 
     out = np.full((n_models,), np.nan, dtype=np.float64)
     for m in range(n_models):

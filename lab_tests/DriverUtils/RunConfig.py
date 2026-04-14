@@ -160,9 +160,10 @@ class RunConfig:
         """
         evaluators = self.dependencies.evaluation_fns
         sige = self.dependencies.sige
+        wb_sige = self.dependencies.wb_sige
 
         pair_n = int(len(self.hidden_layer_range) * len(self.learning_rate_range))
-        eval_n = int(len(evaluators) + (1 if sige else 0))
+        eval_n = int(len(evaluators) + (1 if sige else 0) + (1 if wb_sige else 0))
 
         vis = None
         if self.visual:
@@ -233,6 +234,17 @@ class RunConfig:
                             if vis is not None:
                                 vis.fast_done()
 
+                        if wb_sige and evaluator.name == "WithinVsBetweenCorrelation":
+                            if vis is not None:
+                                vis.set_eval("WbSigEpoch", ev_i + 1)
+                                vis.note("vector pass")
+
+                            wb_sige_results, _ = wb_sige.run(raw)
+                            np.savez(f"{analysis_dir}/wb-sige.npz", results=wb_sige_results)
+
+                            if vis is not None:
+                                vis.fast_done()
+
                     pair_i += 1
 
             stage_success = True
@@ -254,6 +266,7 @@ class RunConfig:
                     "training_name": self.training_name,
                     "evaluators": [ev.name for ev in evaluators],
                     "sig_epoch_enabled": bool(sige),
+                    "wb_sig_epoch_enabled": bool(wb_sige),
                 },
             )
 

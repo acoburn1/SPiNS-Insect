@@ -36,10 +36,10 @@ class SCurveOutput:
         if mode == "range":
             epoch_indices = resolve_epoch_range(sub_cfg, raw.shape[1], default_start=0)
             return _build_range_epoch_specs(sub_cfg, raw, x_vals, trial_counts, epoch_indices)
-        elif mode == "sig":
-            return [_build_sig_spec(sub_cfg, analysis_dir, raw, x_vals, trial_counts)]
+        elif mode in ("sig", "wb-sig"):
+            return [_build_sig_spec(sub_cfg, analysis_dir, raw, x_vals, trial_counts, mode=mode)]
         else:
-            raise ValueError(f"Unsupported epochs mode: {mode}. Expected 'range' or 'sig'.")
+            raise ValueError(f"Unsupported epochs mode: {mode}. Expected 'range', 'sig', or 'wb-sig'.")
 
 
 def _build_range_epoch_specs(
@@ -111,8 +111,8 @@ def _build_range_epoch_specs(
     return specs
 
 
-def _build_sig_spec(sub_cfg: dict, analysis_dir: str, raw: np.ndarray, x_vals: np.ndarray, trial_counts: np.ndarray) -> OutputSpec:
-    sig_epochs = first_sig_epochs(analysis_dir, raw.shape[0], raw.shape[1])
+def _build_sig_spec(sub_cfg: dict, analysis_dir: str, raw: np.ndarray, x_vals: np.ndarray, trial_counts: np.ndarray, *, mode: str = "sig") -> OutputSpec:
+    sig_epochs = first_sig_epochs(analysis_dir, raw.shape[0], raw.shape[1], mode=mode)
 
     per_model_curves = np.full((raw.shape[0], raw.shape[2]), np.nan, dtype=np.float64)
 
