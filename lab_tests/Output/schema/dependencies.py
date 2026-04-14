@@ -3,9 +3,9 @@ from dataclasses import dataclass, field
 from Eval.Protocol import Evaluator
 from Output.Protocol import Output
 from Eval.PCA import K95Evaluator
-from Eval.Correlation import CorrelationEvaluator, MatrixCorrelationEvaluator, LossEvaluator
+from Eval.Correlation import CorrelationEvaluator, MatrixCorrelationEvaluator, LossEvaluator, WithinVsBetweenCorrelationEvaluator
 from Eval.RatioExemplar import RatioTestEvaluator
-from Eval.SigE import SignificantEpochEvaluator
+from Eval.SigE import SignificantEpochEvaluator, WithinVsBetweenSignificantEpochEvaluator
 from Output.SeriesCorrelation import SeriesCorrelationOutput
 from Output.MatrixCorrelation import MatrixCorrelationOutput
 from Output.K95HLS import K95HLSOutput
@@ -35,6 +35,7 @@ class DependenciesObject:
     output_fns: list[Output] = field(default_factory=list)
     hyperd_output_fns: list[Output] = field(default_factory=list)
     sige: SignificantEpochEvaluator | None = None
+    wb_sige: WithinVsBetweenSignificantEpochEvaluator | None = None
 
 
 dependencies = {
@@ -46,7 +47,7 @@ dependencies = {
     "AllModelsSCurve": Dep([RatioTestEvaluator], AllModelsSCurveOutput),
     "K95Bars": Dep([K95Evaluator], None),
     "K95OverEpochs": Dep([K95Evaluator], None),
-    "WithinVsBetweenCorrelation": Dep([MatrixCorrelationEvaluator, LossEvaluator], WithinVsBetweenCorrelationOutput),
+    "WithinVsBetweenCorrelation": Dep([WithinVsBetweenCorrelationEvaluator, LossEvaluator], WithinVsBetweenCorrelationOutput),
     "K95-HLS": Dep([K95Evaluator], K95HLSOutput),
     "Correlation-HLS": Dep([CorrelationEvaluator], CorrelationHLSOutput),
     "Epochs-HLSwK95Heatmap": Dep([K95Evaluator], EpochsHLSwK95HeatmapOutput),
@@ -61,8 +62,8 @@ dependencies = {
 
 def get_dependencies(o_cfg):
     """
-    Given an output config file, returns the list of necessary evaluators and output functions, followed by sige.
-    sige will be SignificantEpochEvaluator() if any output requires it, otherwise None.
+    Given an output config file, returns the list of necessary evaluators and output functions, followed by sig-evaluators.
+    sige is used for "sig" epoch mode and wb_sige is used for "wb-sig" epoch mode.
     """
     d_obj = DependenciesObject()
 
@@ -94,7 +95,13 @@ def get_dependencies(o_cfg):
 
                 d_obj.cfgs[out_obj] = subcfg
 
-        if d_obj.sige is None and subcfg.get("epochs", False) == "sig":
+        mode = str(subcfg.get("epochs", "")).lower()
+        if d_obj.sige is None and mode == "sig":
             d_obj.sige = SignificantEpochEvaluator()
+        if d_obj.wb_sige is None and mode == "wb-sig":
+            d_obj.wb_sige = WithinVsBetweenSignificantEpochEvaluator()
+            if WithinVsBetweenCorrelationEvaluator not in evaluator_map:
+                evaluator_map[WithinVsBetweenCorrelationEvaluator] = WithinVsBetweenCorrelationEvaluator()
+                d_obj.evaluation_fns.append(evaluator_map[WithinVsBetweenCorrelationEvaluator])
 
     return d_obj

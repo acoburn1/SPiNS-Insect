@@ -11,23 +11,27 @@ class WithinVsBetweenCorrelationOutput:
     hyperd = False
 
     def generate_output(self, sub_cfg: dict, analysis_dir: str) -> list[OutputSpec]:
-        data = np.load(os.path.join(analysis_dir, "MatrixCorrelation.npz"))
-        raw = np.asarray(data["raw"], dtype=np.float64)  # (M, E, 2, 2, 11, 11)
+        data = np.load(os.path.join(analysis_dir, "WithinVsBetweenCorrelation.npz"))
+        raw = np.asarray(data["raw"], dtype=np.float64)  # (M, E, 2, 2)
 
-        if raw.ndim != 6 or raw.shape[2:4] != (2, 2) or raw.shape[-2:] != (11, 11):
-            raise ValueError(f"Expected MatrixCorrelation raw shape (M, E, 2, 2, 11, 11), got {raw.shape}")
+        if raw.ndim != 4 or raw.shape[2:4] != (2, 2):
+            raise ValueError(f"Expected WithinVsBetweenCorrelation raw shape (M, E, 2, 2), got {raw.shape}")
+
+        mode = str(sub_cfg.get("epochs", "range")).lower()
+        if mode == "wb-sig":
+            sig_path = os.path.join(analysis_dir, "wb-sige.npz")
+            sig_np = np.load(sig_path, allow_pickle=True)
+            if "results" not in sig_np:
+                raise ValueError("wb-sige.npz is missing 'results'.")
+            sig_mask = np.asarray(sig_np["results"], dtype=bool)
+            if sig_mask.shape != raw.shape[:2]:
+                raise ValueError(f"Expected wb-sige shape {raw.shape[:2]}, got {sig_mask.shape}")
+            raw = np.where(sig_mask[:, :, None, None], raw, np.nan)
+        elif mode != "range":
+            raise ValueError(f"Unsupported epochs mode: {mode}. Expected 'range' or 'wb-sig'.")
 
         loss_mean, loss_lo, loss_hi = load_mean_ci(os.path.join(analysis_dir, "Loss.npz"))
-
-        scores = np.full(raw.shape[:4], np.nan, dtype=np.float64)
-
-        for src in range(2):
-            for m in range(raw.shape[0]):
-                for e in range(raw.shape[1]):
-                    scores[m, e, src, 0] = _mod_score(raw[m, e, src, 0])
-                    scores[m, e, src, 1] = _lat_score(raw[m, e, src, 1])
-
-        st = stats_over_models(scores)
+        st = stats_over_models(raw)
         mean = st["mean"]
         lo = st["ci_lo"]
         hi = st["ci_hi"]
@@ -127,52 +131,3 @@ def _make_line(
         markersize=4.0,
         linewidth=2.0,
     )
-
-
-def _mod_score(cm: np.ndarray) -> float:
-    """
-    Uses only the last 8 features:
-      A = [3:7], B = [7:11]
-    score = mean(within A and within B, excluding diagonals)
-          - mean(cross-block A<->B)
-    """
-    X = np.asarray(cm, dtype=np.float64)
-    A = np.arange(3, 7)
-    B = np.arange(7, 11)
-
-    aa = X[np.ix_(A, A)]
-    bb = X[np.ix_(B, B)]
-    ab = X[np.ix_(A, B)]
-    ba = X[np.ix_(B, A)]
-
-    aa_vals = aa[~np.eye(len(A), dtype=bool)]
-    bb_vals = bb[~np.eye(len(B), dtype=bool)]
-    within_vals = np.concatenate([aa_vals, bb_vals])
-
-    between_vals = np.concatenate([ab.reshape(-1), ba.reshape(-1)])
-
-    return float(np.nanmean(within_vals) - np.nanmean(between_vals))
-
-
-def _lat_score(cm: np.ndarray) -> float:
-    """
-    Uses only the last 8 features [3:, 3:] arranged as a ring.
-    For each row, within = 2 left + 2 right neighbors (wrapping),
-    between = the remaining 3 non-self positions.
-    Final score = mean_row( mean(within row) - mean(between row) ).
-    """
-    X = np.asarray(cm, dtype=np.float64)[3:, 3:]
-    if X.shape != (8, 8):
-        raise ValueError(f"Expected 8x8 non-core lattice block, got {X.shape}")
-
-    row_scores = []
-    n = 8
-    for i in range(n):
-        within_idx = [((i - 1) % n), ((i + 1) % n)]
-        between_idx = [j for j in range(n) if j != i and j not in (within_idx + [((i - 2) % n), ((i + 2) % n)])]
-
-        within_mean = np.nanmean(X[i, within_idx])
-        between_mean = np.nanmean(X[i, between_idx])
-        row_scores.append(within_mean - between_mean)
-
-    return float(np.nanmean(row_scores))

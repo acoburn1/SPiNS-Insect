@@ -33,8 +33,8 @@ class K95CorrelationOutput:
         k_lat = raw_k95[:, :, 1]
 
         mode = str(sub_cfg.get("epochs", "sig")).lower()
-        if mode == "sig":
-            sig_epochs = first_sig_epochs(analysis_dir, raw_corr.shape[0], raw_corr.shape[1])
+        if mode in ("sig", "wb-sig"):
+            sig_epochs = first_sig_epochs(analysis_dir, raw_corr.shape[0], raw_corr.shape[1], mode=mode)
             mod_x, mod_y = points_at_epochs(h_mod, k_mod, sig_epochs)
             lat_x, lat_y = points_at_epochs(h_lat, k_lat, sig_epochs)
             x_lim = shared_limits([mod_x, lat_x], fallback=[0.0, 1.0], clamp_01=True)
@@ -47,7 +47,7 @@ class K95CorrelationOutput:
                     lat_x,
                     lat_y,
                     figure_id=sub_cfg.get("name", "k95_correlation_sig"),
-                    suffix="sig",
+                    suffix=mode,
                     x_lim=x_lim,
                     y_lim=y_lim,
                 )
@@ -81,7 +81,7 @@ class K95CorrelationOutput:
                 )
             return specs
 
-        raise ValueError(f"Unsupported epochs mode: {mode}. Expected 'range' or 'sig'.")
+        raise ValueError(f"Unsupported epochs mode: {mode}. Expected 'range', 'sig', or 'wb-sig'.")
 
 
 def _build_spec(

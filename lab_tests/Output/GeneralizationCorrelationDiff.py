@@ -46,10 +46,10 @@ class GeneralizationCorrelationDiffOutput:
         hidden_diff = hidden_mod - hidden_lat
 
         mode = str(sub_cfg.get("epochs", "range")).lower()
-        if mode == "sig":
-            sig_epochs = first_sig_epochs(analysis_dir, raw_corr.shape[0], raw_corr.shape[1])
+        if mode in ("sig", "wb-sig"):
+            sig_epochs = first_sig_epochs(analysis_dir, raw_corr.shape[0], raw_corr.shape[1], mode=mode)
             x, y = points_at_epochs(hidden_diff, pref_over_epochs, sig_epochs)
-            return [_build_spec(sub_cfg, x, y, figure_id=sub_cfg.get("name", "gen_corrdiff_sig"), suffix="sig")]
+            return [_build_spec(sub_cfg, x, y, figure_id=sub_cfg.get("name", "gen_corrdiff_sig"), suffix=mode)]
 
         if mode == "range":
             epoch_indices = resolve_epoch_range(sub_cfg, raw_corr.shape[1], default_start=0)
@@ -69,7 +69,7 @@ class GeneralizationCorrelationDiffOutput:
                 )
             return specs
 
-        raise ValueError(f"Unsupported epochs mode: {mode}. Expected 'range' or 'sig'.")
+        raise ValueError(f"Unsupported epochs mode: {mode}. Expected 'range', 'sig', or 'wb-sig'.")
 
 
 def _build_spec(

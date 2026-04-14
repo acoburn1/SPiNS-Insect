@@ -39,8 +39,8 @@ class K95DiffGeneralizationOutput:
         k95_diff = raw_k95[:, :, 0] - raw_k95[:, :, 1]
 
         mode = str(sub_cfg.get("epochs", "sig")).lower()
-        if mode == "sig":
-            sig_epochs = first_sig_epochs(analysis_dir, pref.shape[0], pref.shape[1])
+        if mode in ("sig", "wb-sig"):
+            sig_epochs = first_sig_epochs(analysis_dir, pref.shape[0], pref.shape[1], mode=mode)
             x, y = points_at_epochs(k95_diff, pref, sig_epochs)
             y_lim = [0.0, 1.0]
             x_lim = sub_cfg.get("x_bound", shared_limits([x]))
@@ -50,7 +50,7 @@ class K95DiffGeneralizationOutput:
                     x,
                     y,
                     figure_id=sub_cfg.get("name", "k95diff_generalization_sig"),
-                    suffix="sig",
+                    suffix=mode,
                     x_lim=x_lim,
                     y_lim=y_lim,
                 )
@@ -81,7 +81,7 @@ class K95DiffGeneralizationOutput:
                 )
             return specs
 
-        raise ValueError(f"Unsupported epochs mode: {mode}. Expected 'range' or 'sig'.")
+        raise ValueError(f"Unsupported epochs mode: {mode}. Expected 'range', 'sig', or 'wb-sig'.")
 
 
 def _build_spec(

@@ -97,6 +97,45 @@ class MatrixCorrelationEvaluator:
 
         return res, None
 
+class WithinVsBetweenCorrelationEvaluator:
+    name = "WithinVsBetweenCorrelation"
+
+    def run(self, cfg, zarr_path: str, vis: EvalVisualInfo = None) -> tuple[np.ndarray, dict]:
+        """
+          C1=0 hid, C1=1 out
+          C2=0 mod, C2=1 lat
+        """
+        onehot_ids = get_onehot_ids(cfg.probe_index)
+        hid, out, _ = load_slice(zarr_path, probe_ids=onehot_ids)
+        hid = np.asarray(hid, dtype=np.float64)  # (M,E,P,H)
+        out = np.asarray(out, dtype=np.float64)  # (M,E,P,O)
+
+        M, E, P, _ = map(int, hid.shape)
+        nf = cfg.num_features
+        assert_data_shape([M, E, P], [cfg.num_models, cfg.eval_epochs, nf * 2], ["M", "E", "P"])
+
+        res = np.full((M, E, 2, 2), np.nan, dtype=np.float64)  # C1=[hid,out], C2=[mod,lat]
+
+        for m in range(M):
+            for e in range(E):
+                if vis is not None:
+                    vis.update(m, e)
+
+                H = hid[m, e]
+                O = out[m, e]
+
+                h_mod_cm = _pairwise_corr_matrix(H[:nf])
+                h_lat_cm = _pairwise_corr_matrix(H[nf:])
+                o_mod_cm = _pairwise_corr_matrix(O[:nf])
+                o_lat_cm = _pairwise_corr_matrix(O[nf:])
+
+                res[m, e, 0, 0] = _mod_wb_score(h_mod_cm)
+                res[m, e, 0, 1] = _lat_wb_score(h_lat_cm)
+                res[m, e, 1, 0] = _mod_wb_score(o_mod_cm)
+                res[m, e, 1, 1] = _lat_wb_score(o_lat_cm)
+
+        return res, None
+
 class LossEvaluator:
     name = "Loss"
     def run(self, cfg, zarr_path: str, vis: EvalVisualInfo = None) -> np.ndarray:
@@ -123,3 +162,37 @@ def _pairwise_corr_matrix(vectors: np.ndarray, eps: float = 1e-12) -> np.ndarray
     nrm = np.linalg.norm(X, axis=1, keepdims=True)
     X = X / np.maximum(nrm, eps)
     return X @ X.T
+
+def _mod_wb_score(cm: np.ndarray) -> float:
+    X = np.asarray(cm, dtype=np.float64)
+    A = np.arange(3, 7)
+    B = np.arange(7, 11)
+
+    aa = X[np.ix_(A, A)]
+    bb = X[np.ix_(B, B)]
+    ab = X[np.ix_(A, B)]
+    ba = X[np.ix_(B, A)]
+
+    aa_vals = aa[~np.eye(len(A), dtype=bool)]
+    bb_vals = bb[~np.eye(len(B), dtype=bool)]
+    within_vals = np.concatenate([aa_vals, bb_vals])
+    between_vals = np.concatenate([ab.reshape(-1), ba.reshape(-1)])
+
+    return float(np.nanmean(within_vals) - np.nanmean(between_vals))
+
+def _lat_wb_score(cm: np.ndarray) -> float:
+    X = np.asarray(cm, dtype=np.float64)[3:, 3:]
+    if X.shape != (8, 8):
+        raise ValueError(f"Expected 8x8 non-core lattice block, got {X.shape}")
+
+    row_scores = []
+    n = 8
+    for i in range(n):
+        within_idx = [((i - 1) % n), ((i + 1) % n)]
+        between_idx = [j for j in range(n) if j != i and j not in (within_idx + [((i - 2) % n), ((i + 2) % n)])]
+
+        within_mean = np.nanmean(X[i, within_idx])
+        between_mean = np.nanmean(X[i, between_idx])
+        row_scores.append(within_mean - between_mean)
+
+    return float(np.nanmean(row_scores))
