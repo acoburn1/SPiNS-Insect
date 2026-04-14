@@ -49,6 +49,32 @@ def mod_count_from_ratio(ratio_label: str) -> int:
     return int(left)
 
 
+def _weighted_average_over_sets(x: np.ndarray, weights: np.ndarray) -> np.ndarray:
+    x = np.asarray(x, dtype=np.float64)
+    w = np.asarray(weights, dtype=np.float64)
+
+    if x.ndim < 2:
+        raise ValueError(f"Expected x to include a set axis, got shape {x.shape}")
+
+    try:
+        w_core = np.broadcast_to(w, x.shape[1:])
+    except ValueError as exc:
+        raise ValueError(
+            f"Weight shape {w.shape} is not broadcastable to {x.shape[1:]}"
+        ) from exc
+
+    valid = np.isfinite(x)
+    w_b = np.broadcast_to(w_core[None, ...], x.shape)
+
+    weighted_sum = np.nansum(np.where(valid, x * w_b, np.nan), axis=-1)
+    weight_sum = np.sum(np.where(valid, w_b, 0.0), axis=-1)
+
+    out = np.full(x.shape[:-1], np.nan, dtype=np.float64)
+    good = weight_sum > 0
+    out[good] = weighted_sum[good] / weight_sum[good]
+    return out
+
+
 def weighted_ratio_average(x: np.ndarray, trial_counts: np.ndarray) -> np.ndarray:
     """
     x: (M, R, S)
@@ -58,24 +84,9 @@ def weighted_ratio_average(x: np.ndarray, trial_counts: np.ndarray) -> np.ndarra
         (M, R) weighted average across sets for each ratio,
         using trial counts as fixed weights and ignoring NaNs.
     """
-    x = np.asarray(x, dtype=np.float64)
-    w = np.asarray(trial_counts, dtype=np.float64)
-
     if x.ndim != 3:
         raise ValueError(f"Expected x shape (M, R, S), got {x.shape}")
-    if w.shape != x.shape[1:]:
-        raise ValueError(f"Weight shape {w.shape} does not match ratio/set shape {x.shape[1:]}")
-
-    valid = np.isfinite(x)
-    w_b = np.broadcast_to(w[None, :, :], x.shape)
-
-    weighted_sum = np.nansum(np.where(valid, x * w_b, np.nan), axis=2)
-    weight_sum = np.sum(np.where(valid, w_b, 0.0), axis=2)
-
-    out = np.full((x.shape[0], x.shape[1]), np.nan, dtype=np.float64)
-    good = weight_sum > 0
-    out[good] = weighted_sum[good] / weight_sum[good]
-    return out
+    return _weighted_average_over_sets(x, trial_counts)
 
 
 def weighted_single_ratio(x: np.ndarray, weights: np.ndarray) -> np.ndarray:
@@ -87,24 +98,9 @@ def weighted_single_ratio(x: np.ndarray, weights: np.ndarray) -> np.ndarray:
         (M, E) weighted average across sets for the selected ratio,
         using trial counts as fixed weights and ignoring NaNs.
     """
-    x = np.asarray(x, dtype=np.float64)
-    w = np.asarray(weights, dtype=np.float64)
-
     if x.ndim != 3:
         raise ValueError(f"Expected x shape (M, E, S), got {x.shape}")
-    if w.shape != (x.shape[2],):
-        raise ValueError(f"Weight shape {w.shape} does not match set axis {(x.shape[2],)}")
-
-    valid = np.isfinite(x)
-    w_b = np.broadcast_to(w[None, None, :], x.shape)
-
-    weighted_sum = np.nansum(np.where(valid, x * w_b, np.nan), axis=2)
-    weight_sum = np.sum(np.where(valid, w_b, 0.0), axis=2)
-
-    out = np.full((x.shape[0], x.shape[1]), np.nan, dtype=np.float64)
-    good = weight_sum > 0
-    out[good] = weighted_sum[good] / weight_sum[good]
-    return out
+    return _weighted_average_over_sets(x, weights)
 
 
 def first_sig_epochs(analysis_dir: str, n_models: int, n_epochs: int) -> np.ndarray:
