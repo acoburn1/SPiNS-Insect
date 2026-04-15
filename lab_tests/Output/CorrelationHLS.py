@@ -30,6 +30,7 @@ class CorrelationHLSOutput:
         specs = []
         for lr in sorted(by_lr.keys()):
             lr_runs = sorted(by_lr[lr], key=lambda d: d["hls"])
+            mode_token = sig_mode.replace("-", "_")
 
             scatter_x = []
             scatter_y = []
@@ -79,7 +80,7 @@ class CorrelationHLSOutput:
 
             specs.append(
                 OutputSpec(
-                    figure_id=f"correlation_hls_scatter_lr{str(lr).replace('.', 'p')}",
+                    figure_id=f"correlation_hls_scatter_{mode_token}_lr{str(lr).replace('.', 'p')}",
                     title=title_base + " — Scatter",
                     x_label="Hidden Layer Size",
                     y_label="Correlation at First Significant Epoch",
@@ -109,7 +110,7 @@ class CorrelationHLSOutput:
 
             specs.append(
                 OutputSpec(
-                    figure_id=f"correlation_hls_bar_lr{str(lr).replace('.', 'p')}",
+                    figure_id=f"correlation_hls_bar_{mode_token}_lr{str(lr).replace('.', 'p')}",
                     title=title_base + " — Mean ± 95% CI",
                     x_label="Hidden Layer Size",
                     y_label="Correlation at First Significant Epoch",

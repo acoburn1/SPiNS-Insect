@@ -26,6 +26,7 @@ class SigEHLSOutput:
         specs = []
         for lr in sorted(by_lr.keys()):
             lr_runs = sorted(by_lr[lr], key=lambda d: d["hls"])
+            mode_token = sig_mode.replace("-", "_")
 
             xs = []
             ys = []
@@ -56,7 +57,7 @@ class SigEHLSOutput:
 
             specs.append(
                 OutputSpec(
-                    figure_id=f"sige_hls_lr{str(lr).replace('.', 'p')}",
+                    figure_id=f"sige_hls_{mode_token}_lr{str(lr).replace('.', 'p')}",
                     title=f"First Significant Epoch vs Hidden Layer Size ({sig_mode}, LR={lr:g})",
                     x_label="Hidden Layer Size",
                     y_label="First Significant Epoch",
