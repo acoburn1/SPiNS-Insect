@@ -147,8 +147,9 @@ def _build_sig_spec(sub_cfg: dict, analysis_dir: str, raw: np.ndarray, x_vals: n
                 )
             )
 
+    mode_suffix = "sige" if mode == "sig" else "wb-sige"
     return OutputSpec(
-        figure_id="all_models_s_curve_sig",
+        figure_id=sub_cfg.get("name", f"all_models_s_curve_{mode_suffix}"),
         title=sub_cfg.get("title", "Modular Response by Feature Composition - Hidden"),
         x_label="# mod feats",
         y_label="% mod resp",

@@ -39,6 +39,7 @@ class K95CorrelationOutput:
             lat_x, lat_y = points_at_epochs(h_lat, k_lat, sig_epochs)
             x_lim = shared_limits([mod_x, lat_x], fallback=[0.0, 1.0], clamp_01=True)
             y_lim = shared_limits([mod_y, lat_y], fallback=[0.0, 1.0], clamp_01=False)
+            mode_suffix = "sige" if mode == "sig" else "wb-sige"
             return [
                 _build_spec(
                     sub_cfg,
@@ -46,7 +47,7 @@ class K95CorrelationOutput:
                     mod_y,
                     lat_x,
                     lat_y,
-                    figure_id=sub_cfg.get("name", "k95_correlation_sig"),
+                    figure_id=sub_cfg.get("name", f"k95_correlation_{mode_suffix}"),
                     suffix=mode,
                     x_lim=x_lim,
                     y_lim=y_lim,

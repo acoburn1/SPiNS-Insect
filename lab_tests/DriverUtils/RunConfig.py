@@ -287,8 +287,9 @@ class RunConfig:
                 if self.visual:
                     Visual.status(f"Saving {fn.name} output to {self.output_dir} ...")
                 specs = fn.generate_output(cfgs[fn], self.analysis_dir)
+                output_name = self._output_name_for_cfg(fn.name, cfgs[fn])
                 for spec in specs:
-                    plot_output(spec, f"{self.output_dir}/{fn.name}")
+                    plot_output(spec, f"{self.output_dir}/{output_name}")
 
             for HLS in self.hidden_layer_range:
                 for LR in self.learning_rate_range:
@@ -298,14 +299,12 @@ class RunConfig:
                         os.makedirs(output_dir, exist_ok=True)
                         if self.visual:
                             Visual.status(f"Saving {fn.name} output to {output_dir} ...")
+                        output_name = self._output_name_for_cfg(fn.name, cfgs[fn])
                         if cfgs[fn].get("group", False):
-                            grouped_output_names.add(fn.name)
+                            grouped_output_names.add(output_name)
                         specs = fn.generate_output(cfgs[fn], analysis_dir)
                         for spec in specs:
-                            if cfgs[fn].get("per_epoch", False):
-                                plot_output(spec, f"{output_dir}/{fn.name}_{cfgs[fn].get('epochs', '')}")
-                            else:
-                                plot_output(spec, f"{output_dir}/{fn.name}")
+                            plot_output(spec, f"{output_dir}/{output_name}")
 
             if self.visual:
                 Visual.status(f"Organizing files ...")
@@ -354,6 +353,22 @@ class RunConfig:
     def _add_suffix(d: str, hls: int, lr: float) -> str:
         lr_str = f"{lr}".replace(".", "p")
         return d + f"_hls{hls}_lr{lr_str}"
+
+    @staticmethod
+    def _output_name_for_cfg(fn_name: str, cfg: dict) -> str:
+        sige_type = str(cfg.get("sige_type", "")).lower()
+        if sige_type in ("sig", "wb-sig"):
+            suffix = "sige" if sige_type == "sig" else "wb-sige"
+            return f"{fn_name}_{suffix}"
+
+        epoch_mode = str(cfg.get("epochs", "")).lower()
+        if epoch_mode in ("sig", "wb-sig"):
+            suffix = "sige" if epoch_mode == "sig" else "wb-sige"
+            return f"{fn_name}_{suffix}"
+        if epoch_mode == "range":
+            return f"{fn_name}_range"
+
+        return fn_name
 
 def confirm_configuration():
     response = input("does the above configuration look correct? (y/n): ").strip().lower()
