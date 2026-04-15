@@ -19,6 +19,7 @@ from Output.schema.PlotOutput import plot_output
 from Output.schema.dependencies import get_dependencies
 from Statistics.StatHelper import stats_over_models
 from DriverUtils.RunMetadata import git_branch, git_commit, utc_now_iso, write_stage_metadata
+from DriverUtils.TabularExport import export_regression_tables
 
 @dataclass
 class RunConfig:
@@ -325,6 +326,14 @@ class RunConfig:
                     "output_functions": [fn.name for fn in out_fns],
                 },
             )
+
+    def generate_tabular_output(self):
+        for HLS in self.hidden_layer_range:
+            for LR in self.learning_rate_range:
+                output_dir = self._add_suffix(self.output_dir, HLS, LR)
+                analysis_dir = self._add_suffix(self.analysis_dir, HLS, LR)
+                os.makedirs(output_dir, exist_ok=True)
+                export_regression_tables(analysis_dir, output_dir)
 
     def save_configuration(self):
         os.makedirs(self.result_dir, exist_ok=True)

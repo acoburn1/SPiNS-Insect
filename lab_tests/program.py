@@ -15,6 +15,8 @@ if args.all:
     runcfg.train()
     runcfg.evaluate()
     runcfg.generate_output()
+    if args.tabular:
+        runcfg.generate_tabular_output()
 else:
     if args.train:
         runcfg.train()
@@ -22,7 +24,8 @@ else:
         runcfg.evaluate()
     if args.graph:
         runcfg.generate_output()
-
+    if args.tabular:
+        runcfg.generate_tabular_output()
 
 
 

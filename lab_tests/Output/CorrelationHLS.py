@@ -1,7 +1,7 @@
 import numpy as np
 from Output.schema.OutputSpec import *
 from Statistics.StatHelper import stats_over_models
-from Output.utils import get_hyperparameter_runs_with_data, spread_x
+from Output.utils import first_sig_epochs, get_hyperparameter_runs_with_data, spread_x
 
 
 class CorrelationHLSOutput:
@@ -9,11 +9,16 @@ class CorrelationHLSOutput:
     hyperd = True
 
     def generate_output(self, sub_cfg: dict, analysis_root: str) -> list[OutputSpec]:
-        runs = get_hyperparameter_runs_with_data(analysis_root, ["Correlation", "sige"])
-        runs = [run for run in runs if "Correlation" in run and "sige" in run]
+        sig_mode = str(sub_cfg.get("sige_type", "sig")).lower()
+        if sig_mode not in ("sig", "wb-sig"):
+            raise ValueError(f"Unsupported sige_type: {sig_mode}. Expected 'sig' or 'wb-sig'.")
+
+        sig_name = "sige" if sig_mode == "sig" else "wb-sige"
+        runs = get_hyperparameter_runs_with_data(analysis_root, ["Correlation", sig_name])
+        runs = [run for run in runs if "Correlation" in run and sig_name in run]
 
         if not runs:
-            raise FileNotFoundError(f"No Correlation.npz + sige.npz runs found under {analysis_root}")
+            raise FileNotFoundError(f"No Correlation.npz + {sig_name}.npz runs found under {analysis_root}")
 
         source_name = str(sub_cfg.get("source", "hidden")).lower()
         source_idx = 0 if source_name in ("hidden", "hid") else 1
@@ -39,11 +44,12 @@ class CorrelationHLSOutput:
             for run in lr_runs:
                 hls = run["hls"]
                 corr_raw = np.asarray(run["Correlation"]["raw"], dtype=np.float64)
-                sig_mask = np.asarray(run["sige"]["results"], dtype=bool)
+                n_models, n_epochs = corr_raw.shape[0], corr_raw.shape[1]
+                sig_epochs = first_sig_epochs(run["analysis_dir"], n_models, n_epochs, mode=sig_mode)
 
                 per_model_scores = _scores_at_first_sig_epoch(
                     corr_raw=corr_raw,
-                    sig_mask=sig_mask,
+                    sig_epochs=sig_epochs,
                     source_idx=source_idx,
                 )
 
@@ -68,7 +74,8 @@ class CorrelationHLSOutput:
                     bar_yerr.append(max(mean - ci_lo, ci_hi - mean))
 
             src_label = "Hidden" if source_idx == 0 else "Output"
-            title_base = f"{src_label} Correlation at First Significant Epoch vs HLS (LR={lr:g})"
+            mode_label = "sig" if sig_mode == "sig" else "wb-sig"
+            title_base = f"{src_label} Correlation at First Significant Epoch vs HLS ({mode_label}, LR={lr:g})"
 
             specs.append(
                 OutputSpec(
@@ -133,25 +140,25 @@ class CorrelationHLSOutput:
         return specs
 
 
-def _scores_at_first_sig_epoch(corr_raw: np.ndarray, sig_mask: np.ndarray, source_idx: int) -> np.ndarray:
+def _scores_at_first_sig_epoch(corr_raw: np.ndarray, sig_epochs: np.ndarray, source_idx: int) -> np.ndarray:
     x = np.asarray(corr_raw, dtype=np.float64)
-    sig = np.asarray(sig_mask, dtype=bool)
+    epochs = np.asarray(sig_epochs, dtype=np.float64)
 
     if x.ndim != 5 or x.shape[2:] != (2, 2, 2):
         raise ValueError(f"Expected Correlation raw shape (M, E, 2, 2, 2), got {x.shape}")
 
-    if sig.ndim != 2 or sig.shape[0] != x.shape[0] or sig.shape[1] != x.shape[1]:
-        raise ValueError(f"Expected sige shape (M, E) matching correlation raw, got corr={x.shape}, sige={sig.shape}")
+    if epochs.ndim != 1 or epochs.shape[0] != x.shape[0]:
+        raise ValueError(f"Expected first significant epochs shape (M,), got {epochs.shape}")
 
     M = x.shape[0]
     out = np.full((M,), np.nan, dtype=np.float64)
 
     for m in range(M):
-        idx = np.flatnonzero(sig[m])
-        if idx.size == 0:
+        e0 = epochs[m]
+        if not np.isfinite(e0):
             continue
 
-        e0 = int(idx[0])
+        e0 = int(e0)
         mod_r = x[m, e0, source_idx, 0, 0]
         lat_r = x[m, e0, source_idx, 1, 0]
 
@@ -159,4 +166,3 @@ def _scores_at_first_sig_epoch(corr_raw: np.ndarray, sig_mask: np.ndarray, sourc
             out[m] = 0.5 * (mod_r + lat_r)
 
     return out
-

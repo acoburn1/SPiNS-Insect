@@ -8,11 +8,16 @@ class SigEHLSOutput:
     hyperd = True
 
     def generate_output(self, sub_cfg: dict, analysis_root: str) -> list[OutputSpec]:
-        runs = get_hyperparameter_runs_with_data(analysis_root, ["sige"])
-        runs = [run for run in runs if "sige" in run]
+        sig_mode = str(sub_cfg.get("sige_type", "sig")).lower()
+        if sig_mode not in ("sig", "wb-sig"):
+            raise ValueError(f"Unsupported sige_type: {sig_mode}. Expected 'sig' or 'wb-sig'.")
+
+        sig_name = "sige" if sig_mode == "sig" else "wb-sige"
+        runs = get_hyperparameter_runs_with_data(analysis_root, [sig_name])
+        runs = [run for run in runs if sig_name in run]
 
         if not runs:
-            raise FileNotFoundError(f"No sige.npz files found under {analysis_root}")
+            raise FileNotFoundError(f"No {sig_name}.npz files found under {analysis_root}")
 
         by_lr = {}
         for run in runs:
@@ -28,12 +33,12 @@ class SigEHLSOutput:
 
             for run in lr_runs:
                 hls = run["hls"]
-                sig_mask = np.asarray(run["sige"]["results"], dtype=bool)
+                sig_mask = np.asarray(run[sig_name]["results"], dtype=bool)
 
                 if sig_mask.ndim != 2:
                     raise ValueError(f"Expected sige results shape (M, E), got {sig_mask.shape}")
 
-                first_sig = first_sig_epochs(run["analysis_dir"], sig_mask.shape[0], sig_mask.shape[1])
+                first_sig = first_sig_epochs(run["analysis_dir"], sig_mask.shape[0], sig_mask.shape[1], mode=sig_mode)
 
                 good = np.isfinite(first_sig)
                 vals = first_sig[good]
@@ -52,7 +57,7 @@ class SigEHLSOutput:
             specs.append(
                 OutputSpec(
                     figure_id=f"sige_hls_lr{str(lr).replace('.', 'p')}",
-                    title=f"First Significant Epoch vs Hidden Layer Size (LR={lr:g})",
+                    title=f"First Significant Epoch vs Hidden Layer Size ({sig_mode}, LR={lr:g})",
                     x_label="Hidden Layer Size",
                     y_label="First Significant Epoch",
                     x_ticks=[float(h) for h in hls_values],

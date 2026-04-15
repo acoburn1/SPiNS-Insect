@@ -1,7 +1,7 @@
 import numpy as np
 from Output.schema.OutputSpec import *
 from Statistics.StatHelper import stats_over_models
-from Output.utils import load_ratio_test_bundle
+from Output.utils import load_ratio_test_bundle, valid_set_indices_for_ratio
 
 
 class RatioOverEpochsOutput:
@@ -33,11 +33,7 @@ class RatioOverEpochsOutput:
         n_epochs = mean.shape[0]
         epochs = np.arange(n_epochs, dtype=np.float64)
 
-        valid_sets = []
-        for s_idx, label in enumerate(set_labels):
-            vals = mean[:, s_idx]
-            if np.any(np.isfinite(vals)):
-                valid_sets.append((s_idx, label))
+        valid_sets = [(s_idx, set_labels[s_idx]) for s_idx in valid_set_indices_for_ratio(raw, r_idx)]
 
         colors = [
             Color.BLUE,
