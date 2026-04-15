@@ -44,6 +44,43 @@ def load_ratio_test_bundle(analysis_dir: str) -> dict[str, np.ndarray | list[str
     }
 
 
+def valid_set_indices_for_ratio(raw: np.ndarray, ratio_index: int) -> list[int]:
+    x = np.asarray(raw, dtype=np.float64)
+    if x.ndim != 4:
+        raise ValueError(f"Expected ratio raw shape (M, E, R, S), got {x.shape}")
+    if not (0 <= ratio_index < x.shape[2]):
+        raise ValueError(f"ratio_index {ratio_index} out of bounds for ratio axis size {x.shape[2]}")
+
+    set_mask = np.any(np.isfinite(x[:, :, ratio_index, :]), axis=(0, 1))
+    return [i for i, ok in enumerate(set_mask) if bool(ok)]
+
+
+def load_hidden_correlation_raw(analysis_dir: str, *, mode: str = "standard") -> dict[str, np.ndarray]:
+    mode = str(mode).lower()
+    if mode == "standard":
+        data = np.load(os.path.join(analysis_dir, "Correlation.npz"))
+        raw = np.asarray(data["raw"], dtype=np.float64)
+        return {
+            "mod": raw[:, :, 0, 0, 0],
+            "lat": raw[:, :, 0, 1, 0],
+        }
+
+    if mode == "wb":
+        data = np.load(os.path.join(analysis_dir, "WithinVsBetweenCorrelation.npz"))
+        raw = np.asarray(data["raw"], dtype=np.float64)
+        return {
+            "mod": raw[:, :, 0, 0],
+            "lat": raw[:, :, 0, 1],
+        }
+
+    raise ValueError(f"Unsupported hidden correlation mode: {mode}. Expected 'standard' or 'wb'.")
+
+
+def load_k95_hidden_raw(analysis_dir: str) -> np.ndarray:
+    data = np.load(os.path.join(analysis_dir, "K95.npz"))
+    return normalize_k95_raw(np.asarray(data["raw"], dtype=np.float64))
+
+
 def mod_count_from_ratio(ratio_label: str) -> int:
     left = str(ratio_label).split(":")[0].strip()
     return int(left)

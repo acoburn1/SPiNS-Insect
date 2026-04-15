@@ -95,10 +95,14 @@ def get_dependencies(o_cfg):
 
                 d_obj.cfgs[out_obj] = subcfg
 
-        mode = str(subcfg.get("epochs", "")).lower()
-        if d_obj.sige is None and mode == "sig":
+        epoch_mode = str(subcfg.get("epochs", "")).lower()
+        sige_type = str(subcfg.get("sige_type", "")).lower()
+        modes = {m for m in (epoch_mode, sige_type) if m}
+
+        if d_obj.sige is None and "sig" in modes:
             d_obj.sige = SignificantEpochEvaluator()
-        if d_obj.wb_sige is None and mode == "wb-sig":
+
+        if d_obj.wb_sige is None and "wb-sig" in modes:
             d_obj.wb_sige = WithinVsBetweenSignificantEpochEvaluator()
             if WithinVsBetweenCorrelationEvaluator not in evaluator_map:
                 evaluator_map[WithinVsBetweenCorrelationEvaluator] = WithinVsBetweenCorrelationEvaluator()
