@@ -4,7 +4,6 @@ import numpy as np
 
 from Output.utils import (
     load_ratio_test_bundle,
-    first_sig_epochs,
     weighted_single_ratio,
     load_hidden_correlation_raw,
     load_k95_hidden_raw,
@@ -44,7 +43,7 @@ def _export_sig_mode(analysis_dir: str, csv_path: str, *, corr_mode: str) -> Non
 
     n_models, n_epochs = corr["mod"].shape
     sig_mode = "sig" if corr_mode == "standard" else "wb-sig"
-    sig_epochs = first_sig_epochs(analysis_dir, n_models, n_epochs, mode=sig_mode)
+    sig_epochs = _first_sig_epochs_strict(analysis_dir, n_models, n_epochs, mode=sig_mode)
 
     rows = []
     for model_i in range(n_models):
@@ -163,6 +162,38 @@ def _metric_cols(valid_set_labels: list[str]) -> list[str]:
         "mod_lat_k95",
         "avg_mod_pref_3_3_weighted",
     ] + [f"avg_mod_pref_3_3_set_{s}" for s in valid_set_labels]
+
+
+def _first_sig_epochs_strict(analysis_dir: str, n_models: int, n_epochs: int, *, mode: str) -> np.ndarray:
+    mode = str(mode).lower()
+    filename = "sige.npz" if mode == "sig" else "wb-sige.npz" if mode == "wb-sig" else None
+    if filename is None:
+        raise ValueError(f"Unsupported significance mode: {mode}. Expected 'sig' or 'wb-sig'.")
+
+    path = os.path.join(analysis_dir, filename)
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Missing {filename}: {path}")
+
+    data = np.load(path, allow_pickle=True)
+    if "results" not in data:
+        raise ValueError(f"{filename} is missing 'results'.")
+
+    raw = np.asarray(data["results"])
+    if raw.shape != (n_models, n_epochs):
+        raise ValueError(f"Expected {mode} results shape {(n_models, n_epochs)}, got {raw.shape}")
+
+    if raw.dtype == np.bool_:
+        sig_mask = raw
+    else:
+        sig_mask = np.isfinite(raw) & (raw != 0)
+
+    first = np.full((n_models,), np.nan, dtype=np.float64)
+    for model_i in range(n_models):
+        hits = np.flatnonzero(sig_mask[model_i])
+        if hits.size > 0:
+            first[model_i] = float(hits[0])
+
+    return first
 
 
 def _build_summary_rows(model_rows: list[dict], metric_cols: list[str]) -> list[dict]:
