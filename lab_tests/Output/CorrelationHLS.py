@@ -12,13 +12,17 @@ class CorrelationHLSOutput:
         sig_mode = str(sub_cfg.get("sige_type", "sig")).lower()
         if sig_mode not in ("sig", "wb-sig"):
             raise ValueError(f"Unsupported sige_type: {sig_mode}. Expected 'sig' or 'wb-sig'.")
+        corr_type = str(sub_cfg.get("corr_type", "standard")).lower()
+        if corr_type not in ("standard", "wb"):
+            raise ValueError(f"Unsupported corr_type: {corr_type}. Expected 'standard' or 'wb'.")
 
         sig_name = "sige" if sig_mode == "sig" else "wb-sige"
-        runs = get_hyperparameter_runs_with_data(analysis_root, ["Correlation", sig_name])
-        runs = [run for run in runs if "Correlation" in run and sig_name in run]
+        corr_name = "Correlation" if corr_type == "standard" else "WithinVsBetweenCorrelation"
+        runs = get_hyperparameter_runs_with_data(analysis_root, [corr_name, sig_name])
+        runs = [run for run in runs if corr_name in run and sig_name in run]
 
         if not runs:
-            raise FileNotFoundError(f"No Correlation.npz + {sig_name}.npz runs found under {analysis_root}")
+            raise FileNotFoundError(f"No {corr_name}.npz + {sig_name}.npz runs found under {analysis_root}")
 
         source_name = str(sub_cfg.get("source", "hidden")).lower()
         source_idx = 0 if source_name in ("hidden", "hid") else 1
@@ -44,7 +48,7 @@ class CorrelationHLSOutput:
 
             for run in lr_runs:
                 hls = run["hls"]
-                corr_raw = np.asarray(run["Correlation"]["raw"], dtype=np.float64)
+                corr_raw = np.asarray(run[corr_name]["raw"], dtype=np.float64)
                 n_models, n_epochs = corr_raw.shape[0], corr_raw.shape[1]
                 sig_epochs = first_sig_epochs(run["analysis_dir"], n_models, n_epochs, mode=sig_mode)
 
@@ -52,6 +56,7 @@ class CorrelationHLSOutput:
                     corr_raw=corr_raw,
                     sig_epochs=sig_epochs,
                     source_idx=source_idx,
+                    corr_type=corr_type,
                 )
 
                 good = np.isfinite(per_model_scores)
@@ -141,12 +146,18 @@ class CorrelationHLSOutput:
         return specs
 
 
-def _scores_at_first_sig_epoch(corr_raw: np.ndarray, sig_epochs: np.ndarray, source_idx: int) -> np.ndarray:
+def _scores_at_first_sig_epoch(corr_raw: np.ndarray, sig_epochs: np.ndarray, source_idx: int, corr_type: str) -> np.ndarray:
     x = np.asarray(corr_raw, dtype=np.float64)
     epochs = np.asarray(sig_epochs, dtype=np.float64)
 
-    if x.ndim != 5 or x.shape[2:] != (2, 2, 2):
-        raise ValueError(f"Expected Correlation raw shape (M, E, 2, 2, 2), got {x.shape}")
+    if corr_type == "standard":
+        if x.ndim != 5 or x.shape[2:] != (2, 2, 2):
+            raise ValueError(f"Expected Correlation raw shape (M, E, 2, 2, 2), got {x.shape}")
+    elif corr_type == "wb":
+        if x.ndim != 4 or x.shape[2:] != (2, 2):
+            raise ValueError(f"Expected WithinVsBetweenCorrelation raw shape (M, E, 2, 2), got {x.shape}")
+    else:
+        raise ValueError(f"Unsupported corr_type: {corr_type}. Expected 'standard' or 'wb'.")
 
     if epochs.ndim != 1 or epochs.shape[0] != x.shape[0]:
         raise ValueError(f"Expected first significant epochs shape (M,), got {epochs.shape}")
@@ -160,8 +171,12 @@ def _scores_at_first_sig_epoch(corr_raw: np.ndarray, sig_epochs: np.ndarray, sou
             continue
 
         e0 = int(e0)
-        mod_r = x[m, e0, source_idx, 0, 0]
-        lat_r = x[m, e0, source_idx, 1, 0]
+        if corr_type == "standard":
+            mod_r = x[m, e0, source_idx, 0, 0]
+            lat_r = x[m, e0, source_idx, 1, 0]
+        else:
+            mod_r = x[m, e0, source_idx, 0]
+            lat_r = x[m, e0, source_idx, 1]
 
         if np.isfinite(mod_r) and np.isfinite(lat_r):
             out[m] = 0.5 * (mod_r + lat_r)

@@ -6,6 +6,7 @@ from Output.utils import (
     finite_xy,
     first_sig_epochs,
     fit_line_with_stats,
+    load_hidden_correlation_raw,
     normalize_k95_raw,
     points_at_epochs,
     resolve_epoch_range,
@@ -18,23 +19,20 @@ class K95CorrelationOutput:
     hyperd = False
 
     def generate_output(self, sub_cfg: dict, analysis_dir: str) -> list[OutputSpec]:
-        corr_np = np.load(os.path.join(analysis_dir, "Correlation.npz"))
         k95_np = np.load(os.path.join(analysis_dir, "K95.npz"))
+        corr_type = str(sub_cfg.get("corr_type", "standard")).lower()
+        corr = load_hidden_correlation_raw(analysis_dir, mode=corr_type)
 
-        raw_corr = np.asarray(corr_np["raw"], dtype=np.float64)
         raw_k95 = normalize_k95_raw(np.asarray(k95_np["raw"], dtype=np.float64))
 
-        if raw_corr.ndim != 5 or raw_corr.shape[2:] != (2, 2, 2):
-            raise ValueError(f"Expected Correlation raw shape (M,E,2,2,2), got {raw_corr.shape}")
-
-        h_mod = raw_corr[:, :, 0, 0, 0]
-        h_lat = raw_corr[:, :, 0, 1, 0]
+        h_mod = corr["mod"]
+        h_lat = corr["lat"]
         k_mod = raw_k95[:, :, 0]
         k_lat = raw_k95[:, :, 1]
 
         mode = str(sub_cfg.get("epochs", "sig")).lower()
         if mode in ("sig", "wb-sig"):
-            sig_epochs = first_sig_epochs(analysis_dir, raw_corr.shape[0], raw_corr.shape[1], mode=mode)
+            sig_epochs = first_sig_epochs(analysis_dir, h_mod.shape[0], h_mod.shape[1], mode=mode)
             mod_x, mod_y = points_at_epochs(h_mod, k_mod, sig_epochs)
             lat_x, lat_y = points_at_epochs(h_lat, k_lat, sig_epochs)
             x_lim = shared_limits([mod_x, lat_x], fallback=[0.0, 1.0], clamp_01=True)
@@ -54,7 +52,7 @@ class K95CorrelationOutput:
             ]
 
         if mode == "range":
-            epoch_indices = resolve_epoch_range(sub_cfg, raw_corr.shape[1], default_start=0)
+            epoch_indices = resolve_epoch_range(sub_cfg, h_mod.shape[1], default_start=0)
             per_epoch = []
             for e in epoch_indices:
                 mod_x, mod_y = finite_xy(h_mod[:, e], k_mod[:, e])

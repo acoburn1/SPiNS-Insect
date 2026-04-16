@@ -2,7 +2,7 @@ import os
 import numpy as np
 
 from Output.schema.OutputSpec import *
-from Output.utils import finite_xy, fit_line_with_stats, normalize_k95_raw, resolve_epoch_range, shared_limits
+from Output.utils import finite_xy, fit_line_with_stats, load_hidden_correlation_raw, normalize_k95_raw, resolve_epoch_range, shared_limits
 
 
 class K95DiffCorrelationDiffOutput:
@@ -10,19 +10,16 @@ class K95DiffCorrelationDiffOutput:
     hyperd = False
 
     def generate_output(self, sub_cfg: dict, analysis_dir: str) -> list[OutputSpec]:
-        corr_np = np.load(os.path.join(analysis_dir, "Correlation.npz"))
         k95_np = np.load(os.path.join(analysis_dir, "K95.npz"))
+        corr_type = str(sub_cfg.get("corr_type", "standard")).lower()
+        corr = load_hidden_correlation_raw(analysis_dir, mode=corr_type)
 
-        raw_corr = np.asarray(corr_np["raw"], dtype=np.float64)
         raw_k95 = normalize_k95_raw(np.asarray(k95_np["raw"], dtype=np.float64))
 
-        if raw_corr.ndim != 5 or raw_corr.shape[2:] != (2, 2, 2):
-            raise ValueError(f"Expected Correlation raw shape (M,E,2,2,2), got {raw_corr.shape}")
-
-        corr_diff = raw_corr[:, :, 0, 0, 0] - raw_corr[:, :, 0, 1, 0]
+        corr_diff = corr["mod"] - corr["lat"]
         k95_diff = raw_k95[:, :, 0] - raw_k95[:, :, 1]
 
-        epoch_indices = resolve_epoch_range(sub_cfg, raw_corr.shape[1], default_start=0)
+        epoch_indices = resolve_epoch_range(sub_cfg, corr_diff.shape[1], default_start=0)
         pts = []
         for e in epoch_indices:
             x, y = finite_xy(corr_diff[:, e], k95_diff[:, e])

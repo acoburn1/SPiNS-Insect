@@ -1,3 +1,4 @@
 SeriesCorrelation:
   present: true
   per_epoch: false
+  corr_type: standard

@@ -1,10 +1,10 @@
-import os
 import numpy as np
 
 from Output.schema.OutputSpec import *
 from Output.utils import (
     first_sig_epochs,
     fit_line_with_stats,
+    load_hidden_correlation_raw,
     load_ratio_test_bundle,
     points_at_epochs,
     points_for_epoch_list,
@@ -20,14 +20,11 @@ class GeneralizationCorrelationDiffOutput:
 
     def generate_output(self, sub_cfg: dict, analysis_dir: str) -> list[OutputSpec]:
         ratio_name = "3:3"
-
-        corr_path = os.path.join(analysis_dir, "Correlation.npz")
-
-        corr_np = np.load(corr_path)
+        corr_type = str(sub_cfg.get("corr_type", "standard")).lower()
+        corr = load_hidden_correlation_raw(analysis_dir, mode=corr_type)
         ratio_bundle = load_ratio_test_bundle(analysis_dir)
 
         raw_ratio = np.asarray(ratio_bundle["raw"], dtype=np.float64)  # (M,E,R,S)
-        raw_corr = np.asarray(corr_np["raw"], dtype=np.float64)  # (M,E,2,2,2)
 
         ratio_labels = ratio_bundle["ratio_labels"]
         trial_counts = np.asarray(ratio_bundle["trial_counts"], dtype=np.float64)
@@ -38,21 +35,17 @@ class GeneralizationCorrelationDiffOutput:
         r_idx = ratio_labels.index(ratio_name)
         pref_over_epochs = weighted_single_ratio(raw_ratio[:, :, r_idx, :], trial_counts[r_idx, :])
 
-        if raw_corr.ndim != 5 or raw_corr.shape[2:] != (2, 2, 2):
-            raise ValueError(f"Expected Correlation raw shape (M,E,2,2,2), got {raw_corr.shape}")
-
-        hidden_mod = raw_corr[:, :, 0, 0, 0]
-        hidden_lat = raw_corr[:, :, 0, 1, 0]
-        hidden_diff = hidden_mod - hidden_lat
+        hidden_diff = corr["mod"] - corr["lat"]
+        n_models, n_epochs = hidden_diff.shape[0], hidden_diff.shape[1]
 
         mode = str(sub_cfg.get("epochs", "range")).lower()
         if mode in ("sig", "wb-sig"):
-            sig_epochs = first_sig_epochs(analysis_dir, raw_corr.shape[0], raw_corr.shape[1], mode=mode)
+            sig_epochs = first_sig_epochs(analysis_dir, n_models, n_epochs, mode=mode)
             x, y = points_at_epochs(hidden_diff, pref_over_epochs, sig_epochs)
             return [_build_spec(sub_cfg, x, y, figure_id=sub_cfg.get("name", "gen_corrdiff_sig"), suffix=mode)]
 
         if mode == "range":
-            epoch_indices = resolve_epoch_range(sub_cfg, raw_corr.shape[1], default_start=0)
+            epoch_indices = resolve_epoch_range(sub_cfg, n_epochs, default_start=0)
             x_list, y_list = points_for_epoch_list(hidden_diff, pref_over_epochs, epoch_indices)
             x_lim = shared_limits(x_list, padding=0.05)
             specs = []

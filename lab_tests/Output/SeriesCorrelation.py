@@ -9,7 +9,38 @@ class SeriesCorrelationOutput:
     hyperd = False
 
     def generate_output(self, sub_cfg: dict, analysis_dir: str) -> list[OutputSpec]:
-        corr_mean, corr_lo, corr_hi = load_mean_ci(os.path.join(analysis_dir, "Correlation.npz"))
+        corr_type = str(sub_cfg.get("corr_type", "standard")).lower()
+        if corr_type == "standard":
+            corr_mean, corr_lo, corr_hi = load_mean_ci(os.path.join(analysis_dir, "Correlation.npz"))
+            hid_mod = corr_mean[:, 0, 0, 0]
+            hid_mod_lo = corr_lo[:, 0, 0, 0]
+            hid_mod_hi = corr_hi[:, 0, 0, 0]
+            hid_lat = corr_mean[:, 0, 1, 0]
+            hid_lat_lo = corr_lo[:, 0, 1, 0]
+            hid_lat_hi = corr_hi[:, 0, 1, 0]
+            out_mod = corr_mean[:, 1, 0, 0]
+            out_mod_lo = corr_lo[:, 1, 0, 0]
+            out_mod_hi = corr_hi[:, 1, 0, 0]
+            out_lat = corr_mean[:, 1, 1, 0]
+            out_lat_lo = corr_lo[:, 1, 1, 0]
+            out_lat_hi = corr_hi[:, 1, 1, 0]
+        elif corr_type == "wb":
+            corr_mean, corr_lo, corr_hi = load_mean_ci(os.path.join(analysis_dir, "WithinVsBetweenCorrelation.npz"))
+            hid_mod = corr_mean[:, 0, 0]
+            hid_mod_lo = corr_lo[:, 0, 0]
+            hid_mod_hi = corr_hi[:, 0, 0]
+            hid_lat = corr_mean[:, 0, 1]
+            hid_lat_lo = corr_lo[:, 0, 1]
+            hid_lat_hi = corr_hi[:, 0, 1]
+            out_mod = corr_mean[:, 1, 0]
+            out_mod_lo = corr_lo[:, 1, 0]
+            out_mod_hi = corr_hi[:, 1, 0]
+            out_lat = corr_mean[:, 1, 1]
+            out_lat_lo = corr_lo[:, 1, 1]
+            out_lat_hi = corr_hi[:, 1, 1]
+        else:
+            raise ValueError(f"Unsupported corr_type: {corr_type}. Expected 'standard' or 'wb'.")
+
         loss_mean, loss_lo, loss_hi = load_mean_ci(os.path.join(analysis_dir, "Loss.npz"))
 
         n_epochs = corr_mean.shape[0]
@@ -31,18 +62,18 @@ class SeriesCorrelationOutput:
                 _make_line(
                     label="M Hidden Corrs",
                     x=epochs,
-                    y=corr_mean[:, 0, 0, 0],
-                    lo=corr_lo[:, 0, 0, 0],
-                    hi=corr_hi[:, 0, 0, 0],
+                    y=hid_mod,
+                    lo=hid_mod_lo,
+                    hi=hid_mod_hi,
                     color=Color.GREEN,
                     y_axis=YAxis.LEFT,
                 ),
                 _make_line(
                     label="L Hidden Corrs",
                     x=epochs,
-                    y=corr_mean[:, 0, 1, 0],
-                    lo=corr_lo[:, 0, 1, 0],
-                    hi=corr_hi[:, 0, 1, 0],
+                    y=hid_lat,
+                    lo=hid_lat_lo,
+                    hi=hid_lat_hi,
                     color=Color.PINK,
                     y_axis=YAxis.LEFT,
                 ),
@@ -64,18 +95,18 @@ class SeriesCorrelationOutput:
                 _make_line(
                     label="M Output Corrs",
                     x=epochs,
-                    y=corr_mean[:, 1, 0, 0],
-                    lo=corr_lo[:, 1, 0, 0],
-                    hi=corr_hi[:, 1, 0, 0],
+                    y=out_mod,
+                    lo=out_mod_lo,
+                    hi=out_mod_hi,
                     color=Color.BLUE,
                     y_axis=YAxis.LEFT,
                 ),
                 _make_line(
                     label="L Output Corrs",
                     x=epochs,
-                    y=corr_mean[:, 1, 1, 0],
-                    lo=corr_lo[:, 1, 1, 0],
-                    hi=corr_hi[:, 1, 1, 0],
+                    y=out_lat,
+                    lo=out_lat_lo,
+                    hi=out_lat_hi,
                     color=Color.RED,
                     y_axis=YAxis.LEFT,
                 )

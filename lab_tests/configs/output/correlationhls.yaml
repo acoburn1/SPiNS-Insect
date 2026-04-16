@@ -2,3 +2,4 @@ Correlation-HLS:
   present: true
   per_epoch: false
   sige_type: sig
+  corr_type: standard
