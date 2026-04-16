@@ -1,10 +1,11 @@
-import os
 import numpy as np
 
 from Output.schema.OutputSpec import *
 from Output.utils import (
+    corr_type_from_cfg,
     first_sig_epochs,
     fit_line_with_stats,
+    load_correlation_raw,
     load_ratio_test_bundle,
     points_at_epochs,
     points_for_epoch_list,
@@ -20,14 +21,11 @@ class GeneralizationCorrelationDiffOutput:
 
     def generate_output(self, sub_cfg: dict, analysis_dir: str) -> list[OutputSpec]:
         ratio_name = "3:3"
-
-        corr_path = os.path.join(analysis_dir, "Correlation.npz")
-
-        corr_np = np.load(corr_path)
+        corr_type = corr_type_from_cfg(sub_cfg)
         ratio_bundle = load_ratio_test_bundle(analysis_dir)
 
         raw_ratio = np.asarray(ratio_bundle["raw"], dtype=np.float64)  # (M,E,R,S)
-        raw_corr = np.asarray(corr_np["raw"], dtype=np.float64)  # (M,E,2,2,2)
+        raw_corr = load_correlation_raw(analysis_dir, corr_type=corr_type)
 
         ratio_labels = ratio_bundle["ratio_labels"]
         trial_counts = np.asarray(ratio_bundle["trial_counts"], dtype=np.float64)
@@ -38,11 +36,12 @@ class GeneralizationCorrelationDiffOutput:
         r_idx = ratio_labels.index(ratio_name)
         pref_over_epochs = weighted_single_ratio(raw_ratio[:, :, r_idx, :], trial_counts[r_idx, :])
 
-        if raw_corr.ndim != 5 or raw_corr.shape[2:] != (2, 2, 2):
-            raise ValueError(f"Expected Correlation raw shape (M,E,2,2,2), got {raw_corr.shape}")
-
-        hidden_mod = raw_corr[:, :, 0, 0, 0]
-        hidden_lat = raw_corr[:, :, 0, 1, 0]
+        if corr_type == "standard":
+            hidden_mod = raw_corr[:, :, 0, 0, 0]
+            hidden_lat = raw_corr[:, :, 0, 1, 0]
+        else:
+            hidden_mod = raw_corr[:, :, 0, 0]
+            hidden_lat = raw_corr[:, :, 0, 1]
         hidden_diff = hidden_mod - hidden_lat
 
         mode = str(sub_cfg.get("epochs", "range")).lower()

@@ -3,9 +3,11 @@ import numpy as np
 
 from Output.schema.OutputSpec import *
 from Output.utils import (
+    corr_type_from_cfg,
     finite_xy,
     first_sig_epochs,
     fit_line_with_stats,
+    load_correlation_raw,
     normalize_k95_raw,
     points_at_epochs,
     resolve_epoch_range,
@@ -18,17 +20,17 @@ class K95CorrelationOutput:
     hyperd = False
 
     def generate_output(self, sub_cfg: dict, analysis_dir: str) -> list[OutputSpec]:
-        corr_np = np.load(os.path.join(analysis_dir, "Correlation.npz"))
+        corr_type = corr_type_from_cfg(sub_cfg)
+        raw_corr = load_correlation_raw(analysis_dir, corr_type=corr_type)
         k95_np = np.load(os.path.join(analysis_dir, "K95.npz"))
 
-        raw_corr = np.asarray(corr_np["raw"], dtype=np.float64)
         raw_k95 = normalize_k95_raw(np.asarray(k95_np["raw"], dtype=np.float64))
-
-        if raw_corr.ndim != 5 or raw_corr.shape[2:] != (2, 2, 2):
-            raise ValueError(f"Expected Correlation raw shape (M,E,2,2,2), got {raw_corr.shape}")
-
-        h_mod = raw_corr[:, :, 0, 0, 0]
-        h_lat = raw_corr[:, :, 0, 1, 0]
+        if corr_type == "standard":
+            h_mod = raw_corr[:, :, 0, 0, 0]
+            h_lat = raw_corr[:, :, 0, 1, 0]
+        else:
+            h_mod = raw_corr[:, :, 0, 0]
+            h_lat = raw_corr[:, :, 0, 1]
         k_mod = raw_k95[:, :, 0]
         k_lat = raw_k95[:, :, 1]
 

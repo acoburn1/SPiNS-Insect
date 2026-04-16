@@ -2,7 +2,7 @@ import os
 import copy
 import numpy as np
 from Output.schema.OutputSpec import *
-from Output.utils import load_mean_ci
+from Output.utils import corr_type_from_cfg, load_correlation_raw, load_mean_ci
 from Statistics.StatHelper import stats_over_models
 
 
@@ -11,11 +11,12 @@ class WithinVsBetweenCorrelationOutput:
     hyperd = False
 
     def generate_output(self, sub_cfg: dict, analysis_dir: str) -> list[OutputSpec]:
-        data = np.load(os.path.join(analysis_dir, "WithinVsBetweenCorrelation.npz"))
-        raw = np.asarray(data["raw"], dtype=np.float64)  # (M, E, 2, 2)
-
-        if raw.ndim != 4 or raw.shape[2:4] != (2, 2):
-            raise ValueError(f"Expected WithinVsBetweenCorrelation raw shape (M, E, 2, 2), got {raw.shape}")
+        corr_type = corr_type_from_cfg(sub_cfg, default="wb")
+        raw_corr = load_correlation_raw(analysis_dir, corr_type=corr_type)
+        if corr_type == "standard":
+            raw = np.asarray(raw_corr[:, :, :, :, 0], dtype=np.float64)
+        else:
+            raw = np.asarray(raw_corr, dtype=np.float64)
 
         mode = str(sub_cfg.get("epochs", "range")).lower()
         if mode == "wb-sig":

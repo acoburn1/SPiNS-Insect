@@ -97,6 +97,7 @@ def get_dependencies(o_cfg):
 
         epoch_mode = str(subcfg.get("epochs", "")).lower()
         sige_type = str(subcfg.get("sige_type", "")).lower()
+        corr_type = str(subcfg.get("corr_type", "")).lower()
         modes = {m for m in (epoch_mode, sige_type) if m}
 
         if d_obj.sige is None and "sig" in modes:
@@ -107,5 +108,9 @@ def get_dependencies(o_cfg):
             if WithinVsBetweenCorrelationEvaluator not in evaluator_map:
                 evaluator_map[WithinVsBetweenCorrelationEvaluator] = WithinVsBetweenCorrelationEvaluator()
                 d_obj.evaluation_fns.append(evaluator_map[WithinVsBetweenCorrelationEvaluator])
+
+        if corr_type == "wb" and WithinVsBetweenCorrelationEvaluator not in evaluator_map:
+            evaluator_map[WithinVsBetweenCorrelationEvaluator] = WithinVsBetweenCorrelationEvaluator()
+            d_obj.evaluation_fns.append(evaluator_map[WithinVsBetweenCorrelationEvaluator])
 
     return d_obj

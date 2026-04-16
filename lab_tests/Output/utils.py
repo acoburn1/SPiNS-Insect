@@ -56,24 +56,54 @@ def valid_set_indices_for_ratio(raw: np.ndarray, ratio_index: int) -> list[int]:
 
 
 def load_hidden_correlation_raw(analysis_dir: str, *, mode: str = "standard") -> dict[str, np.ndarray]:
+    raw = load_correlation_raw(analysis_dir, corr_type=mode)
     mode = str(mode).lower()
     if mode == "standard":
-        data = np.load(os.path.join(analysis_dir, "Correlation.npz"))
-        raw = np.asarray(data["raw"], dtype=np.float64)
         return {
             "mod": raw[:, :, 0, 0, 0],
             "lat": raw[:, :, 0, 1, 0],
         }
-
     if mode == "wb":
-        data = np.load(os.path.join(analysis_dir, "WithinVsBetweenCorrelation.npz"))
-        raw = np.asarray(data["raw"], dtype=np.float64)
         return {
             "mod": raw[:, :, 0, 0],
             "lat": raw[:, :, 0, 1],
         }
-
     raise ValueError(f"Unsupported hidden correlation mode: {mode}. Expected 'standard' or 'wb'.")
+
+
+def correlation_filename(corr_type: str) -> str:
+    c = str(corr_type).lower()
+    if c == "standard":
+        return "Correlation.npz"
+    if c == "wb":
+        return "WithinVsBetweenCorrelation.npz"
+    raise ValueError(f"Unsupported corr_type: {corr_type}. Expected 'standard' or 'wb'.")
+
+
+def corr_type_from_cfg(sub_cfg: dict, *, default: str = "standard") -> str:
+    corr_type = str(sub_cfg.get("corr_type", default)).lower()
+    if corr_type not in ("standard", "wb"):
+        raise ValueError(f"Unsupported corr_type: {corr_type}. Expected 'standard' or 'wb'.")
+    return corr_type
+
+
+def load_correlation_raw(analysis_dir: str, *, corr_type: str = "standard") -> np.ndarray:
+    filename = correlation_filename(corr_type)
+    data = np.load(os.path.join(analysis_dir, filename))
+    raw = np.asarray(data["raw"], dtype=np.float64)
+
+    corr_type = str(corr_type).lower()
+    if corr_type == "standard":
+        if raw.ndim != 5 or raw.shape[2:] != (2, 2, 2):
+            raise ValueError(f"Expected Correlation raw shape (M,E,2,2,2), got {raw.shape}")
+        return raw
+
+    if corr_type == "wb":
+        if raw.ndim != 4 or raw.shape[2:] != (2, 2):
+            raise ValueError(f"Expected WithinVsBetweenCorrelation raw shape (M, E, 2, 2), got {raw.shape}")
+        return raw
+
+    raise ValueError(f"Unsupported corr_type: {corr_type}. Expected 'standard' or 'wb'.")
 
 
 def load_k95_hidden_raw(analysis_dir: str) -> np.ndarray:

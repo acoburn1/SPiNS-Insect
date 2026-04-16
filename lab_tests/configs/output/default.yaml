@@ -2,6 +2,7 @@ SeriesCorrelation:
   present: true
   group: true
   per_epoch: false
+  corr_type: standard
 MatrixCorrelation:
   present: false
   group: false
@@ -42,6 +43,7 @@ WithinVsBetweenCorrelation:
   present: true
   group: true
   per_epoch: false
+  corr_type: standard
 K95-HLS:
   present: true
   per_epoch: false
@@ -49,6 +51,7 @@ Correlation-HLS:
   present: true
   per_epoch: false
   sige_type: sig
+  corr_type: standard
 Epochs-HLSwK95Heatmap:
   present: true
   per_epoch: false
@@ -61,6 +64,7 @@ GeneralizationCorrelationDiff:
   group: false
   per_epoch: true
   epochs: range
+  corr_type: standard
   range:
     start: 0
     stop:
@@ -70,11 +74,13 @@ K95Correlation:
   group: true
   per_epoch: true
   epochs: sig
+  corr_type: standard
 K95DiffCorrelationDiff:
   present: true
   group: false
   per_epoch: true
   epochs: range
+  corr_type: standard
   range:
     start: 0
     stop:
