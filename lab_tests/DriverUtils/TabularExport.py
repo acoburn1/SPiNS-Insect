@@ -22,6 +22,39 @@ def export_regression_tables(analysis_dir: str, output_dir: str) -> None:
     _export_sig_mode(analysis_dir, os.path.join(sig_dir, "sige.csv"), corr_mode="standard")
     _export_sig_mode(analysis_dir, os.path.join(sig_dir, "wb-sige.csv"), corr_mode="wb")
     _export_range_mode(analysis_dir, range_dir, step=5)
+    _export_sig_masks(analysis_dir, os.path.join(sig_dir, "tabular_masks"))
+
+
+def _export_sig_masks(analysis_dir: str, masks_dir: str) -> None:
+    os.makedirs(masks_dir, exist_ok=True)
+    _write_mask_csv(os.path.join(analysis_dir, "sige.npz"), os.path.join(masks_dir, "sige.csv"))
+    _write_mask_csv(os.path.join(analysis_dir, "wb-sige.npz"), os.path.join(masks_dir, "wb-sige.csv"))
+
+
+def _write_mask_csv(npz_path: str, csv_path: str) -> None:
+    data = np.load(npz_path, allow_pickle=True)
+    if "results" not in data:
+        raise ValueError(f"{npz_path} is missing 'results'.")
+
+    mask = np.asarray(data["results"], dtype=np.float64)
+    if mask.ndim != 2:
+        raise ValueError(f"Expected mask shape (M, E), got {mask.shape} from {npz_path}")
+
+    n_epochs = int(mask.shape[1])
+    fieldnames = ["model"] + [f"e{e}" for e in range(n_epochs)]
+    rows = []
+    for m in range(mask.shape[0]):
+        row = {"model": f"m{m + 1}"}
+        for e in range(n_epochs):
+            v = mask[m, e]
+            row[f"e{e}"] = "NaN" if not np.isfinite(v) else str(int(v != 0))
+        rows.append(row)
+
+    with open(csv_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(row)
 
 
 def _export_sig_mode(analysis_dir: str, csv_path: str, *, corr_mode: str) -> None:

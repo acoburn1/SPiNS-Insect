@@ -12,7 +12,6 @@ from Output.K95HLS import K95HLSOutput
 from Output.CorrelationHLS import CorrelationHLSOutput
 from Output.EpochsHLSwK95Heatmap import EpochsHLSwK95HeatmapOutput
 from Output.SigEHLS import SigEHLSOutput
-from Output.WithinVsBetweenCorrelation import WithinVsBetweenCorrelationOutput
 from Output.RatioOverEpochs import RatioOverEpochsOutput
 from Output.SCurve import SCurveOutput
 from Output.AllModels33OverEpochs import AllModels33OverEpochsOutput
@@ -47,7 +46,6 @@ dependencies = {
     "AllModelsSCurve": Dep([RatioTestEvaluator], AllModelsSCurveOutput),
     "K95Bars": Dep([K95Evaluator], None),
     "K95OverEpochs": Dep([K95Evaluator], None),
-    "WithinVsBetweenCorrelation": Dep([WithinVsBetweenCorrelationEvaluator, LossEvaluator], WithinVsBetweenCorrelationOutput),
     "K95-HLS": Dep([K95Evaluator], K95HLSOutput),
     "Correlation-HLS": Dep([CorrelationEvaluator], CorrelationHLSOutput),
     "Epochs-HLSwK95Heatmap": Dep([K95Evaluator], EpochsHLSwK95HeatmapOutput),
