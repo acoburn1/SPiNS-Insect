@@ -32,6 +32,7 @@
     <Compile Include="DriverUtils\RMutils.py" />
     <Compile Include="DriverUtils\RunConfig.py" />
     <Compile Include="DriverUtils\RunMetadata.py" />
+    <Compile Include="DriverUtils\TabularExport.py" />
     <Compile Include="DriverUtils\Visual.py" />
     <Compile Include="DriverUtils\Zarr.py" />
     <Compile Include="Eval\RatioExemplar.py" />
