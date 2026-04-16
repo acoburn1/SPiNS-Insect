@@ -31,6 +31,7 @@ class K95CorrelationOutput:
         else:
             h_mod = raw_corr[:, :, 0, 0]
             h_lat = raw_corr[:, :, 0, 1]
+        corr_token = "standard" if corr_type == "standard" else "wb"
         k_mod = raw_k95[:, :, 0]
         k_lat = raw_k95[:, :, 1]
 
@@ -49,7 +50,7 @@ class K95CorrelationOutput:
                     mod_y,
                     lat_x,
                     lat_y,
-                    figure_id=sub_cfg.get("name", f"k95_correlation_{mode_suffix}"),
+                    figure_id=sub_cfg.get("name", f"k95_correlation_{corr_token}_{mode_suffix}"),
                     suffix=mode,
                     x_lim=x_lim,
                     y_lim=y_lim,
@@ -76,7 +77,7 @@ class K95CorrelationOutput:
                         mod_y,
                         lat_x,
                         lat_y,
-                        figure_id=f"k95_correlation_e{e:03d}",
+                        figure_id=f"k95_correlation_{corr_token}_e{e:03d}",
                         suffix=f"epoch {e}",
                         x_lim=x_lim,
                         y_lim=y_lim,

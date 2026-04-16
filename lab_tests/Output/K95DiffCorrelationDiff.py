@@ -19,6 +19,7 @@ class K95DiffCorrelationDiffOutput:
             corr_diff = raw_corr[:, :, 0, 0, 0] - raw_corr[:, :, 0, 1, 0]
         else:
             corr_diff = raw_corr[:, :, 0, 0] - raw_corr[:, :, 0, 1]
+        corr_token = "standard" if corr_type == "standard" else "wb"
         k95_diff = raw_k95[:, :, 0] - raw_k95[:, :, 1]
 
         epoch_indices = resolve_epoch_range(sub_cfg, raw_corr.shape[1], default_start=0)
@@ -61,7 +62,7 @@ class K95DiffCorrelationDiffOutput:
 
             specs.append(
                 OutputSpec(
-                    figure_id=f"k95diff_corrdiff_e{e:03d}",
+                    figure_id=f"k95diff_corrdiff_{corr_token}_e{e:03d}",
                     title=f"Mod-Lat K95 vs Mod-Lat Hidden Correlation (epoch {e})",
                     x_label="Mod-Lat Hidden Correlation",
                     y_label="Mod-Lat K95",

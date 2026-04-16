@@ -47,8 +47,9 @@ class SeriesCorrelationOutput:
             o_lat_lo = corr_lo[:, 1, 1]
             o_lat_hi = corr_hi[:, 1, 1]
 
+        corr_token = "standard" if corr_type == "standard" else "wb"
         spec_h = OutputSpec(
-            figure_id=sub_cfg.get("name", "series_correlation_hidden"),
+            figure_id=sub_cfg.get("name", f"series_correlation_{corr_token}_hidden"),
             title=sub_cfg.get("title", "Means Across Epochs"),
             x_label="Epoch",
             y_label="Correlation Value",
@@ -91,7 +92,7 @@ class SeriesCorrelationOutput:
         )
 
         spec_all = copy.deepcopy(spec_h)
-        spec_all.figure_id = "series_correlation"
+        spec_all.figure_id = f"series_correlation_{corr_token}"
         spec_all.series_list.extend([
                 _make_line(
                     label="M Output Corrs",

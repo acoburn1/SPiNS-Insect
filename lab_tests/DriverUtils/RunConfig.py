@@ -356,19 +356,28 @@ class RunConfig:
 
     @staticmethod
     def _output_name_for_cfg(fn_name: str, cfg: dict) -> str:
+        tokens = [fn_name]
+
+        corr_type = str(cfg.get("corr_type", "")).lower()
+        if corr_type in ("standard", "wb"):
+            tokens.append(corr_type)
+
         sige_type = str(cfg.get("sige_type", "")).lower()
         if sige_type in ("sig", "wb-sig"):
             suffix = "sige" if sige_type == "sig" else "wb-sige"
-            return f"{fn_name}_{suffix}"
+            tokens.append(suffix)
+            return "_".join(tokens)
 
         epoch_mode = str(cfg.get("epochs", "")).lower()
         if epoch_mode in ("sig", "wb-sig"):
             suffix = "sige" if epoch_mode == "sig" else "wb-sige"
-            return f"{fn_name}_{suffix}"
+            tokens.append(suffix)
+            return "_".join(tokens)
         if epoch_mode == "range":
-            return f"{fn_name}_range"
+            tokens.append("range")
+            return "_".join(tokens)
 
-        return fn_name
+        return "_".join(tokens)
 
 def confirm_configuration():
     response = input("does the above configuration look correct? (y/n): ").strip().lower()

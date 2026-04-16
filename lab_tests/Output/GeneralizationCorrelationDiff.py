@@ -42,6 +42,7 @@ class GeneralizationCorrelationDiffOutput:
         else:
             hidden_mod = raw_corr[:, :, 0, 0]
             hidden_lat = raw_corr[:, :, 0, 1]
+        corr_token = "standard" if corr_type == "standard" else "wb"
         hidden_diff = hidden_mod - hidden_lat
 
         mode = str(sub_cfg.get("epochs", "range")).lower()
@@ -49,7 +50,7 @@ class GeneralizationCorrelationDiffOutput:
             sig_epochs = first_sig_epochs(analysis_dir, raw_corr.shape[0], raw_corr.shape[1], mode=mode)
             x, y = points_at_epochs(hidden_diff, pref_over_epochs, sig_epochs)
             mode_suffix = "sige" if mode == "sig" else "wb-sige"
-            return [_build_spec(sub_cfg, x, y, figure_id=sub_cfg.get("name", f"gen_corrdiff_{mode_suffix}"), suffix=mode)]
+            return [_build_spec(sub_cfg, x, y, figure_id=sub_cfg.get("name", f"gen_corrdiff_{corr_token}_{mode_suffix}"), suffix=mode)]
 
         if mode == "range":
             epoch_indices = resolve_epoch_range(sub_cfg, raw_corr.shape[1], default_start=0)
@@ -62,7 +63,7 @@ class GeneralizationCorrelationDiffOutput:
                         sub_cfg,
                         x,
                         y,
-                        figure_id=f"gen_corrdiff_e{e:03d}",
+                        figure_id=f"gen_corrdiff_{corr_token}_e{e:03d}",
                         suffix=f"epoch {e}",
                         x_lim=x_lim,
                     )

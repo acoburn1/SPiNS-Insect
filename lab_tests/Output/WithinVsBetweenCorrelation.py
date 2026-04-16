@@ -36,12 +36,13 @@ class WithinVsBetweenCorrelationOutput:
         mean = st["mean"]
         lo = st["ci_lo"]
         hi = st["ci_hi"]
+        corr_token = "standard" if corr_type == "standard" else "wb"
 
         n_epochs = mean.shape[0]
         epochs = np.arange(n_epochs, dtype=np.float64)
 
         spec_h = OutputSpec(
-            figure_id=sub_cfg.get("name", "within_vs_between_hidden"),
+            figure_id=sub_cfg.get("name", f"within_vs_between_{corr_token}_hidden"),
             title=sub_cfg.get("title", "Within vs Between Across Epochs"),
             x_label="Epoch",
             y_label="Within - Between",
@@ -84,7 +85,7 @@ class WithinVsBetweenCorrelationOutput:
         )
 
         spec_all = copy.deepcopy(spec_h)
-        spec_all.figure_id = "within_vs_between"
+        spec_all.figure_id = f"within_vs_between_{corr_token}"
         spec_all.series_list.extend([
             _make_line(
                 label="M Output Structure",

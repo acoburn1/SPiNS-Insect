@@ -15,6 +15,7 @@ class CorrelationHLSOutput:
             raise ValueError(f"Unsupported sige_type: {sig_mode}. Expected 'sig' or 'wb-sig'.")
 
         corr_name = "Correlation" if corr_type == "standard" else "WithinVsBetweenCorrelation"
+        corr_token = "standard" if corr_type == "standard" else "wb"
         sig_name = "sige" if sig_mode == "sig" else "wb-sige"
         runs = get_hyperparameter_runs_with_data(analysis_root, [corr_name, sig_name])
         runs = [run for run in runs if corr_name in run and sig_name in run]
@@ -83,7 +84,7 @@ class CorrelationHLSOutput:
 
             specs.append(
                 OutputSpec(
-                    figure_id=f"correlation_hls_scatter_{mode_token}_lr{str(lr).replace('.', 'p')}",
+                    figure_id=f"correlation_hls_{corr_token}_scatter_{mode_token}_lr{str(lr).replace('.', 'p')}",
                     title=title_base + " — Scatter",
                     x_label="Hidden Layer Size",
                     y_label="Correlation at First Significant Epoch",
@@ -113,7 +114,7 @@ class CorrelationHLSOutput:
 
             specs.append(
                 OutputSpec(
-                    figure_id=f"correlation_hls_bar_{mode_token}_lr{str(lr).replace('.', 'p')}",
+                    figure_id=f"correlation_hls_{corr_token}_bar_{mode_token}_lr{str(lr).replace('.', 'p')}",
                     title=title_base + " — Mean ± 95% CI",
                     x_label="Hidden Layer Size",
                     y_label="Correlation at First Significant Epoch",
