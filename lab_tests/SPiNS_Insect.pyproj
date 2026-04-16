@@ -14,7 +14,7 @@
     <RootNamespace>lab_tests</RootNamespace>
     <SuppressConfigureTestFrameworkPrompt>true</SuppressConfigureTestFrameworkPrompt>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <CommandLineArguments>python program.py -e -g -v -m "hls4-20-2" --output-config "wb-sig_default.yaml"</CommandLineArguments>
+    <CommandLineArguments>python program.py -g -v -m "hls20"</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -64,7 +64,6 @@
     <Compile Include="Output\SeriesK95.py" />
     <Compile Include="Output\SigEHLS.py" />
     <Compile Include="Output\utils.py" />
-    <Compile Include="Output\WithinVsBetweenCorrelation.py" />
     <Compile Include="program.py" />
     <Compile Include="Model\NeuralNetwork.py" />
     <Compile Include="Model\StandardModel.py" />
@@ -107,12 +106,13 @@
     <Content Include="configs\directory\test.yaml" />
     <Content Include="configs\model\default.yaml" />
     <Content Include="configs\model\hls20&amp;lr01-06-005.yaml" />
+    <Content Include="configs\model\hls20.yaml" />
     <Content Include="configs\model\hls4-20-2.yaml" />
     <Content Include="configs\model\hls10-100-10.yaml" />
     <Content Include="configs\output\allmodels33overepochs.yaml" />
     <Content Include="configs\output\allmodelsscurve.yaml" />
     <Content Include="configs\output\correlationhls.yaml" />
-    <Content Include="configs\output\wb-sig_default.yaml" />
+    <Content Include="configs\output\wb_default.yaml" />
     <Content Include="configs\output\default.yaml" />
     <Content Include="configs\directory\default.yaml" />
     <Content Include="configs\output\epochshlswk95heatmap.yaml" />

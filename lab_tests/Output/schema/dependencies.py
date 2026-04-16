@@ -12,7 +12,6 @@ from Output.K95HLS import K95HLSOutput
 from Output.CorrelationHLS import CorrelationHLSOutput
 from Output.EpochsHLSwK95Heatmap import EpochsHLSwK95HeatmapOutput
 from Output.SigEHLS import SigEHLSOutput
-from Output.WithinVsBetweenCorrelation import WithinVsBetweenCorrelationOutput
 from Output.RatioOverEpochs import RatioOverEpochsOutput
 from Output.SCurve import SCurveOutput
 from Output.AllModels33OverEpochs import AllModels33OverEpochsOutput
@@ -47,7 +46,6 @@ dependencies = {
     "AllModelsSCurve": Dep([RatioTestEvaluator], AllModelsSCurveOutput),
     "K95Bars": Dep([K95Evaluator], None),
     "K95OverEpochs": Dep([K95Evaluator], None),
-    "WithinVsBetweenCorrelation": Dep([WithinVsBetweenCorrelationEvaluator, LossEvaluator], WithinVsBetweenCorrelationOutput),
     "K95-HLS": Dep([K95Evaluator], K95HLSOutput),
     "Correlation-HLS": Dep([CorrelationEvaluator], CorrelationHLSOutput),
     "Epochs-HLSwK95Heatmap": Dep([K95Evaluator], EpochsHLSwK95HeatmapOutput),
@@ -97,6 +95,7 @@ def get_dependencies(o_cfg):
 
         epoch_mode = str(subcfg.get("epochs", "")).lower()
         sige_type = str(subcfg.get("sige_type", "")).lower()
+        corr_type = str(subcfg.get("corr_type", "")).lower()
         modes = {m for m in (epoch_mode, sige_type) if m}
 
         if d_obj.sige is None and "sig" in modes:
@@ -107,5 +106,9 @@ def get_dependencies(o_cfg):
             if WithinVsBetweenCorrelationEvaluator not in evaluator_map:
                 evaluator_map[WithinVsBetweenCorrelationEvaluator] = WithinVsBetweenCorrelationEvaluator()
                 d_obj.evaluation_fns.append(evaluator_map[WithinVsBetweenCorrelationEvaluator])
+
+        if corr_type == "wb" and WithinVsBetweenCorrelationEvaluator not in evaluator_map:
+            evaluator_map[WithinVsBetweenCorrelationEvaluator] = WithinVsBetweenCorrelationEvaluator()
+            d_obj.evaluation_fns.append(evaluator_map[WithinVsBetweenCorrelationEvaluator])
 
     return d_obj

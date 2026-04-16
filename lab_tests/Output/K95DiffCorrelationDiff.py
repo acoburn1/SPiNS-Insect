@@ -2,7 +2,7 @@ import os
 import numpy as np
 
 from Output.schema.OutputSpec import *
-from Output.utils import finite_xy, fit_line_with_stats, normalize_k95_raw, resolve_epoch_range, shared_limits
+from Output.utils import corr_type_from_cfg, finite_xy, fit_line_with_stats, load_correlation_raw, normalize_k95_raw, resolve_epoch_range, shared_limits
 
 
 class K95DiffCorrelationDiffOutput:
@@ -10,16 +10,16 @@ class K95DiffCorrelationDiffOutput:
     hyperd = False
 
     def generate_output(self, sub_cfg: dict, analysis_dir: str) -> list[OutputSpec]:
-        corr_np = np.load(os.path.join(analysis_dir, "Correlation.npz"))
+        corr_type = corr_type_from_cfg(sub_cfg)
+        raw_corr = load_correlation_raw(analysis_dir, corr_type=corr_type)
         k95_np = np.load(os.path.join(analysis_dir, "K95.npz"))
 
-        raw_corr = np.asarray(corr_np["raw"], dtype=np.float64)
         raw_k95 = normalize_k95_raw(np.asarray(k95_np["raw"], dtype=np.float64))
-
-        if raw_corr.ndim != 5 or raw_corr.shape[2:] != (2, 2, 2):
-            raise ValueError(f"Expected Correlation raw shape (M,E,2,2,2), got {raw_corr.shape}")
-
-        corr_diff = raw_corr[:, :, 0, 0, 0] - raw_corr[:, :, 0, 1, 0]
+        if corr_type == "standard":
+            corr_diff = raw_corr[:, :, 0, 0, 0] - raw_corr[:, :, 0, 1, 0]
+        else:
+            corr_diff = raw_corr[:, :, 0, 0] - raw_corr[:, :, 0, 1]
+        corr_token = "standard" if corr_type == "standard" else "wb"
         k95_diff = raw_k95[:, :, 0] - raw_k95[:, :, 1]
 
         epoch_indices = resolve_epoch_range(sub_cfg, raw_corr.shape[1], default_start=0)
@@ -62,7 +62,7 @@ class K95DiffCorrelationDiffOutput:
 
             specs.append(
                 OutputSpec(
-                    figure_id=f"k95diff_corrdiff_e{e:03d}",
+                    figure_id=f"k95diff_corrdiff_{corr_token}_e{e:03d}",
                     title=f"Mod-Lat K95 vs Mod-Lat Hidden Correlation (epoch {e})",
                     x_label="Mod-Lat Hidden Correlation",
                     y_label="Mod-Lat K95",

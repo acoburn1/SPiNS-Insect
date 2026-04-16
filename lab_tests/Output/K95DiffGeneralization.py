@@ -44,12 +44,13 @@ class K95DiffGeneralizationOutput:
             x, y = points_at_epochs(k95_diff, pref, sig_epochs)
             y_lim = [0.0, 1.0]
             x_lim = sub_cfg.get("x_bound", shared_limits([x]))
+            mode_suffix = "sige" if mode == "sig" else "wb-sige"
             return [
                 _build_spec(
                     sub_cfg,
                     x,
                     y,
-                    figure_id=sub_cfg.get("name", "k95diff_generalization_sig"),
+                    figure_id=sub_cfg.get("name", f"k95diff_generalization_{mode_suffix}"),
                     suffix=mode,
                     x_lim=x_lim,
                     y_lim=y_lim,

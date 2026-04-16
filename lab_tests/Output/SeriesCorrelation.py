@@ -9,14 +9,47 @@ class SeriesCorrelationOutput:
     hyperd = False
 
     def generate_output(self, sub_cfg: dict, analysis_dir: str) -> list[OutputSpec]:
-        corr_mean, corr_lo, corr_hi = load_mean_ci(os.path.join(analysis_dir, "Correlation.npz"))
+        corr_type = str(sub_cfg.get("corr_type", "standard")).lower()
+        corr_name = "Correlation.npz" if corr_type == "standard" else "WithinVsBetweenCorrelation.npz" if corr_type == "wb" else None
+        if corr_name is None:
+            raise ValueError(f"Unsupported corr_type: {corr_type}. Expected 'standard' or 'wb'.")
+
+        corr_mean, corr_lo, corr_hi = load_mean_ci(os.path.join(analysis_dir, corr_name))
         loss_mean, loss_lo, loss_hi = load_mean_ci(os.path.join(analysis_dir, "Loss.npz"))
 
         n_epochs = corr_mean.shape[0]
         epochs = np.arange(n_epochs, dtype=np.float64)
 
+        if corr_type == "standard":
+            h_mod = corr_mean[:, 0, 0, 0]
+            h_mod_lo = corr_lo[:, 0, 0, 0]
+            h_mod_hi = corr_hi[:, 0, 0, 0]
+            h_lat = corr_mean[:, 0, 1, 0]
+            h_lat_lo = corr_lo[:, 0, 1, 0]
+            h_lat_hi = corr_hi[:, 0, 1, 0]
+            o_mod = corr_mean[:, 1, 0, 0]
+            o_mod_lo = corr_lo[:, 1, 0, 0]
+            o_mod_hi = corr_hi[:, 1, 0, 0]
+            o_lat = corr_mean[:, 1, 1, 0]
+            o_lat_lo = corr_lo[:, 1, 1, 0]
+            o_lat_hi = corr_hi[:, 1, 1, 0]
+        else:
+            h_mod = corr_mean[:, 0, 0]
+            h_mod_lo = corr_lo[:, 0, 0]
+            h_mod_hi = corr_hi[:, 0, 0]
+            h_lat = corr_mean[:, 0, 1]
+            h_lat_lo = corr_lo[:, 0, 1]
+            h_lat_hi = corr_hi[:, 0, 1]
+            o_mod = corr_mean[:, 1, 0]
+            o_mod_lo = corr_lo[:, 1, 0]
+            o_mod_hi = corr_hi[:, 1, 0]
+            o_lat = corr_mean[:, 1, 1]
+            o_lat_lo = corr_lo[:, 1, 1]
+            o_lat_hi = corr_hi[:, 1, 1]
+
+        corr_token = "standard" if corr_type == "standard" else "wb"
         spec_h = OutputSpec(
-            figure_id=sub_cfg.get("name", "series_correlation_hidden"),
+            figure_id=sub_cfg.get("name", f"series_correlation_{corr_token}_hidden"),
             title=sub_cfg.get("title", "Means Across Epochs"),
             x_label="Epoch",
             y_label="Correlation Value",
@@ -31,18 +64,18 @@ class SeriesCorrelationOutput:
                 _make_line(
                     label="M Hidden Corrs",
                     x=epochs,
-                    y=corr_mean[:, 0, 0, 0],
-                    lo=corr_lo[:, 0, 0, 0],
-                    hi=corr_hi[:, 0, 0, 0],
+                    y=h_mod,
+                    lo=h_mod_lo,
+                    hi=h_mod_hi,
                     color=Color.GREEN,
                     y_axis=YAxis.LEFT,
                 ),
                 _make_line(
                     label="L Hidden Corrs",
                     x=epochs,
-                    y=corr_mean[:, 0, 1, 0],
-                    lo=corr_lo[:, 0, 1, 0],
-                    hi=corr_hi[:, 0, 1, 0],
+                    y=h_lat,
+                    lo=h_lat_lo,
+                    hi=h_lat_hi,
                     color=Color.PINK,
                     y_axis=YAxis.LEFT,
                 ),
@@ -59,23 +92,23 @@ class SeriesCorrelationOutput:
         )
 
         spec_all = copy.deepcopy(spec_h)
-        spec_all.figure_id = "series_correlation"
+        spec_all.figure_id = f"series_correlation_{corr_token}"
         spec_all.series_list.extend([
                 _make_line(
                     label="M Output Corrs",
                     x=epochs,
-                    y=corr_mean[:, 1, 0, 0],
-                    lo=corr_lo[:, 1, 0, 0],
-                    hi=corr_hi[:, 1, 0, 0],
+                    y=o_mod,
+                    lo=o_mod_lo,
+                    hi=o_mod_hi,
                     color=Color.BLUE,
                     y_axis=YAxis.LEFT,
                 ),
                 _make_line(
                     label="L Output Corrs",
                     x=epochs,
-                    y=corr_mean[:, 1, 1, 0],
-                    lo=corr_lo[:, 1, 1, 0],
-                    hi=corr_hi[:, 1, 1, 0],
+                    y=o_lat,
+                    lo=o_lat_lo,
+                    hi=o_lat_hi,
                     color=Color.RED,
                     y_axis=YAxis.LEFT,
                 )
