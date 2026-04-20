@@ -21,7 +21,8 @@ def export_regression_tables(analysis_dir: str, output_dir: str) -> None:
 
     _export_sig_mode(analysis_dir, os.path.join(sig_dir, "sige.csv"), corr_mode="standard")
     _export_sig_mode(analysis_dir, os.path.join(sig_dir, "wb-sige.csv"), corr_mode="wb")
-    _export_range_mode(analysis_dir, range_dir, step=5)
+    _export_range_mode(analysis_dir, os.path.join(range_dir, "standard"), corr_mode="standard", step=5)
+    _export_range_mode(analysis_dir, os.path.join(range_dir, "wb"), corr_mode="standard", step=5)
     _export_sig_masks(analysis_dir, os.path.join(sig_dir, "tabular_masks"))
 
 
@@ -105,8 +106,9 @@ def _export_sig_mode(analysis_dir: str, csv_path: str, *, corr_mode: str) -> Non
     _write_csv(csv_path, fieldnames, all_rows)
 
 
-def _export_range_mode(analysis_dir: str, output_dir: str, *, step: int = 5) -> None:
-    corr = load_hidden_correlation_raw(analysis_dir, mode="standard")
+def _export_range_mode(analysis_dir: str, output_dir: str, corr_mode: str, *, step: int = 5) -> None:
+    os.makedirs(output_dir, exist_ok=True)
+    corr = load_hidden_correlation_raw(analysis_dir, mode=corr_mode)
     k95 = load_k95_hidden_raw(analysis_dir)
     ratio_bundle = load_ratio_test_bundle(analysis_dir)
 
