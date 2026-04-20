@@ -55,6 +55,33 @@ def valid_set_indices_for_ratio(raw: np.ndarray, ratio_index: int) -> list[int]:
     return [i for i, ok in enumerate(set_mask) if bool(ok)]
 
 
+def resolve_requested_set_indices(sub_cfg: dict, set_labels: list[str]) -> list[int]:
+    requested = sub_cfg.get("sets")
+    if requested is None:
+        return list(range(len(set_labels)))
+
+    requested_labels = [str(v) for v in requested]
+    seen = set()
+    missing = []
+    indices = []
+
+    for label in requested_labels:
+        if label in seen:
+            continue
+        seen.add(label)
+        if label not in set_labels:
+            missing.append(label)
+            continue
+        indices.append(set_labels.index(label))
+
+    if missing:
+        raise ValueError(f"Requested set label(s) not found: {missing}. Available: {set_labels}")
+    if not indices:
+        raise ValueError("No set labels were selected. Provide at least one entry in sub_cfg['sets'].")
+
+    return indices
+
+
 def load_hidden_correlation_raw(analysis_dir: str, *, mode: str = "standard") -> dict[str, np.ndarray]:
     raw = load_correlation_raw(analysis_dir, corr_type=mode)
     mode = str(mode).lower()

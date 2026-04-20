@@ -2,6 +2,7 @@ SCurve:
   present: true
   per_epoch: true
   epochs: range
+  sets: [lat-core, mod-core, no-core, both-core, both-core-whole, both-wrong]
   range:
     start: 0
     stop:

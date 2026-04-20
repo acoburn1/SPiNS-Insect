@@ -5,6 +5,7 @@ from Output.utils import (
     first_sig_epochs,
     load_ratio_test_bundle,
     mod_count_from_ratio,
+    resolve_requested_set_indices,
     resolve_epoch_range,
     weighted_ratio_average,
 )
@@ -18,10 +19,11 @@ class SCurveOutput:
         bundle = load_ratio_test_bundle(analysis_dir)
         raw = bundle["raw"]
         ratio_labels = bundle["ratio_labels"]
+        set_labels = bundle["set_labels"]
         trial_counts = bundle["trial_counts"]
 
-        if not ratio_labels:
-            raise ValueError("RatioTest.npz is missing ratio_labels metadata.")
+        if not ratio_labels or not set_labels:
+            raise ValueError("RatioTest.npz is missing ratio/set labels metadata.")
         if trial_counts is None:
             raise ValueError("RatioTest.npz is missing trial_counts metadata.")
 
@@ -29,6 +31,10 @@ class SCurveOutput:
             raise ValueError(
                 f"trial_counts shape {trial_counts.shape} does not match raw ratio/set shape {raw.shape[2:4]}"
             )
+
+        set_indices = resolve_requested_set_indices(sub_cfg, set_labels)
+        raw = raw[:, :, :, set_indices]
+        trial_counts = trial_counts[:, set_indices]
 
         x_vals = np.asarray([mod_count_from_ratio(r) for r in ratio_labels], dtype=np.float64)
 

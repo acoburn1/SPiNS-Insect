@@ -1,7 +1,7 @@
 import numpy as np
 from Output.schema.OutputSpec import *
 from Statistics.StatHelper import stats_over_models
-from Output.utils import load_ratio_test_bundle, valid_set_indices_for_ratio
+from Output.utils import load_ratio_test_bundle, resolve_requested_set_indices, valid_set_indices_for_ratio
 
 
 class RatioOverEpochsOutput:
@@ -22,6 +22,7 @@ class RatioOverEpochsOutput:
             raise ValueError(f"Requested ratio '{ratio_name}' not found. Available: {ratio_labels}")
 
         r_idx = ratio_labels.index(ratio_name)
+        requested_set_indices = resolve_requested_set_indices(sub_cfg, set_labels)
 
         selected = raw[:, :, r_idx, :]
         st = stats_over_models(selected)
@@ -33,7 +34,13 @@ class RatioOverEpochsOutput:
         n_epochs = mean.shape[0]
         epochs = np.arange(n_epochs, dtype=np.float64)
 
-        valid_sets = [(s_idx, set_labels[s_idx]) for s_idx in valid_set_indices_for_ratio(raw, r_idx)]
+        valid_indices = set(valid_set_indices_for_ratio(raw, r_idx))
+        valid_sets = [(s_idx, set_labels[s_idx]) for s_idx in requested_set_indices if s_idx in valid_indices]
+        if not valid_sets:
+            requested_labels = [set_labels[s_idx] for s_idx in requested_set_indices]
+            raise ValueError(
+                f"No valid set data found for ratio '{ratio_name}' from requested sets {requested_labels}."
+            )
 
         colors = [
             Color.BLUE,
