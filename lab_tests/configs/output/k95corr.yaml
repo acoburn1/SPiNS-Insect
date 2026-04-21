@@ -1,7 +1,9 @@
-SCurve:
+K95Correlation:
   present: true
+  group: true
   per_epoch: true
   epochs: range
+  corr_type: standard
   range:
     start: 0
     stop: 60

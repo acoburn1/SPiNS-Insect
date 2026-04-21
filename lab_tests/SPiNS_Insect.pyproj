@@ -106,6 +106,7 @@
     <Content Include="configs\data\default.yaml" />
     <Content Include="configs\directory\test.yaml" />
     <Content Include="configs\model\default.yaml" />
+    <Content Include="configs\model\hls100.yaml" />
     <Content Include="configs\model\hls20&amp;lr01-06-005.yaml" />
     <Content Include="configs\model\hls20.yaml" />
     <Content Include="configs\model\hls4-20-2.yaml" />
@@ -113,6 +114,8 @@
     <Content Include="configs\output\allmodels33overepochs.yaml" />
     <Content Include="configs\output\allmodelsscurve.yaml" />
     <Content Include="configs\output\correlationhls.yaml" />
+    <Content Include="configs\output\k95corr.yaml" />
+    <Content Include="configs\output\seriesk95.yaml" />
     <Content Include="configs\output\wb_default.yaml" />
     <Content Include="configs\output\default.yaml" />
     <Content Include="configs\directory\default.yaml" />
