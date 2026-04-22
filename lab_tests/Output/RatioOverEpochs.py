@@ -27,17 +27,8 @@ class RatioOverEpochsOutput:
             raise ValueError(f"Requested ratio '{ratio_name}' not found. Available: {ratio_labels}")
 
         r_idx = ratio_labels.index(ratio_name)
+        avg_sets = bool(sub_cfg.get("avg", False))
         requested_set_indices = resolve_requested_set_indices(sub_cfg, set_labels)
-
-        selected = raw[:, :, r_idx, :]
-        st = stats_over_models(selected)
-
-        mean = np.asarray(st["mean"], dtype=np.float64)
-        ci_lo = np.asarray(st["ci_lo"], dtype=np.float64)
-        ci_hi = np.asarray(st["ci_hi"], dtype=np.float64)
-
-        n_epochs = mean.shape[0]
-        epochs = np.arange(n_epochs, dtype=np.float64)
 
         valid_indices = set(valid_set_indices_for_ratio(raw, r_idx))
         valid_sets = [(s_idx, set_labels[s_idx]) for s_idx in requested_set_indices if s_idx in valid_indices]
@@ -46,6 +37,9 @@ class RatioOverEpochsOutput:
             raise ValueError(
                 f"No valid set data found for ratio '{ratio_name}' from requested sets {requested_labels}."
             )
+
+        n_epochs = raw.shape[1]
+        epochs = np.arange(n_epochs, dtype=np.float64)
 
         colors = [
             Color.BLUE,
@@ -60,29 +54,58 @@ class RatioOverEpochsOutput:
             Color.OLIVE,
         ]
 
-        series_list = []
-        for i, (s_idx, label) in enumerate(valid_sets):
-            c = colors[i % len(colors)]
-            series_list.append(
+        if avg_sets:
+            valid_indices_list = [s_idx for s_idx, _ in valid_sets]
+            per_model_epoch = np.nanmean(raw[:, :, r_idx, valid_indices_list], axis=2)
+            st = stats_over_models(per_model_epoch)
+            mean = np.asarray(st["mean"], dtype=np.float64)
+            ci_lo = np.asarray(st["ci_lo"], dtype=np.float64)
+            ci_hi = np.asarray(st["ci_hi"], dtype=np.float64)
+            series_list = [
                 Series(
                     kind=PlotKind.LINE,
-                    label=label,
+                    label=sub_cfg.get("line_label", "avg sets"),
                     x=[float(v) for v in epochs],
-                    y=[float(v) for v in np.asarray(mean[:, s_idx], dtype=np.float64)],
-                    ci_lower=[float(v) for v in np.asarray(ci_lo[:, s_idx], dtype=np.float64)],
-                    ci_upper=[float(v) for v in np.asarray(ci_hi[:, s_idx], dtype=np.float64)],
-                    color=c,
+                    y=[float(v) for v in mean],
+                    ci_lower=[float(v) for v in ci_lo],
+                    ci_upper=[float(v) for v in ci_hi],
+                    color=Color.BLUE,
                     y_axis=YAxis.LEFT,
                     marker="o",
                     markersize=4.0,
                     linewidth=2.0,
                 )
-            )
+            ]
+        else:
+            selected = raw[:, :, r_idx, :]
+            st = stats_over_models(selected)
+            mean = np.asarray(st["mean"], dtype=np.float64)
+            ci_lo = np.asarray(st["ci_lo"], dtype=np.float64)
+            ci_hi = np.asarray(st["ci_hi"], dtype=np.float64)
+            series_list = []
+            for i, (s_idx, label) in enumerate(valid_sets):
+                c = colors[i % len(colors)]
+                series_list.append(
+                    Series(
+                        kind=PlotKind.LINE,
+                        label=label,
+                        x=[float(v) for v in epochs],
+                        y=[float(v) for v in np.asarray(mean[:, s_idx], dtype=np.float64)],
+                        ci_lower=[float(v) for v in np.asarray(ci_lo[:, s_idx], dtype=np.float64)],
+                        ci_upper=[float(v) for v in np.asarray(ci_hi[:, s_idx], dtype=np.float64)],
+                        color=c,
+                        y_axis=YAxis.LEFT,
+                        marker="o",
+                        markersize=4.0,
+                        linewidth=2.0,
+                    )
+                )
 
         selected_labels = [label for _, label in valid_sets]
         set_suffix = selected_sets_suffix(selected_labels, set_labels)
+        avg_suffix = "_avg" if avg_sets else ""
         spec = OutputSpec(
-            figure_id=sub_cfg.get("name", f"ratio_over_epochs_{ratio_name.replace(':', '_')}{set_suffix}"),
+            figure_id=sub_cfg.get("name", f"ratio_over_epochs_{ratio_name.replace(':', '_')}{avg_suffix}{set_suffix}"),
             title=sub_cfg.get("title", f"{ratio_name} Ratio Modular Response Across Epochs - Hidden"),
             x_label="Epoch",
             y_label="% Modular Response",
