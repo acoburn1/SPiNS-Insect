@@ -16,6 +16,8 @@ RatioOverEpochs:
   present: true
   group: true
   per_epoch: false
+  avg: false
+  sets: [lat-core, mod-core, no-core, both-core, both-core-whole, both-wrong]
 AllModels33OverEpochs:
   present: true
   group: true
@@ -25,6 +27,7 @@ SCurve:
   group: true
   per_epoch: true
   epochs: sig
+  sets: [lat-core, mod-core, no-core, both-core, both-core-whole, both-wrong]
 AllModelsSCurve:
   present: true
   group: true
