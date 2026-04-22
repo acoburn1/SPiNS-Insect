@@ -82,6 +82,19 @@ def resolve_requested_set_indices(sub_cfg: dict, set_labels: list[str]) -> list[
     return indices
 
 
+def filename_safe_token(text: str) -> str:
+    token = re.sub(r"[^0-9A-Za-z]+", "_", str(text).strip().lower())
+    token = re.sub(r"_+", "_", token).strip("_")
+    return token or "na"
+
+
+def selected_sets_suffix(selected_labels: list[str], all_labels: list[str]) -> str:
+    if len(selected_labels) == len(all_labels) and set(selected_labels) == set(all_labels):
+        return ""
+    tokens = [filename_safe_token(label) for label in selected_labels]
+    return "_sets_" + "__".join(tokens)
+
+
 def load_hidden_correlation_raw(analysis_dir: str, *, mode: str = "standard") -> dict[str, np.ndarray]:
     raw = load_correlation_raw(analysis_dir, corr_type=mode)
     mode = str(mode).lower()

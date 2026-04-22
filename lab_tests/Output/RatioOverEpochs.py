@@ -1,7 +1,12 @@
 import numpy as np
 from Output.schema.OutputSpec import *
 from Statistics.StatHelper import stats_over_models
-from Output.utils import load_ratio_test_bundle, resolve_requested_set_indices, valid_set_indices_for_ratio
+from Output.utils import (
+    load_ratio_test_bundle,
+    resolve_requested_set_indices,
+    selected_sets_suffix,
+    valid_set_indices_for_ratio,
+)
 
 
 class RatioOverEpochsOutput:
@@ -74,8 +79,10 @@ class RatioOverEpochsOutput:
                 )
             )
 
+        selected_labels = [label for _, label in valid_sets]
+        set_suffix = selected_sets_suffix(selected_labels, set_labels)
         spec = OutputSpec(
-            figure_id=sub_cfg.get("name", f"ratio_over_epochs_{ratio_name.replace(':', '_')}"),
+            figure_id=sub_cfg.get("name", f"ratio_over_epochs_{ratio_name.replace(':', '_')}{set_suffix}"),
             title=sub_cfg.get("title", f"{ratio_name} Ratio Modular Response Across Epochs - Hidden"),
             x_label="Epoch",
             y_label="% Modular Response",
