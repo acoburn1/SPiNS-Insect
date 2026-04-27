@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from Eval.Correlation import LossEvaluator
 from configs.utils import resolve_cfgs, get_stub
 import numpy as np
+from decimal import Decimal
 import DataHelper.utils as DataUtils
 from DataHelper.Probe import build_probe
 import time
@@ -41,7 +42,11 @@ class RunConfig:
 
         self.num_features = self.m_cfg['num_features']
         self.hidden_layer_range = np.arange(self.m_cfg['hidden_layer_range']['start'], self.m_cfg['hidden_layer_range']['end'] + self.m_cfg['hidden_layer_range']['step'], self.m_cfg['hidden_layer_range']['step'])
-        self.learning_rate_range = np.arange(self.m_cfg['learning_rate']['start'],self.m_cfg['learning_rate']['end'] + self.m_cfg['learning_rate']['step'], self.m_cfg['learning_rate']['step']) # TODO: fix fp rounding errors
+        self.learning_rate_range = self._decimal_inclusive_range(
+            self.m_cfg['learning_rate']['start'],
+            self.m_cfg['learning_rate']['end'],
+            self.m_cfg['learning_rate']['step'],
+        )
         self.training_epochs = self.m_cfg['num_epochs']
         self.eval_epochs = self.training_epochs + 1
         self.num_models = self.m_cfg['num_models']
@@ -350,6 +355,21 @@ class RunConfig:
 
             with open(f"{self.result_dir}/config.json", "w") as f:
                 json.dump(cfg, f, indent=2)
+
+
+    @staticmethod
+    def _decimal_inclusive_range(start: float, end: float, step: float) -> np.ndarray:
+        start_d = Decimal(str(start))
+        end_d = Decimal(str(end))
+        step_d = Decimal(str(step))
+
+        values = []
+        current = start_d
+        while current <= end_d:
+            values.append(float(current))
+            current += step_d
+
+        return np.array(values, dtype=np.float64)
 
     @staticmethod
     def _add_suffix(d: str, hls: int, lr: float) -> str:
