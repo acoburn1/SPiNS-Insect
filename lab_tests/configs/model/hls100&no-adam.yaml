@@ -1,0 +1,12 @@
+num_features: 11
+hidden_layer_range: 
+  start: 800
+  end: 800
+  step: 100
+learning_rate: 
+  start: 0.08
+  end: 0.08
+  step: 0.005
+num_epochs: 120
+num_models: 50
+adam: false

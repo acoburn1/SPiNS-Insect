@@ -10,7 +10,7 @@ from functools import partial
 import DriverUtils.Visual as Visual
 
 class StandardModel:
-    def __init__(self, num_features, hidden_layer_size, batch_size, num_epochs, learning_rate, loss_fn, device=None):
+    def __init__(self, num_features, hidden_layer_size, batch_size, num_epochs, learning_rate, loss_fn, adam: bool = True, device=None):
         self.device = device or torch.device("cpu")
         self.model = NeuralNetwork(num_features, hidden_layer_size).to(self.device)
         self.num_features = num_features
@@ -19,7 +19,7 @@ class StandardModel:
         self.num_epochs = num_epochs
         self.learning_rate = learning_rate
         self.loss_fn = loss_fn
-        self.optimizer = torch.optim.Adam(self.model.parameters(), self.learning_rate)
+        self.optimizer = torch.optim.Adam(self.model.parameters(), self.learning_rate) if adam else torch.optim.SGD(self.model.parameters(), self.learning_rate)
 
     def train_eval(self, dataloader, X_probe, vis=None):
         results = { "losses": [], "hidden": [], "output": []}

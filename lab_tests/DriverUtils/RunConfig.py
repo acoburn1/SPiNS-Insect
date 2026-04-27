@@ -45,7 +45,8 @@ class RunConfig:
         self.training_epochs = self.m_cfg['num_epochs']
         self.eval_epochs = self.training_epochs + 1
         self.num_models = self.m_cfg['num_models']
-
+        self.adam = self.m_cfg.get('adam', True)
+        
         self.X_probe, self.probe_metadata, self.probe_index = build_probe(self.p_cfg)
 
         self.training_data_filename = f"{self.dir_cfg['training_data']}/{self.training_name}.csv"
@@ -110,6 +111,7 @@ class RunConfig:
                             num_epochs=self.training_epochs,
                             learning_rate=LR,
                             loss_fn=nn.BCEWithLogitsLoss(),
+                            adam=self.adam,
                         )
 
                         result = model.train_eval(

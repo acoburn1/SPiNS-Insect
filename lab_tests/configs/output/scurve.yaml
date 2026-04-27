@@ -1,9 +1,5 @@
 SCurve:
   present: true
   per_epoch: true
-  epochs: range
+  epochs: sig
   sets: [lat-core, mod-core, no-core, both-core, both-core-whole, both-wrong]
-  range:
-    start: 0
-    stop: 60
-    step: 5
