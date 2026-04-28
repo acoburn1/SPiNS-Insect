@@ -93,3 +93,5 @@ SeriesK95:
   present: true
   group: true
   per_epoch: false
+SeriesMFA:
+  present: false
