@@ -1,0 +1,6 @@
+RatioOverEpochs:
+  present: true
+  group: true
+  per_epoch: false
+  avg: false
+  sets: [lat-core, mod-core, no-core, both-core, both-core-whole, both-wrong]

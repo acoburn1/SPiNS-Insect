@@ -2,4 +2,4 @@ SeriesCorrelation:
   present: true
   group: true
   per_epoch: false
-  corr_type: wb
+  corr_type: standard

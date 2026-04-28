@@ -41,7 +41,10 @@ class RunConfig:
         self.generate_rms = self.d_cfg['generate_rms']
 
         self.num_features = self.m_cfg['num_features']
-        self.hidden_layer_range = np.arange(self.m_cfg['hidden_layer_range']['start'], self.m_cfg['hidden_layer_range']['end'] + self.m_cfg['hidden_layer_range']['step'], self.m_cfg['hidden_layer_range']['step'])
+        self.hidden_layer_range = np.arange(
+            self.m_cfg['hidden_layer_range']['start'], 
+            self.m_cfg['hidden_layer_range']['end'] + self.m_cfg['hidden_layer_range']['step'], 
+            self.m_cfg['hidden_layer_range']['step'])
         self.learning_rate_range = self._decimal_inclusive_range(
             self.m_cfg['learning_rate']['start'],
             self.m_cfg['learning_rate']['end'],
