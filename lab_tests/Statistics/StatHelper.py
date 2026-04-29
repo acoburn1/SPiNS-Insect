@@ -1,5 +1,50 @@
 from scipy.stats import t, ttest_rel
 import numpy as np
+import warnings
+from scipy.stats import pearsonr
+from DriverUtils.WarningLog import append_stats_warning
+
+def nanmean_logged(x: np.ndarray, axis=0, source: str = "") -> np.ndarray:
+    x = np.asarray(x, dtype=np.float64)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always", category=RuntimeWarning)
+        out = np.nanmean(x, axis=axis)
+
+    has_empty_slice = any(
+        isinstance(w.message, RuntimeWarning) and "Mean of empty slice" in str(w.message)
+        for w in caught
+    )
+    if has_empty_slice:
+        append_stats_warning(
+            event="nanmean_empty_slice",
+            source=source,
+            axis=axis,
+            shape=x.shape,
+            all_nan=int(np.isnan(x).all()),
+            n_non_nan=int(np.sum(~np.isnan(x))),
+        )
+    return out
+
+
+def pearsonr_logged(a: np.ndarray, b: np.ndarray, source: str = "") -> tuple[float, float]:
+    aa = np.asarray(a, dtype=np.float64)
+    bb = np.asarray(b, dtype=np.float64)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        r, p = pearsonr(aa, bb)
+
+    warned = any("ConstantInputWarning" in str(w.message.__class__.__name__) or
+                 "NearConstantInputWarning" in str(w.message.__class__.__name__) for w in caught)
+    if warned:
+        append_stats_warning(
+            event="pearsonr_constant_input",
+            source=source,
+            a_shape=aa.shape,
+            b_shape=bb.shape,
+            a_std=float(np.nanstd(aa)),
+            b_std=float(np.nanstd(bb)),
+        )
+    return float(r), float(p)
 
 def stats_over_models(raw: np.ndarray, ci=0.95):
     """
@@ -12,8 +57,7 @@ def stats_over_models(raw: np.ndarray, ci=0.95):
     finite = np.isfinite(x)
     n = np.sum(finite, axis=0).astype(np.int64)
 
-    with np.errstate(invalid="ignore"):
-        mean = np.nanmean(x, axis=0)
+    mean = nanmean_logged(x, axis=0, source="Statistics.StatHelper.stats_over_models")
 
     x0 = x - mean[None, ...]
     x0 = np.where(finite, x0, 0.0)

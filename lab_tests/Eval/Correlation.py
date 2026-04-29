@@ -1,9 +1,9 @@
 from sys import hash_info
-from scipy.stats import pearsonr
 import numpy as np
 from Eval.utils import *
 from DriverUtils.Zarr import load_slice
 from DriverUtils.Visual import EvalVisualInfo
+from Statistics.StatHelper import pearsonr_logged
 
 
 class CorrelationEvaluator:
@@ -153,8 +153,7 @@ def _flat_corr_with_p(m1: np.ndarray, m2: np.ndarray) -> tuple[float, float]:
     b = _cut(m2)
     if a.size < 2 or b.size < 2:
         return (np.nan, np.nan)
-    r, p = pearsonr(a, b)
-    return (float(r), float(p))
+    return pearsonr_logged(a, b, source="Eval.Correlation._flat_corr_with_p")
 
 def _pairwise_corr_matrix(vectors: np.ndarray, eps: float = 1e-12) -> np.ndarray:
     X = np.asarray(vectors, dtype=np.float64)

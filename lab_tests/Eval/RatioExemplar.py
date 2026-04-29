@@ -1,6 +1,7 @@
 import numpy as np
 from DriverUtils.Zarr import load_slice
 from Eval.utils import *
+from Statistics.StatHelper import nanmean_logged
 
 
 class RatioTestEvaluator:
@@ -174,8 +175,8 @@ def _trial_prefers_mod(trials: np.ndarray, mod_exemplars: np.ndarray, lat_exempl
     mod_corrs = (zT @ zM.T) / H
     lat_corrs = (zT @ zL.T) / H
 
-    avg_mod = np.nanmean(mod_corrs, axis=1)
-    avg_lat = np.nanmean(lat_corrs, axis=1)
+    avg_mod = nanmean_logged(mod_corrs, axis=1, source="Eval.RatioExemplar._trial_prefers_mod.mod_corrs")
+    avg_lat = nanmean_logged(lat_corrs, axis=1, source="Eval.RatioExemplar._trial_prefers_mod.lat_corrs")
 
     good = np.isfinite(avg_mod) & np.isfinite(avg_lat)
     out = np.zeros((T.shape[0],), dtype=bool)
