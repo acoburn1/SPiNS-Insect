@@ -7,5 +7,5 @@ learning_rate:
   start: 0.04
   end: 0.04
   step: 0.005
-num_epochs: 120
+num_epochs: 200
 num_models: 50

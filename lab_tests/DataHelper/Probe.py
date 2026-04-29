@@ -53,7 +53,7 @@ def build_probe(probe_cfg, probe_folder: str = "Data/Probes"):
         dfs.append(_normalize(_read_parquet(ratio_parquet), "ratio"))
 
     if missing_feature_src:
-        mf_csv = os.path.join(data_folder, "Ratio", f"{missing_feature_src}.csv")
+        mf_csv = os.path.join(data_folder, "MissingFeature", f"{missing_feature_src}.csv")
         mf_parquet = os.path.join(sources_folder, f"{missing_feature_src}.parquet")
         csv_missing_feature_data_to_parquet(mf_csv, mf_parquet, num_features)
         dfs.append(_normalize(_read_parquet(mf_parquet), "missing_feature"))

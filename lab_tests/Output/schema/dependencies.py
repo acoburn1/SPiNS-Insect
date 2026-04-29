@@ -5,7 +5,7 @@ from Output.Protocol import Output
 from Eval.PCA import K95Evaluator
 from Eval.Correlation import CorrelationEvaluator, MatrixCorrelationEvaluator, LossEvaluator, WithinVsBetweenCorrelationEvaluator
 from Eval.RatioExemplar import RatioTestEvaluator
-from Eval.MissingFeatureChoice import MFA
+from Eval.MFA import MFA
 from Eval.SigE import SignificantEpochEvaluator, WithinVsBetweenSignificantEpochEvaluator
 from Output.SeriesCorrelation import SeriesCorrelationOutput
 from Output.MatrixCorrelation import MatrixCorrelationOutput
@@ -22,7 +22,7 @@ from Output.K95Correlation import K95CorrelationOutput
 from Output.K95DiffCorrelationDiff import K95DiffCorrelationDiffOutput
 from Output.K95DiffGeneralization import K95DiffGeneralizationOutput
 from Output.SeriesK95 import SeriesK95Output
-from Output.MissingFeatureChoice import SeriesMFA
+from Output.SeriesMFA import SeriesMFA
 
 @dataclass
 class Dep:

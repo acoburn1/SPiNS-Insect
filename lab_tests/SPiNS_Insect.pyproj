@@ -35,6 +35,7 @@
     <Compile Include="DriverUtils\TabularExport.py" />
     <Compile Include="DriverUtils\Visual.py" />
     <Compile Include="DriverUtils\Zarr.py" />
+    <Compile Include="Eval\MFA.py" />
     <Compile Include="Eval\RatioExemplar.py" />
     <Compile Include="Eval\SigE.py" />
     <Compile Include="Eval\utils.py" />
@@ -52,6 +53,7 @@
     <Compile Include="Output\K95DiffGeneralization.py" />
     <Compile Include="Output\K95HLS.py" />
     <Compile Include="Output\MatrixCorrelation.py" />
+    <Compile Include="Output\SeriesMFA.py" />
     <Compile Include="Output\Protocol.py" />
     <Compile Include="Output\RatioOverEpochs.py" />
     <Compile Include="Output\schema\dependencies.py" />
@@ -78,6 +80,7 @@
     <Folder Include="configs\output\" />
     <Folder Include="Data\" />
     <Folder Include="Data\Exemplar\" />
+    <Folder Include="Data\MissingFeature\" />
     <Folder Include="Data\Probes\" />
     <Folder Include="Data\Probes\Sources\" />
     <Folder Include="Data\Ratio\" />
@@ -116,6 +119,7 @@
     <Content Include="configs\output\correlationhls.yaml" />
     <Content Include="configs\output\k95corr.yaml" />
     <Content Include="configs\output\seriesk95.yaml" />
+    <Content Include="configs\output\seriesmfa.yaml" />
     <Content Include="configs\output\wb_default.yaml" />
     <Content Include="configs\output\default.yaml" />
     <Content Include="configs\directory\default.yaml" />
@@ -128,6 +132,8 @@
     <Content Include="configs\probe\default.yaml" />
     <Content Include="Data\Exemplar\alt-lat_exemplars.csv" />
     <Content Include="Data\Exemplar\original_exemplars.csv" />
+    <Content Include="Data\MissingFeature\mf_probe_trials.csv" />
+    <Content Include="Data\MissingFeature\mf_probe_trials_alt.csv" />
     <Content Include="Data\Training\mod-lat1_6-6_missing-core.csv" />
     <Content Include="Data\Training\mod-lat2_5-5_missing-core.csv" />
     <Content Include="Data\Training\mod-lat2_5-5_whole.csv" />
