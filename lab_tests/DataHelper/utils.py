@@ -60,6 +60,38 @@ def csv_ratio_data_to_parquet(filename: str, output_filename: str, num_features:
     out.to_parquet(output_filename, index=False)
     return out
 
+def csv_missing_feature_data_to_parquet(filename: str, output_filename: str, num_features: int = 11):
+    """
+    Converts missing-feature probe trials to parquet.
+    Expected columns:
+      category, structure, shown_1..shown_5, option_a, option_b
+    """
+    df = pd.read_csv(filename)
+
+    shown_cols = [f"shown_{i}" for i in range(1, 6)]
+    required = ["category", "option_a", "option_b"] + shown_cols
+    missing = [c for c in required if c not in df.columns]
+    if missing:
+        raise ValueError(f"Missing required columns in {filename}: {missing}")
+
+    def _global_feature_idx(category: str, feature_id: int) -> int:
+        base = 0 if str(category).lower() == "mod" else num_features
+        return base + (int(feature_id) - 1)
+
+    def row_to_tensor(row) -> list[int]:
+        v = [0] * (2 * num_features)
+        for c in shown_cols:
+            idx = _global_feature_idx(row["category"], int(row[c]))
+            v[idx] = 1
+        return v
+
+    out = df.copy()
+    out["option_a_idx"] = out.apply(lambda r: _global_feature_idx(r["category"], int(r["option_a"])), axis=1)
+    out["option_b_idx"] = out.apply(lambda r: _global_feature_idx(r["category"], int(r["option_b"])), axis=1)
+    out["tensor"] = out.apply(row_to_tensor, axis=1)
+    out.to_parquet(output_filename, index=False)
+    return out
+
 def generate_onehot_parquet(output_filename: str, num_features: int = 11):
     """ Generates a Parquet file containing one-hot encoded feature vectors """
     rows = []

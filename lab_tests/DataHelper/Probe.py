@@ -6,6 +6,7 @@ import torch
 
 from DataHelper.utils import (
     csv_ratio_data_to_parquet,
+    csv_missing_feature_data_to_parquet,
     generate_onehot_parquet,
     generate_exemplar_parquet,
 )
@@ -33,6 +34,7 @@ def build_probe(probe_cfg, probe_folder: str = "Data/Probes"):
 
     exemplar_src = cfg.get("exemplar")
     ratio_src = cfg.get("ratio")
+    missing_feature_src = cfg.get("missing_feature")
     onehot_src = cfg.get("onehot")
     num_features = int(cfg.get("num_features", 11))
 
@@ -50,6 +52,12 @@ def build_probe(probe_cfg, probe_folder: str = "Data/Probes"):
         csv_ratio_data_to_parquet(ratio_csv, ratio_parquet, num_features)
         dfs.append(_normalize(_read_parquet(ratio_parquet), "ratio"))
 
+    if missing_feature_src:
+        mf_csv = os.path.join(data_folder, "MissingFeature", f"{missing_feature_src}.csv")
+        mf_parquet = os.path.join(sources_folder, f"{missing_feature_src}.parquet")
+        csv_missing_feature_data_to_parquet(mf_csv, mf_parquet, num_features)
+        dfs.append(_normalize(_read_parquet(mf_parquet), "missing_feature"))
+
     if onehot_src:
         onehot_parquet = os.path.join(sources_folder, f"{onehot_src}.parquet")
         generate_onehot_parquet(onehot_parquet, num_features)
@@ -57,7 +65,7 @@ def build_probe(probe_cfg, probe_folder: str = "Data/Probes"):
 
 
     if not dfs:
-        raise ValueError("Config must specify at least one of: exemplar, ratio, onehot")
+        raise ValueError("Config must specify at least one of: exemplar, ratio, missing_feature, onehot")
 
     probe_df = pd.concat(dfs, ignore_index=True)
 
@@ -134,4 +142,3 @@ def _build_index(metadata_df: pd.DataFrame) -> dict:
             index.setdefault(key, []).append(i)
 
     return index
-
