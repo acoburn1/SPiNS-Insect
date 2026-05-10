@@ -6,38 +6,70 @@
   <title>SPiNS-Insect Repository Guide</title>
   <style>
     :root {
-      --bg: #0b1020;
-      --panel: #111833;
-      --card: #182346;
-      --line: #30416f;
-      --text: #e7eeff;
-      --muted: #b8c6ef;
-      --accent: #60a5fa;
-      --accent2: #34d399;
+      --bg: #f3f6fc;
+      --text: #0f172a;
+      --muted: #475569;
+      --line: #cbd5e1;
+      --panel: #ffffff;
+      --blue: #e0ecff;
+      --green: #e6f8ef;
+      --amber: #fff4dd;
+      --rose: #ffe8ef;
+      --violet: #f0eaff;
+      --ink: #0b1220;
     }
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: Inter, Segoe UI, Arial, sans-serif; color: var(--text); background: radial-gradient(circle at top left, #182244 0%, var(--bg) 55%, #070b17 100%); }
-    .layout { display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; }
+    body { margin: 0; font-family: Inter, Segoe UI, Arial, sans-serif; color: var(--text); background: var(--bg); }
+    .layout { display: grid; grid-template-columns: 260px minmax(0, 1fr); min-height: 100vh; }
+
     .sidebar {
-      position: sticky; top: 0; align-self: start; height: 100vh; overflow: auto;
-      border-right: 1px solid var(--line); background: rgba(10,15,33,.92); padding: 16px;
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+      border-right: 1px solid var(--line); background: #f8fbff; padding: 14px;
     }
-    .sidebar h1 { font-size: 1.05rem; margin: 0 0 10px; }
-    .sidebar a { display: block; color: var(--muted); text-decoration: none; font-size: .86rem; padding: 5px 0; }
-    .sidebar a:hover { color: white; }
-    .main { padding: 20px; max-width: 1400px; }
-    .card { background: rgba(17,24,51,.9); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 14px; }
-    h2 { margin: 4px 0 10px; font-size: 1.15rem; }
-    h3 { margin: 10px 0 8px; font-size: .98rem; color: #d9e5ff; }
-    p, li { color: #d0ddff; font-size: .86rem; line-height: 1.35; }
-    code { background: rgba(255,255,255,.09); border: 1px solid rgba(255,255,255,.12); padding: 1px 5px; border-radius: 6px; font-size: .82rem; }
-    .flow { display: grid; grid-template-columns: repeat(7, minmax(180px, 1fr)); gap: 8px; overflow-x: auto; }
-    .step { border: 1px solid #4462a2; border-radius: 10px; padding: 8px; background: rgba(9,14,30,.5); min-height: 126px; }
-    .step b { color: #fff; font-size: .88rem; }
-    .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .small { font-size: .8rem; color: var(--muted); }
-    .pill { display:inline-block; border:1px solid #4861a0; border-radius:999px; padding:2px 8px; margin: 0 6px 6px 0; font-size: .76rem; color:#cfe0ff; }
-    .tree ul { margin: 4px 0 0 16px; padding:0; }
+    .sidebar h1 { margin: 0 0 8px; font-size: 1rem; }
+    .sidebar a { display: block; text-decoration: none; color: #334155; font-size: .86rem; padding: 5px 0; }
+    .sidebar a:hover { color: #0f172a; font-weight: 600; }
+
+    .main { padding: 18px; width: 100%; max-width: 100%; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+    .card h2 { margin: 2px 0 10px; font-size: 1.1rem; }
+    .card h3 { margin: 10px 0 6px; font-size: .95rem; }
+    p, li { font-size: .9rem; line-height: 1.4; color: #1e293b; }
+    .muted { color: var(--muted); }
+
+    code { background: #eef2ff; border: 1px solid #d7ddfb; padding: 1px 6px; border-radius: 6px; font-size: .82rem; }
+    pre {
+      margin: 8px 0; padding: 10px; overflow-x: auto;
+      background: #0f172a; color: #e2e8f0; border-radius: 8px; border: 1px solid #1e293b;
+      font-size: .82rem; line-height: 1.35;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .step { border: 1px solid var(--line); border-radius: 10px; padding: 9px; min-height: 140px; }
+    .step b { display:block; margin-bottom: 6px; font-size: .9rem; color: var(--ink); }
+    .s1 { background: var(--blue); }
+    .s2 { background: var(--green); }
+    .s3 { background: var(--violet); }
+    .s4 { background: #eaf7ff; }
+    .s5 { background: var(--amber); }
+    .s6 { background: #e8fff8; }
+    .s7 { background: var(--rose); }
+
+    .grid2 { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+    .grid3 { display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; }
+    .sub { border: 1px solid var(--line); border-radius: 9px; padding: 10px; background:#fff; }
+    .pill { display:inline-block; margin: 0 6px 6px 0; padding: 3px 9px; border-radius: 999px; border: 1px solid #bfd0ea; background: #f0f7ff; font-size: .78rem; }
+
+    @media (max-width: 1180px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { position: relative; height: auto; border-right: none; border-bottom: 1px solid var(--line); }
+      .flow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .grid2, .grid3 { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
@@ -45,182 +77,222 @@
     <nav class="sidebar">
       <h1>SPiNS-Insect Guide</h1>
       <a href="#quick-flow">Quick Pipeline View</a>
-      <a href="#start-here">Start Here (New Contributor)</a>
+      <a href="#how-run">How to Run</a>
+      <a href="#start-here">Start Here</a>
       <a href="#repo-map">Repository Map</a>
       <a href="#config-system">Configuration System</a>
       <a href="#data-probe">Data + Probe Prep</a>
       <a href="#model-train">Model + Training</a>
-      <a href="#activation-storage">Activation Storage (Zarr)</a>
+      <a href="#activation-storage">Activation Storage</a>
       <a href="#evaluation">Evaluation + Statistics</a>
-      <a href="#output">Output Rendering + Grouping</a>
+      <a href="#output">Output Rendering</a>
       <a href="#tabular">Tabular Export</a>
-      <a href="#metadata">Metadata + Reproducibility</a>
-      <a href="#change-guide">How to Make Changes Safely</a>
+      <a href="#metadata">Metadata</a>
+      <a href="#change-guide">Safe Change Guide</a>
     </nav>
 
     <main class="main">
       <section class="card" id="quick-flow">
         <h2>Quick Pipeline View</h2>
         <div class="flow" role="img" aria-label="SPiNS-Insect quick left-to-right pipeline flow">
-          <div class="step"><b>1. Entry</b><p><code>lab_tests/program.py</code><br/>parses CLI and calls stage functions.</p></div>
-          <div class="step"><b>2. Config</b><p><code>DriverUtils/Parser.py</code>, <code>configs/utils.py</code><br/>resolve YAML + initialize <code>RunConfig</code>.</p></div>
-          <div class="step"><b>3. Preparation</b><p>Build training tensors, probe parquet/tensor/index, reference matrices, model hyperparameter ranges.</p></div>
-          <div class="step"><b>4. Train</b><p><code>StandardModel.train_eval</code><br/>train all model replicas; capture epoch-wise probe activations.</p></div>
-          <div class="step"><b>5. Store</b><p><code>DriverUtils/Zarr.py</code><br/>write <code>loss</code>, <code>hidden</code>, <code>output</code> datasets.</p></div>
-          <div class="step"><b>6. Evaluate</b><p><code>Eval/*</code> via <code>Output/schema/dependencies.py</code> → save <code>AnalysisData/*.npz</code>.</p></div>
-          <div class="step"><b>7. Output</b><p><code>Output/*.py</code> + <code>PlotOutput.py</code> render figures; optional tabular export + metadata.</p></div>
+          <div class="step s1"><b>1) Entry</b><p><code>lab_tests/program.py</code> parses CLI and dispatches pipeline stages.</p></div>
+          <div class="step s2"><b>2) Config</b><p><code>Parser.py</code> + <code>configs/utils.py</code> resolve YAML config files into one <code>RunConfig</code>.</p></div>
+          <div class="step s3"><b>3) Preparation</b><p>Build train tensors, probe tensors/index, refs, and hyperparameter sweep ranges.</p></div>
+          <div class="step s4"><b>4) Train</b><p>Train model replicas for each (HLS, LR) pair and capture probe activations every epoch.</p></div>
+          <div class="step s5"><b>5) Store</b><p>Persist losses/activations in Zarr under run-specific suffix directories.</p></div>
+          <div class="step s6"><b>6) Evaluate</b><p>Run required evaluators, save <code>.npz</code> artifacts + stats + optional significance masks.</p></div>
+          <div class="step s7"><b>7) Output</b><p>Generate plots from analysis artifacts, optionally export tabular stats and metadata.</p></div>
+        </div>
+      </section>
+
+      <section class="card" id="how-run">
+        <h2>How to Run (CLI examples)</h2>
+        <div class="grid2">
+          <div class="sub">
+            <h3>Basic stage execution</h3>
+            <pre>cd lab_tests
+python program.py --train
+python program.py --evaluate
+python program.py --graph</pre>
+          </div>
+          <div class="sub">
+            <h3>Run all stages in sequence</h3>
+            <pre>cd lab_tests
+python program.py --all
+# optional progress display
+python program.py --all --visual</pre>
+          </div>
+          <div class="sub">
+            <h3>Override config sets</h3>
+            <pre>python program.py --all \
+  --data-config default \
+  --model-config hls20 \
+  --output-config default \
+  --probe-config default \
+  --directory-config default</pre>
+          </div>
+          <div class="sub">
+            <h3>Generate tabular exports</h3>
+            <pre>python program.py --tabular
+# typically after --evaluate</pre>
+          </div>
         </div>
       </section>
 
       <section class="card" id="start-here">
-        <h2>Start Here (for first-time contributors)</h2>
-        <p>Read these in order:</p>
-        <div>
-          <span class="pill">1. <code>lab_tests/program.py</code></span>
-          <span class="pill">2. <code>DriverUtils/RunConfig.py</code></span>
-          <span class="pill">3. <code>configs/output/default.yaml</code></span>
-          <span class="pill">4. <code>Output/schema/dependencies.py</code></span>
-          <span class="pill">5. <code>Eval/Protocol.py</code></span>
-          <span class="pill">6. <code>Output/Protocol.py</code></span>
-          <span class="pill">7. <code>Output/schema/OutputSpec.py</code></span>
-        </div>
+        <h2>Start Here (first-time contributor reading order)</h2>
+        <p class="muted">If you need to change behavior, these files establish control flow, interfaces, and extension points:</p>
+        <span class="pill">1. <code>lab_tests/program.py</code></span>
+        <span class="pill">2. <code>DriverUtils/RunConfig.py</code></span>
+        <span class="pill">3. <code>configs/output/default.yaml</code></span>
+        <span class="pill">4. <code>Output/schema/dependencies.py</code></span>
+        <span class="pill">5. <code>Eval/Protocol.py</code></span>
+        <span class="pill">6. <code>Output/Protocol.py</code></span>
+        <span class="pill">7. <code>Output/schema/OutputSpec.py</code></span>
       </section>
 
-      <section class="card tree" id="repo-map">
-        <h2>Repository Map (what lives where)</h2>
-        <ul>
-          <li><code>lab_tests/program.py</code>: process entrypoint.</li>
-          <li><code>lab_tests/DriverUtils/</code>
-            <ul>
-              <li><code>RunConfig.py</code>: core orchestration for train/evaluate/graph/tabular.</li>
-              <li><code>Parser.py</code>: CLI flags.</li>
-              <li><code>Zarr.py</code>: activation I/O.</li>
-              <li><code>RunMetadata.py</code>: stage metadata records.</li>
-              <li><code>Organize.py</code>: output regrouping by graph name.</li>
-              <li><code>TabularExport.py</code>: CSV/regression table exports.</li>
-            </ul>
-          </li>
-          <li><code>lab_tests/Model/</code>: <code>NeuralNetwork.py</code>, <code>StandardModel.py</code>.</li>
-          <li><code>lab_tests/DataHelper/</code>: training CSV readers + probe builders + dataloaders.</li>
-          <li><code>lab_tests/Eval/</code>: evaluator implementations.</li>
-          <li><code>lab_tests/Output/</code> and <code>lab_tests/Output/schema/</code>: output generators + rendering spec + dependency mapping.</li>
-          <li><code>lab_tests/Statistics/StatHelper.py</code>: stats over models.</li>
-          <li><code>lab_tests/configs/</code>: <code>data/</code>, <code>model/</code>, <code>probe/</code>, <code>output/</code>, <code>directory/</code> YAMLs.</li>
-          <li><code>lab_tests/data/</code> + <code>lab_tests/Data/</code>: training/probe sources and generated probe files.</li>
-        </ul>
+      <section class="card" id="repo-map">
+        <h2>Repository Map (detailed)</h2>
+        <div class="grid3">
+          <div class="sub"><h3>Entry + orchestration</h3><ul><li><code>lab_tests/program.py</code></li><li><code>DriverUtils/RunConfig.py</code></li><li><code>DriverUtils/Parser.py</code></li><li><code>DriverUtils/Visual.py</code></li></ul></div>
+          <div class="sub"><h3>Model and data</h3><ul><li><code>Model/NeuralNetwork.py</code></li><li><code>Model/StandardModel.py</code></li><li><code>DataHelper/utils.py</code></li><li><code>DataHelper/Probe.py</code></li><li><code>DataHelper/SpecialDataLoader.py</code></li></ul></div>
+          <div class="sub"><h3>Analysis and output</h3><ul><li><code>Eval/*</code> evaluator modules</li><li><code>Statistics/StatHelper.py</code></li><li><code>Output/*.py</code></li><li><code>Output/schema/PlotOutput.py</code></li><li><code>Output/schema/dependencies.py</code></li></ul></div>
+        </div>
       </section>
 
       <section class="card" id="config-system">
         <h2>Configuration System</h2>
         <ul>
-          <li><code>configs/utils.py</code> resolves each <code>--*-config</code> argument to a YAML path; bare names map to <code>configs/&lt;type&gt;/&lt;name&gt;.yaml</code>.</li>
-          <li><code>get_stub(args)</code> creates result path suffix from selected config names (except output/directory configs).</li>
-          <li><code>RunConfig.__init__</code> loads all config families and computes ranges for hidden-layer size and learning rate.</li>
-          <li>Guardrail: asserts special dataloader usage consistency based on trial ratios.</li>
+          <li><code>configs/utils.py</code> resolves each <code>--*-config</code> argument to a concrete YAML file path.</li>
+          <li>Unnamed config values default to <code>configs/&lt;type&gt;/default.yaml</code>.</li>
+          <li><code>RunConfig.__init__</code> loads <code>data</code>, <code>model</code>, <code>output</code>, <code>probe</code>, <code>directory</code> configs and computes sweep ranges.</li>
+          <li><code>get_stub(args)</code> builds run directory naming stubs from selected config names.</li>
         </ul>
       </section>
 
       <section class="card" id="data-probe">
         <h2>Data + Probe Preparation</h2>
         <div class="grid2">
-          <div>
-            <h3>Training data</h3>
+          <div class="sub">
+            <h3>Training CSV parsing</h3>
             <ul>
-              <li><code>csv_training_data_to_numpy</code> reads row fields <code>input_i</code>/<code>output_i</code> and keeps rows where <code>type == train</code>.</li>
-              <li>Default loader is full-batch TensorDataset DataLoader; alternative is <code>SpecialDataLoader</code>.</li>
-              <li>Training trial count is validated against <code>num_total_trials</code>.</li>
+              <li>Expected columns: <code>input_0..input_(2F-1)</code>, <code>output_0..output_(2F-1)</code>, <code>type</code>.</li>
+              <li>Only rows with <code>type == train</code> are used for model fitting.</li>
+              <li>Parsed arrays are validated against <code>num_total_trials</code>.</li>
             </ul>
           </div>
-          <div>
-            <h3>Probe building</h3>
+          <div class="sub">
+            <h3>Probe generation workflow</h3>
             <ul>
-              <li><code>DataHelper/Probe.py</code> always rebuilds probe data from source CSVs/parquet generators.</li>
-              <li>Supports mixed sources: exemplar, ratio, missing-feature, onehot.</li>
-              <li>Writes <code>lab_tests/Data/Probes/&lt;cfg&gt;.parquet</code> + <code>&lt;cfg&gt;.index.json</code>.</li>
-              <li>Returns probe tensor + metadata dataframe + lookup index.</li>
+              <li>Probe data is rebuilt each run from source datasets (avoids stale probe artifacts).</li>
+              <li>Sources can include exemplar, ratio, missing-feature, and onehot datasets.</li>
+              <li>Outputs: <code>Data/Probes/&lt;probe_name&gt;.parquet</code> and <code>.index.json</code> + runtime tensor.</li>
             </ul>
           </div>
         </div>
       </section>
 
       <section class="card" id="model-train">
-        <h2>Model + Training</h2>
+        <h2>Model + Training Loop</h2>
+        <pre># effective loop order in RunConfig.train()
+for HLS in hidden_layer_range:
+  for LR in learning_rate_range:
+    for model_i in range(num_models):
+      model = StandardModel(...)
+      result = model.train_eval(dataloader, X_probe)</pre>
         <ul>
-          <li><code>NeuralNetwork</code>: encoder <code>Linear(2F,H)+ReLU</code>, decoder <code>Linear(H,2F)</code>.</li>
-          <li><code>StandardModel</code> chooses Adam or SGD from model config and uses BCEWithLogitsLoss passed by RunConfig.</li>
-          <li><code>train_eval</code> first captures epoch-0 probe hidden/output (before training), then loops through epochs and stores loss/hidden/output.</li>
-          <li>Outer loops in <code>RunConfig.train()</code>: hidden-layer sizes × learning rates × model replicas.</li>
+          <li>Architecture is a shallow encoder-decoder: <code>2F → H → 2F</code> with ReLU in the hidden layer.</li>
+          <li>Loss is <code>BCEWithLogitsLoss</code>; optimizer is Adam or SGD based on config.</li>
+          <li><code>train_eval</code> captures probe hidden/output at initialization and after every epoch.</li>
         </ul>
       </section>
 
       <section class="card" id="activation-storage">
-        <h2>Activation Storage (Zarr)</h2>
+        <h2>Activation Storage (Zarr schema)</h2>
+        <pre># datasets written by DriverUtils/Zarr.py
+loss   : (M, E)
+hidden : (M, E, P, H)
+output : (M, E, P, O)</pre>
         <ul>
-          <li><code>build_zarr_from_results</code> initializes and writes model results into arrays.</li>
-          <li>Stored tensors: <code>loss[M,E]</code>, <code>hidden[M,E,P,H]</code>, <code>output[M,E,P,O]</code>.</li>
-          <li>Each hyperparameter pair is stored under suffix directories like <code>..._hls{HLS}_lr{LR}</code>.</li>
+          <li>Stored under run directories with pair-specific suffixes <code>_hls{...}_lr{...}</code>.</li>
+          <li>Zarr format supports efficient slicing for evaluator passes.</li>
         </ul>
       </section>
 
       <section class="card" id="evaluation">
         <h2>Evaluation + Statistics</h2>
         <ul>
-          <li>Enabled outputs in output config determine required evaluators via <code>Output/schema/dependencies.py</code>.</li>
-          <li>Evaluator classes include Correlation, MatrixCorrelation, WithinVsBetweenCorrelation, K95, RatioTest, MFA, Loss.</li>
-          <li>For each evaluator result, <code>stats_over_models</code> computes <code>mean/std/se/ci</code>.</li>
-          <li>Saved files: <code>AnalysisData/.../&lt;EvaluatorName&gt;.npz</code> with raw + summary stats (+ optional metadata).</li>
-          <li>If configured, significant epoch masks are generated using <code>Eval/SigE.py</code> as <code>sige.npz</code> / <code>wb-sige.npz</code>.</li>
+          <li><code>Output/schema/dependencies.py</code> maps output config keys to required evaluator classes and output classes.</li>
+          <li>Evaluators save raw model-level arrays, then <code>Statistics/StatHelper.py</code> computes aggregate summaries.</li>
+          <li>Saved analysis files generally include <code>raw</code>, <code>mean</code>, <code>std</code>, <code>se</code>, <code>ci_lo</code>, <code>ci_hi</code>, <code>n</code>.</li>
+          <li>Significance epoch masks are optional and written as <code>sige.npz</code> / <code>wb-sige.npz</code>.</li>
         </ul>
       </section>
 
       <section class="card" id="output">
         <h2>Output Rendering + Grouping</h2>
         <ul>
-          <li>Output generators in <code>Output/*.py</code> convert analysis files into <code>OutputSpec</code> objects.</li>
-          <li><code>Output/schema/PlotOutput.py</code> renders and saves plots.</li>
-          <li><code>RunConfig.generate_output()</code> handles hyperparameter-dependent and per-pair outputs separately.</li>
-          <li><code>DriverUtils/Organize.py</code> optionally groups matching plot names across pair directories.</li>
+          <li>Each output module reads analysis artifacts and emits <code>OutputSpec</code> objects.</li>
+          <li><code>PlotOutput.py</code> renders specs to files in <code>Output/...</code>.</li>
+          <li>Hyperparameter-dependent outputs run once per analysis root; per-pair outputs run for every HLS/LR directory.</li>
+          <li><code>DriverUtils/Organize.py</code> can regroup files by graph type for easier comparison across pairs.</li>
         </ul>
       </section>
 
       <section class="card" id="tabular">
         <h2>Tabular Export</h2>
         <ul>
-          <li><code>--tabular</code> triggers <code>RunConfig.generate_tabular_output()</code>.</li>
-          <li><code>DriverUtils/TabularExport.py</code> exports sig-mode and range-mode CSV tables plus significance masks.</li>
-          <li>Tables are generated from existing analysis artifacts, not from retraining.</li>
+          <li><code>DriverUtils/TabularExport.py</code> creates CSV outputs for sig-mode and range-mode analyses.</li>
+          <li>Also exports mask tables from significance files.</li>
+          <li>Consumes <code>AnalysisData</code> outputs; it does not retrain models.</li>
         </ul>
       </section>
 
       <section class="card" id="metadata">
         <h2>Metadata + Reproducibility</h2>
         <ul>
-          <li><code>RunMetadata.write_stage_metadata()</code> writes run records for activation_data, analysis_data, and output stages.</li>
-          <li>Each record contains timestamps, status, git branch/commit, stage directory, and stage details.</li>
-          <li>Metadata is written both to stage-history folders and stage-local <code>metadata.json</code>.</li>
+          <li><code>RunMetadata.write_stage_metadata</code> logs stage status, timestamps, git branch/commit, and details.</li>
+          <li>Writes both stage history files under <code>RunMetadata/&lt;stage&gt;/</code> and per-stage <code>metadata.json</code>.</li>
+          <li>Primary stage keys: <code>activation_data</code>, <code>analysis_data</code>, <code>output</code>.</li>
         </ul>
       </section>
 
       <section class="card" id="change-guide">
-        <h2>How to Make Changes Safely</h2>
-        <h3>Add a new evaluator</h3>
-        <ul>
-          <li>Implement class in <code>lab_tests/Eval/</code> following <code>Eval/Protocol.py</code>.</li>
-          <li>Register evaluator dependency in <code>Output/schema/dependencies.py</code>.</li>
-          <li>Enable corresponding output entry in <code>configs/output/*.yaml</code>.</li>
-        </ul>
-        <h3>Add a new output plot</h3>
-        <ul>
-          <li>Implement output class in <code>lab_tests/Output/</code> following <code>Output/Protocol.py</code>.</li>
-          <li>Generate <code>OutputSpec</code> objects compatible with <code>Output/schema/PlotOutput.py</code>.</li>
-          <li>Wire it in <code>dependencies.py</code> and mark <code>present: true</code> in output config.</li>
-        </ul>
-        <h3>Change model/data behavior</h3>
-        <ul>
-          <li>Model architecture/training loop: <code>Model/NeuralNetwork.py</code>, <code>Model/StandardModel.py</code>.</li>
-          <li>Data parsing/probe behavior: <code>DataHelper/utils.py</code>, <code>DataHelper/Probe.py</code>.</li>
-          <li>Re-run pipeline stages and validate artifacts in ActivationData/AnalysisData/Output.</li>
-        </ul>
+        <h2>Safe Change Guide (where to edit what)</h2>
+        <div class="grid2">
+          <div class="sub">
+            <h3>Add a new evaluator</h3>
+            <ul>
+              <li>Implement evaluator in <code>lab_tests/Eval/</code> using <code>Eval/Protocol.py</code>.</li>
+              <li>Register mapping in <code>Output/schema/dependencies.py</code>.</li>
+              <li>Enable via <code>configs/output/*.yaml</code> (<code>present: true</code>).</li>
+            </ul>
+          </div>
+          <div class="sub">
+            <h3>Add a new plot/output</h3>
+            <ul>
+              <li>Implement output class in <code>lab_tests/Output/</code> using <code>Output/Protocol.py</code>.</li>
+              <li>Build <code>OutputSpec</code> objects compatible with <code>PlotOutput.py</code>.</li>
+              <li>Wire dependency and config presence similarly.</li>
+            </ul>
+          </div>
+          <div class="sub">
+            <h3>Change model behavior</h3>
+            <ul>
+              <li>Model architecture: <code>Model/NeuralNetwork.py</code>.</li>
+              <li>Training behavior: <code>Model/StandardModel.py</code> and <code>RunConfig.train()</code>.</li>
+              <li>Re-run training + evaluate + graph to validate artifact compatibility.</li>
+            </ul>
+          </div>
+          <div class="sub">
+            <h3>Change probe/data behavior</h3>
+            <ul>
+              <li>CSV and source parsing in <code>DataHelper/utils.py</code>.</li>
+              <li>Probe rebuild/index logic in <code>DataHelper/Probe.py</code>.</li>
+              <li>Confirm downstream evaluators still read expected shapes/labels.</li>
+            </ul>
+          </div>
+        </div>
       </section>
     </main>
   </div>
