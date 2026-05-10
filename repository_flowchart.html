@@ -3,175 +3,171 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>SPiNS-Insect Repository Flowchart</title>
+  <title>SPiNS-Insect Visual Repository + Pipeline Map</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 24px; color: #1f2937; line-height: 1.4; }
-    h1, h2 { margin: 0.5rem 0; }
-    .card { border: 1px solid #d1d5db; border-radius: 10px; padding: 14px; margin: 14px 0; background: #fff; }
-    .muted { color: #4b5563; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
-    code { background: #f3f4f6; padding: 2px 6px; border-radius: 6px; }
-    ul { margin-top: 0.25rem; }
-    .stage { font-weight: 700; }
-    svg { width: 100%; max-width: 1200px; height: auto; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb; }
-    .box { fill: #ffffff; stroke: #374151; stroke-width: 1.4; rx: 8; ry: 8; }
-    .io { fill: #ecfeff; }
-    .proc { fill: #eff6ff; }
-    .eval { fill: #f5f3ff; }
-    .plot { fill: #f0fdf4; }
-    .meta { fill: #fff7ed; }
-    .arrow { stroke: #4b5563; stroke-width: 1.4; marker-end: url(#arrow); fill: none; }
-    .lbl { font-size: 13px; fill: #111827; }
-    .small { font-size: 11px; fill: #374151; }
+    :root {
+      --bg: #f8fafc;
+      --text: #0f172a;
+      --muted: #334155;
+      --line: #475569;
+      --main: #dbeafe;
+      --prep: #dcfce7;
+      --train: #ede9fe;
+      --eval: #fef3c7;
+      --out: #fee2e2;
+      --side: #e2e8f0;
+      --meta: #cffafe;
+    }
+    body { font-family: Inter, Segoe UI, Arial, sans-serif; margin: 16px; background: var(--bg); color: var(--text); }
+    h1 { margin: 0 0 8px; font-size: 1.25rem; }
+    p { margin: 0 0 14px; color: var(--muted); }
+    svg { width: 100%; max-width: 2000px; border: 1px solid #cbd5e1; border-radius: 10px; background: white; }
+    .box { stroke: var(--line); stroke-width: 1.4; rx: 12; ry: 12; }
+    .main { fill: var(--main); }
+    .prep { fill: var(--prep); }
+    .train { fill: var(--train); }
+    .eval { fill: var(--eval); }
+    .out { fill: var(--out); }
+    .side { fill: var(--side); }
+    .meta { fill: var(--meta); }
+    .t { font-size: 15px; font-weight: 700; fill: #0b1220; }
+    .s { font-size: 12px; fill: #1e293b; }
+    .arrow { stroke: #334155; stroke-width: 1.6; fill: none; marker-end: url(#a); }
+    .soft { stroke-dasharray: 4 4; }
   </style>
 </head>
 <body>
-  <h1>SPiNS-Insect: Repository + Program Flowchart</h1>
-  <p class="muted">Generated map of folder responsibilities, key files, and end-to-end execution flow from CLI invocation through plots and metadata artifacts.</p>
+  <h1>SPiNS-Insect: Centralized Left-to-Right Flowchart (Structure + Runtime)</h1>
+  <p>Everything is contained in one visual: key folders/files, model/data/probe setup, training/evaluation/output flow, and less-critical offshoot utilities.</p>
 
-  <div class="card">
-    <h2>1) End-to-end execution flow</h2>
-    <svg viewBox="0 0 1180 520" role="img" aria-label="Pipeline flowchart">
-      <defs>
-        <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
-          <polygon points="0,0 10,4 0,8" fill="#4b5563"></polygon>
-        </marker>
-      </defs>
+  <svg viewBox="0 0 1960 980" role="img" aria-label="SPiNS-Insect full repository and program flow">
+    <defs>
+      <marker id="a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+        <polygon points="0,0 10,4 0,8" fill="#334155"></polygon>
+      </marker>
+    </defs>
 
-      <rect class="box io" x="20" y="30" width="250" height="92" />
-      <text class="lbl" x="35" y="56">CLI Entry</text>
-      <text class="small" x="35" y="78">lab_tests/program.py</text>
-      <text class="small" x="35" y="98">args: --train/--evaluate/--graph/--all</text>
+    <rect class="box main" x="30" y="320" width="230" height="170"/>
+    <text class="t" x="45" y="348">1) Entry / CLI</text>
+    <text class="s" x="45" y="370">lab_tests/program.py</text>
+    <text class="s" x="45" y="388">--train --evaluate --graph</text>
+    <text class="s" x="45" y="406">--all --tabular --visual</text>
+    <text class="s" x="45" y="424">calls RunConfig(...)</text>
 
-      <rect class="box io" x="310" y="30" width="270" height="92" />
-      <text class="lbl" x="325" y="56">Config Resolution</text>
-      <text class="small" x="325" y="78">DriverUtils/Parser.py</text>
-      <text class="small" x="325" y="98">configs/utils.py + YAML files</text>
+    <rect class="box prep" x="320" y="290" width="320" height="230"/>
+    <text class="t" x="335" y="320">2) Config Resolution + Setup</text>
+    <text class="s" x="335" y="342">DriverUtils/Parser.py + configs/utils.py</text>
+    <text class="s" x="335" y="360">Loads YAML from configs/{data,model,</text>
+    <text class="s" x="335" y="378">output,probe,directory}/*.yaml</text>
+    <text class="s" x="335" y="396">RunConfig initializes:</text>
+    <text class="s" x="350" y="414">• hidden_layer_range + learning_rate_range</text>
+    <text class="s" x="350" y="432">• num_models, epochs, optimizer mode</text>
+    <text class="s" x="350" y="450">• result dirs + dependency registry</text>
+    <text class="s" x="350" y="468">• saves result_dir/config.json snapshot</text>
 
-      <rect class="box proc" x="620" y="30" width="250" height="92" />
-      <text class="lbl" x="635" y="56">RunConfig Initialization</text>
-      <text class="small" x="635" y="78">DriverUtils/RunConfig.py</text>
-      <text class="small" x="635" y="98">load data, probe, refs, dependencies</text>
+    <rect class="box prep" x="700" y="220" width="350" height="370"/>
+    <text class="t" x="715" y="250">3) Model/Data/Probe Preparation</text>
+    <text class="s" x="715" y="272">Training data prep (DataHelper/utils.py):</text>
+    <text class="s" x="730" y="290">• csv_training_data_to_numpy(...)</text>
+    <text class="s" x="730" y="308">• get_dataloader(...) or SpecialDataLoader</text>
+    <text class="s" x="715" y="332">Probe prep (DataHelper/Probe.py):</text>
+    <text class="s" x="730" y="350">• rebuilds probe parquet from sources</text>
+    <text class="s" x="730" y="368">• supports exemplar / ratio / missing_feature / onehot</text>
+    <text class="s" x="730" y="386">• outputs probe tensor + metadata + index json</text>
+    <text class="s" x="715" y="410">Reference matrix prep:</text>
+    <text class="s" x="730" y="428">• DriverUtils/RMutils.py gets modular/lattice RMs</text>
+    <text class="s" x="715" y="452">Model setup (Model/):</text>
+    <text class="s" x="730" y="470">• NeuralNetwork.py: Linear(2F→H), ReLU, Linear(H→2F)</text>
+    <text class="s" x="730" y="488">• StandardModel.py picks Adam or SGD</text>
+    <text class="s" x="730" y="506">• initializes probe pass at epoch 0</text>
+    <text class="s" x="730" y="524">  (hidden + sigmoid(output) + initial loss slot)</text>
 
-      <rect class="box io" x="910" y="30" width="250" height="92" />
-      <text class="lbl" x="925" y="56">Result root + config snapshot</text>
-      <text class="small" x="925" y="78">results/&lt;stub&gt;/config.json</text>
-      <text class="small" x="925" y="98">git branch/commit + config values</text>
+    <rect class="box train" x="1110" y="300" width="300" height="210"/>
+    <text class="t" x="1125" y="330">4) Training Loop</text>
+    <text class="s" x="1125" y="352">For each (HLS, LR):</text>
+    <text class="s" x="1140" y="370">for i in range(num_models):</text>
+    <text class="s" x="1155" y="388">for epoch in range(num_epochs):</text>
+    <text class="s" x="1170" y="406">forward → loss → backward → step</text>
+    <text class="s" x="1170" y="424">then probe hidden/output capture</text>
+    <text class="s" x="1125" y="446">records per-model arrays:</text>
+    <text class="s" x="1140" y="464">losses[E], hidden[E,P,H], output[E,P,O]</text>
 
-      <rect class="box proc" x="60" y="190" width="300" height="110" />
-      <text class="lbl" x="75" y="218">Training stage</text>
-      <text class="small" x="75" y="240">Model/StandardModel.py + NeuralNetwork.py</text>
-      <text class="small" x="75" y="260">for each (HLS, LR, model): train over epochs</text>
-      <text class="small" x="75" y="280">collect hidden/output/loss each epoch</text>
+    <rect class="box train" x="1470" y="300" width="260" height="210"/>
+    <text class="t" x="1485" y="330">5) Activation Storage</text>
+    <text class="s" x="1485" y="352">DriverUtils/Zarr.py</text>
+    <text class="s" x="1485" y="370">build_zarr_from_results(...)</text>
+    <text class="s" x="1485" y="388">writes datasets:</text>
+    <text class="s" x="1500" y="406">loss[M,E]</text>
+    <text class="s" x="1500" y="424">hidden[M,E,P,H]</text>
+    <text class="s" x="1500" y="442">output[M,E,P,O]</text>
+    <text class="s" x="1485" y="464">ActivationData/.../activations.zarr</text>
 
-      <rect class="box io" x="410" y="190" width="300" height="110" />
-      <text class="lbl" x="425" y="218">Activation persistence</text>
-      <text class="small" x="425" y="240">DriverUtils/Zarr.py</text>
-      <text class="small" x="425" y="260">ActivationData/.../activations.zarr</text>
-      <text class="small" x="425" y="280">plus stage metadata json</text>
+    <rect class="box eval" x="1110" y="580" width="360" height="250"/>
+    <text class="t" x="1125" y="610">6) Evaluation (Eval/*)</text>
+    <text class="s" x="1125" y="632">dependency-driven evaluator selection from</text>
+    <text class="s" x="1125" y="650">Output/schema/dependencies.py</text>
+    <text class="s" x="1125" y="674">Core evaluators:</text>
+    <text class="s" x="1140" y="692">• Correlation / MatrixCorrelation / WithinVsBetweenCorrelation</text>
+    <text class="s" x="1140" y="710">• K95 (PCA) / RatioTest / MFA / Loss</text>
+    <text class="s" x="1125" y="734">Statistics/StatHelper.py computes</text>
+    <text class="s" x="1140" y="752">mean/std/se/CI over models</text>
+    <text class="s" x="1125" y="776">Saved per evaluator: AnalysisData/*.npz</text>
+    <text class="s" x="1140" y="794">raw + summary stats + optional metadata</text>
 
-      <rect class="box eval" x="760" y="190" width="360" height="110" />
-      <text class="lbl" x="775" y="218">Evaluation stage</text>
-      <text class="small" x="775" y="240">Eval/* evaluators selected by Output/schema/dependencies.py</text>
-      <text class="small" x="775" y="260">write AnalysisData/*.npz (raw + summary stats)</text>
-      <text class="small" x="775" y="280">optional sige.npz / wb-sige.npz</text>
+    <rect class="box eval" x="1510" y="580" width="220" height="250"/>
+    <text class="t" x="1525" y="610">6a) Sig Epoch</text>
+    <text class="s" x="1525" y="632">Eval/SigE.py</text>
+    <text class="s" x="1525" y="650">if config asks for "sig" or</text>
+    <text class="s" x="1525" y="668">"wb-sig": compute epoch masks</text>
+    <text class="s" x="1525" y="690">write:</text>
+    <text class="s" x="1540" y="708">sige.npz</text>
+    <text class="s" x="1540" y="726">wb-sige.npz</text>
 
-      <rect class="box plot" x="160" y="360" width="350" height="110" />
-      <text class="lbl" x="175" y="388">Output stage</text>
-      <text class="small" x="175" y="410">Output/*.py build OutputSpec objects</text>
-      <text class="small" x="175" y="430">Output/schema/PlotOutput.py renders figures</text>
-      <text class="small" x="175" y="450">Output/... + grouping/organization</text>
+    <rect class="box out" x="1760" y="300" width="170" height="530"/>
+    <text class="t" x="1772" y="330">7) Output</text>
+    <text class="s" x="1772" y="352">Output/*.py modules</text>
+    <text class="s" x="1772" y="370">build OutputSpec(s)</text>
+    <text class="s" x="1772" y="394">Plot renderer:</text>
+    <text class="s" x="1772" y="412">Output/schema/</text>
+    <text class="s" x="1772" y="430">PlotOutput.py</text>
+    <text class="s" x="1772" y="454">Writes figures into:</text>
+    <text class="s" x="1772" y="472">Output/&lt;training&gt;_hls*_lr*</text>
+    <text class="s" x="1772" y="496">then organizes grouped</text>
+    <text class="s" x="1772" y="514">graphs by name</text>
+    <text class="s" x="1772" y="538">(DriverUtils/Organize.py)</text>
+    <text class="s" x="1772" y="564">Optional tabular branch:</text>
+    <text class="s" x="1772" y="582">DriverUtils/</text>
+    <text class="s" x="1772" y="600">TabularExport.py</text>
 
-      <rect class="box meta" x="560" y="360" width="300" height="110" />
-      <text class="lbl" x="575" y="388">Tabular export (optional)</text>
-      <text class="small" x="575" y="410">DriverUtils/TabularExport.py</text>
-      <text class="small" x="575" y="430">regression tables from analysis npz</text>
+    <rect class="box side" x="320" y="70" width="320" height="170"/>
+    <text class="t" x="335" y="100">Repository Areas (structural map)</text>
+    <text class="s" x="335" y="122">lab_tests/DriverUtils: orchestration + persistence + metadata</text>
+    <text class="s" x="335" y="140">lab_tests/Model: NN definition + train wrapper</text>
+    <text class="s" x="335" y="158">lab_tests/DataHelper: CSV/parquet/probe/data loaders</text>
+    <text class="s" x="335" y="176">lab_tests/Eval: analysis transforms on activation tensors</text>
+    <text class="s" x="335" y="194">lab_tests/Output: chart specs + rendering</text>
+    <text class="s" x="335" y="212">lab_tests/Statistics: aggregation helpers</text>
 
-      <rect class="box meta" x="900" y="360" width="240" height="110" />
-      <text class="lbl" x="915" y="388">Run metadata</text>
-      <text class="small" x="915" y="410">DriverUtils/RunMetadata.py</text>
-      <text class="small" x="915" y="430">per-stage status + timestamps</text>
+    <rect class="box meta" x="1470" y="70" width="460" height="170"/>
+    <text class="t" x="1485" y="100">Cross-cutting metadata + reproducibility offshoot</text>
+    <text class="s" x="1485" y="122">DriverUtils/RunMetadata.py writes stage metadata with:</text>
+    <text class="s" x="1500" y="140">• started/finished UTC timestamps, status</text>
+    <text class="s" x="1500" y="158">• git branch/commit, config path, stage details</text>
+    <text class="s" x="1485" y="182">Generated for activation_data, analysis_data, output stages</text>
+    <text class="s" x="1485" y="204">Supports reproducibility/debugging without changing core flow</text>
 
-      <path class="arrow" d="M270 76 L310 76" />
-      <path class="arrow" d="M580 76 L620 76" />
-      <path class="arrow" d="M870 76 L910 76" />
-      <path class="arrow" d="M745 122 L240 190" />
-      <path class="arrow" d="M360 245 L410 245" />
-      <path class="arrow" d="M710 245 L760 245" />
-      <path class="arrow" d="M940 300 L335 360" />
-      <path class="arrow" d="M940 300 L710 360" />
-      <path class="arrow" d="M940 300 L1020 360" />
-    </svg>
-  </div>
+    <path class="arrow" d="M260 405 L320 405"/>
+    <path class="arrow" d="M640 405 L700 405"/>
+    <path class="arrow" d="M1050 405 L1110 405"/>
+    <path class="arrow" d="M1410 405 L1470 405"/>
+    <path class="arrow" d="M1730 405 L1760 405"/>
 
-  <div class="card">
-    <h2>2) Repository directory map + what each folder contains</h2>
-    <div class="grid">
-      <div>
-        <p class="stage">Root</p>
-        <ul>
-          <li><code>README.md</code>: project overview and run commands.</li>
-          <li><code>requirements.txt</code>: Python dependencies.</li>
-          <li><code>SPiNS_Insect.sln</code> / <code>lab_tests/SPiNS_Insect.pyproj</code>: IDE project files.</li>
-        </ul>
+    <path class="arrow" d="M1290 510 L1290 580"/>
+    <path class="arrow" d="M1470 705 L1510 705"/>
+    <path class="arrow" d="M1730 705 L1760 705"/>
 
-        <p class="stage">lab_tests/</p>
-        <ul>
-          <li><code>program.py</code>: top-level executable entrypoint.</li>
-          <li><code>configs/</code>: YAML config sets for data/model/probe/output/directories.</li>
-          <li><code>Data/</code> and <code>data/</code>: source datasets/probe assets/reference matrices.</li>
-        </ul>
-      </div>
-
-      <div>
-        <p class="stage">lab_tests/DriverUtils</p>
-        <ul>
-          <li><code>RunConfig.py</code>: orchestration for train/eval/graph/tabular phases.</li>
-          <li><code>Parser.py</code>: CLI flags.</li>
-          <li><code>Zarr.py</code>: activation storage/load helpers.</li>
-          <li><code>RunMetadata.py</code>: stage metadata logs.</li>
-          <li><code>Organize.py</code>: output grouping.</li>
-          <li><code>TabularExport.py</code>: regression table export.</li>
-          <li><code>Visual.py</code>: progress rendering.</li>
-        </ul>
-      </div>
-
-      <div>
-        <p class="stage">lab_tests/Model</p>
-        <ul>
-          <li><code>NeuralNetwork.py</code>: encoder/decoder network definition.</li>
-          <li><code>StandardModel.py</code>: train loop + probe evaluation per epoch.</li>
-          <li><code>Parameters.py</code>: model parameter utility module.</li>
-        </ul>
-
-        <p class="stage">lab_tests/DataHelper</p>
-        <ul>
-          <li>CSV/parquet conversion and dataloader utilities.</li>
-          <li><code>Probe.py</code>: probe tensor build + metadata index generation.</li>
-          <li><code>SpecialDataLoader.py</code>: alternate batching strategy.</li>
-        </ul>
-      </div>
-
-      <div>
-        <p class="stage">lab_tests/Eval</p>
-        <ul>
-          <li>Evaluator modules: correlation, matrix correlation, PCA/K95, ratio tests, MFA.</li>
-          <li><code>SigE.py</code>: significant-epoch detection helpers.</li>
-          <li><code>Protocol.py</code>: evaluator interface.</li>
-        </ul>
-
-        <p class="stage">lab_tests/Output</p>
-        <ul>
-          <li>Output generators that transform analysis artifacts to plot specifications.</li>
-          <li><code>schema/OutputSpec.py</code>: plotting contract data model.</li>
-          <li><code>schema/PlotOutput.py</code>: matplotlib rendering pipeline.</li>
-          <li><code>schema/dependencies.py</code>: mapping from output config to evaluators/outputs.</li>
-        </ul>
-
-        <p class="stage">lab_tests/Statistics</p>
-        <ul><li><code>StatHelper.py</code>: model-wise aggregate stats (mean/std/SE/CI).</li></ul>
-      </div>
-    </div>
-  </div>
+    <path class="arrow soft" d="M640 150 L800 220"/>
+    <path class="arrow soft" d="M1040 150 L1470 150"/>
+  </svg>
 </body>
 </html>
