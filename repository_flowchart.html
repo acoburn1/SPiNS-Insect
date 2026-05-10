@@ -40,10 +40,10 @@
     }
 
     .main-flow {
-      min-width: 1800px;
+      min-width: 2300px;
       display: grid;
-      grid-template-columns: repeat(7, 240px);
-      column-gap: 28px;
+      grid-template-columns: repeat(7, 300px);
+      column-gap: 34px;
       align-items: start;
       position: relative;
       padding: 6px 6px 160px;
@@ -88,7 +88,7 @@
     }
     .subbox h4 { margin: 0 0 6px; font-size: 0.8rem; color: #d6e2ff; }
     .subbox ul { margin: 0; padding-left: 16px; }
-    .subbox li { font-size: 0.76rem; color: #c7d6ff; margin: 3px 0; line-height: 1.25; }
+    .subbox li { font-size: 0.72rem; color: #c7d6ff; margin: 3px 0; line-height: 1.25; }
 
     .entry { border-top: 3px solid var(--accent-1); }
     .config { border-top: 3px solid var(--accent-2); }
@@ -99,10 +99,10 @@
     .out { border-top: 3px solid var(--accent-4); }
 
     .offshoots {
-      min-width: 1800px;
+      min-width: 2300px;
       margin-top: 18px;
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
       gap: 18px;
     }
     .off {
@@ -113,7 +113,7 @@
       position: relative;
     }
     .off h3 { margin: 0 0 8px; font-size: 0.92rem; }
-    .off p, .off li { margin: 0; font-size: 0.76rem; color: #c6d3fb; line-height: 1.3; }
+    .off p, .off li { margin: 0; font-size: 0.72rem; color: #c6d3fb; line-height: 1.3; }
     .off ul { margin: 6px 0 0; padding-left: 16px; }
 
     .legend {
@@ -164,8 +164,10 @@
           <h4>RunConfig setup</h4>
           <ul>
             <li>computes HLS/LR ranges, epochs, model count</li>
-            <li>creates output roots and dependency plan</li>
-            <li>saves <code>result_dir/config.json</code></li>
+            <li>creates output roots + dependency plan</li>
+            <li>saves <code>result_dir/config.json</code>
+            </li>
+            <li>dependency wiring: <code>Output/schema/dependencies.py</code></li>
           </ul>
         </div>
       </section>
@@ -185,7 +187,9 @@
           <ul>
             <li><code>DataHelper/Probe.py</code> rebuilds probe parquet</li>
             <li>sources: exemplar, ratio, missing_feature, onehot</li>
-            <li>outputs tensor + metadata + index JSON</li>
+            <li>outputs tensor + metadata + index JSON
+            </li>
+            <li>writes to <code>lab_tests/Data/Probes/*.parquet</code> + <code>*.index.json</code></li>
           </ul>
         </div>
         <div class="subbox">
@@ -238,7 +242,7 @@
         <div class="subbox">
           <h4>Evaluator selection</h4>
           <ul>
-            <li>driven by <code>Output/schema/dependencies.py</code></li>
+            <li>driven by <code>Output/schema/dependencies.py</code> (output→evaluator map)</li>
             <li>Correlation, MatrixCorrelation, WB Correlation</li>
             <li>K95 (PCA), RatioTest, MFA, Loss</li>
           </ul>
@@ -267,7 +271,7 @@
         <div class="subbox">
           <h4>Optional offshoot</h4>
           <ul>
-            <li><code>DriverUtils/TabularExport.py</code> builds regression tables</li>
+            <li><code>DriverUtils/TabularExport.py</code> builds regression tables from analysis npz</li>
           </ul>
         </div>
       </section>
@@ -291,6 +295,20 @@
           <li><code>lab_tests/data/ReferenceMatrices</code>: modular/lattice refs</li>
           <li><code>lab_tests/data/Exemplar</code>, <code>Ratio</code>, <code>MissingFeature</code> for probe sources</li>
           <li><code>lab_tests/Data/Probes</code>: generated probe parquet/index outputs</li>
+        </ul>
+      </aside>
+
+
+      <aside class="off">
+        <h3>Fresh-contributor navigation branch</h3>
+        <ul>
+          <li>CLI flags: <code>lab_tests/DriverUtils/Parser.py</code></li>
+          <li>Orchestration: <code>lab_tests/DriverUtils/RunConfig.py</code> (train/evaluate/graph/tabular)</li>
+          <li>Evaluator contract: <code>lab_tests/Eval/Protocol.py</code></li>
+          <li>Output contract/spec: <code>lab_tests/Output/Protocol.py</code>, <code>Output/schema/OutputSpec.py</code></li>
+          <li>Rendering engine: <code>Output/schema/PlotOutput.py</code></li>
+          <li>Grouping + metadata: <code>DriverUtils/Organize.py</code>, <code>DriverUtils/RunMetadata.py</code></li>
+          <li>Config sets to inspect first: <code>configs/output/default.yaml</code>, <code>configs/model/default.yaml</code>, <code>configs/probe/default.yaml</code></li>
         </ul>
       </aside>
 
