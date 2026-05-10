@@ -128,8 +128,7 @@
   </style>
 </head>
 <body>
-  <h1>SPiNS-Insect: Pipeline + Repository Flow (single visual map)</h1>
-  <p class="subtitle">Centralized left-to-right main execution path, with structured sub-boxes and side branches for less-critical but important context.</p>
+  <h1>SPiNS-Insect: Pipeline + Repository Flow</h1>
 
   <div class="canvas" role="img" aria-label="SPiNS-Insect repository structure and runtime flowchart">
     <div class="main-flow">
@@ -210,7 +209,7 @@
           <ul>
             <li>for each hidden-layer size × learning rate</li>
             <li>for each model replica</li>
-            <li>for each epoch: forward → loss → backward → optimizer step</li>
+            <li>for each epoch: forward, BCEWithLogitsLoss, backward, optimizer step</li>
           </ul>
         </div>
         <div class="subbox">
@@ -242,7 +241,7 @@
         <div class="subbox">
           <h4>Evaluator selection</h4>
           <ul>
-            <li>driven by <code>Output/schema/dependencies.py</code> (output→evaluator map)</li>
+            <li>driven by <code>Output/schema/dependencies.py</code> </li>
             <li>Correlation, MatrixCorrelation, WB Correlation</li>
             <li>K95 (PCA), RatioTest, MFA, Loss</li>
           </ul>
@@ -272,6 +271,7 @@
           <h4>Optional offshoot</h4>
           <ul>
             <li><code>DriverUtils/TabularExport.py</code> builds regression tables from analysis npz</li>
+            <li><code>DriverUtils/RunMetadata.py</code> writes metadata per stage and per stage-dir</li>
           </ul>
         </div>
       </section>
@@ -309,6 +309,9 @@
           <li>Rendering engine: <code>Output/schema/PlotOutput.py</code></li>
           <li>Grouping + metadata: <code>DriverUtils/Organize.py</code>, <code>DriverUtils/RunMetadata.py</code></li>
           <li>Config sets to inspect first: <code>configs/output/default.yaml</code>, <code>configs/model/default.yaml</code>, <code>configs/probe/default.yaml</code></li>
+          <li>To add analyses: implement evaluator in <code>lab_tests/Eval/</code>, then wire it in <code>Output/schema/dependencies.py</code></li>
+          <li>To add plots: implement output class in <code>lab_tests/Output/</code> and enable it via <code>configs/output/*.yaml</code> <code>present: true</code></li>
+          <li>Contracts used by extensions: <code>Eval/Protocol.py</code>, <code>Output/Protocol.py</code>, <code>Output/schema/OutputSpec.py</code></li>
         </ul>
       </aside>
 
