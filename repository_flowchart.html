@@ -3,171 +3,312 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>SPiNS-Insect Visual Repository + Pipeline Map</title>
+  <title>SPiNS-Insect Pipeline & Repository Architecture</title>
   <style>
     :root {
-      --bg: #f8fafc;
-      --text: #0f172a;
-      --muted: #334155;
-      --line: #475569;
-      --main: #dbeafe;
-      --prep: #dcfce7;
-      --train: #ede9fe;
-      --eval: #fef3c7;
-      --out: #fee2e2;
-      --side: #e2e8f0;
-      --meta: #cffafe;
+      --bg: #0b1020;
+      --panel: #111833;
+      --card: #182346;
+      --edge: #3b82f6;
+      --edge-soft: #64748b;
+      --text: #e5ecff;
+      --muted: #b9c6ef;
+      --accent-1: #60a5fa;
+      --accent-2: #34d399;
+      --accent-3: #fbbf24;
+      --accent-4: #f472b6;
+      --accent-5: #c084fc;
     }
-    body { font-family: Inter, Segoe UI, Arial, sans-serif; margin: 16px; background: var(--bg); color: var(--text); }
-    h1 { margin: 0 0 8px; font-size: 1.25rem; }
-    p { margin: 0 0 14px; color: var(--muted); }
-    svg { width: 100%; max-width: 2000px; border: 1px solid #cbd5e1; border-radius: 10px; background: white; }
-    .box { stroke: var(--line); stroke-width: 1.4; rx: 12; ry: 12; }
-    .main { fill: var(--main); }
-    .prep { fill: var(--prep); }
-    .train { fill: var(--train); }
-    .eval { fill: var(--eval); }
-    .out { fill: var(--out); }
-    .side { fill: var(--side); }
-    .meta { fill: var(--meta); }
-    .t { font-size: 15px; font-weight: 700; fill: #0b1220; }
-    .s { font-size: 12px; fill: #1e293b; }
-    .arrow { stroke: #334155; stroke-width: 1.6; fill: none; marker-end: url(#a); }
-    .soft { stroke-dasharray: 4 4; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top left, #182244 0%, var(--bg) 45%, #070b17 100%);
+      color: var(--text);
+      font-family: Inter, Segoe UI, Arial, sans-serif;
+      padding: 22px;
+    }
+    h1 { margin: 0 0 8px; font-size: 1.35rem; }
+    .subtitle { margin: 0 0 18px; color: var(--muted); }
+
+    .canvas {
+      background: rgba(17, 24, 51, 0.9);
+      border: 1px solid #2b3b70;
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 24px 40px rgba(0, 0, 0, 0.35);
+      overflow-x: auto;
+    }
+
+    .main-flow {
+      min-width: 1800px;
+      display: grid;
+      grid-template-columns: repeat(7, 240px);
+      column-gap: 28px;
+      align-items: start;
+      position: relative;
+      padding: 6px 6px 160px;
+    }
+
+    .stage {
+      background: linear-gradient(170deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02));
+      border: 1px solid #32457f;
+      border-radius: 14px;
+      padding: 12px;
+      box-shadow: 0 10px 22px rgba(0,0,0,0.22);
+      position: relative;
+    }
+    .stage:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      top: 48%;
+      right: -22px;
+      width: 16px;
+      height: 2px;
+      background: var(--edge);
+    }
+    .stage:not(:last-child)::before {
+      content: "";
+      position: absolute;
+      top: calc(48% - 4px);
+      right: -24px;
+      border-top: 5px solid transparent;
+      border-bottom: 5px solid transparent;
+      border-left: 7px solid var(--edge);
+    }
+
+    .kicker { font-size: 0.72rem; letter-spacing: .07em; text-transform: uppercase; color: #a4b7ea; }
+    .title { margin: 3px 0 8px; font-size: 1rem; font-weight: 700; }
+
+    .subbox {
+      border: 1px solid #405a9d;
+      border-radius: 10px;
+      background: rgba(7, 12, 28, 0.45);
+      padding: 8px;
+      margin-top: 8px;
+    }
+    .subbox h4 { margin: 0 0 6px; font-size: 0.8rem; color: #d6e2ff; }
+    .subbox ul { margin: 0; padding-left: 16px; }
+    .subbox li { font-size: 0.76rem; color: #c7d6ff; margin: 3px 0; line-height: 1.25; }
+
+    .entry { border-top: 3px solid var(--accent-1); }
+    .config { border-top: 3px solid var(--accent-2); }
+    .prep { border-top: 3px solid var(--accent-5); }
+    .train { border-top: 3px solid #93c5fd; }
+    .store { border-top: 3px solid var(--accent-3); }
+    .eval { border-top: 3px solid #f59e0b; }
+    .out { border-top: 3px solid var(--accent-4); }
+
+    .offshoots {
+      min-width: 1800px;
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 18px;
+    }
+    .off {
+      background: rgba(11, 16, 34, 0.78);
+      border: 1px dashed #4b5f9b;
+      border-radius: 12px;
+      padding: 12px;
+      position: relative;
+    }
+    .off h3 { margin: 0 0 8px; font-size: 0.92rem; }
+    .off p, .off li { margin: 0; font-size: 0.76rem; color: #c6d3fb; line-height: 1.3; }
+    .off ul { margin: 6px 0 0; padding-left: 16px; }
+
+    .legend {
+      margin-top: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      color: #c6d3fb;
+      font-size: 0.74rem;
+    }
+    .pill { border: 1px solid #3f548f; background: rgba(255,255,255,0.04); border-radius: 999px; padding: 4px 10px; }
   </style>
 </head>
 <body>
-  <h1>SPiNS-Insect: Centralized Left-to-Right Flowchart (Structure + Runtime)</h1>
-  <p>Everything is contained in one visual: key folders/files, model/data/probe setup, training/evaluation/output flow, and less-critical offshoot utilities.</p>
+  <h1>SPiNS-Insect: Pipeline + Repository Flow (single visual map)</h1>
+  <p class="subtitle">Centralized left-to-right main execution path, with structured sub-boxes and side branches for less-critical but important context.</p>
 
-  <svg viewBox="0 0 1960 980" role="img" aria-label="SPiNS-Insect full repository and program flow">
-    <defs>
-      <marker id="a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
-        <polygon points="0,0 10,4 0,8" fill="#334155"></polygon>
-      </marker>
-    </defs>
+  <div class="canvas" role="img" aria-label="SPiNS-Insect repository structure and runtime flowchart">
+    <div class="main-flow">
+      <section class="stage entry">
+        <div class="kicker">Stage 1</div>
+        <div class="title">Entry / CLI</div>
+        <div class="subbox">
+          <h4>Key file</h4>
+          <ul><li><code>lab_tests/program.py</code></li></ul>
+        </div>
+        <div class="subbox">
+          <h4>Triggers</h4>
+          <ul>
+            <li><code>--train</code>, <code>--evaluate</code>, <code>--graph</code>, <code>--all</code></li>
+            <li><code>--tabular</code> and optional <code>--visual</code></li>
+          </ul>
+        </div>
+      </section>
 
-    <rect class="box main" x="30" y="320" width="230" height="170"/>
-    <text class="t" x="45" y="348">1) Entry / CLI</text>
-    <text class="s" x="45" y="370">lab_tests/program.py</text>
-    <text class="s" x="45" y="388">--train --evaluate --graph</text>
-    <text class="s" x="45" y="406">--all --tabular --visual</text>
-    <text class="s" x="45" y="424">calls RunConfig(...)</text>
+      <section class="stage config">
+        <div class="kicker">Stage 2</div>
+        <div class="title">Configuration Resolution</div>
+        <div class="subbox">
+          <h4>Config plumbing</h4>
+          <ul>
+            <li><code>DriverUtils/Parser.py</code></li>
+            <li><code>configs/utils.py</code> resolves YAML paths</li>
+            <li>loads data/model/output/probe/directory configs</li>
+          </ul>
+        </div>
+        <div class="subbox">
+          <h4>RunConfig setup</h4>
+          <ul>
+            <li>computes HLS/LR ranges, epochs, model count</li>
+            <li>creates output roots and dependency plan</li>
+            <li>saves <code>result_dir/config.json</code></li>
+          </ul>
+        </div>
+      </section>
 
-    <rect class="box prep" x="320" y="290" width="320" height="230"/>
-    <text class="t" x="335" y="320">2) Config Resolution + Setup</text>
-    <text class="s" x="335" y="342">DriverUtils/Parser.py + configs/utils.py</text>
-    <text class="s" x="335" y="360">Loads YAML from configs/{data,model,</text>
-    <text class="s" x="335" y="378">output,probe,directory}/*.yaml</text>
-    <text class="s" x="335" y="396">RunConfig initializes:</text>
-    <text class="s" x="350" y="414">• hidden_layer_range + learning_rate_range</text>
-    <text class="s" x="350" y="432">• num_models, epochs, optimizer mode</text>
-    <text class="s" x="350" y="450">• result dirs + dependency registry</text>
-    <text class="s" x="350" y="468">• saves result_dir/config.json snapshot</text>
+      <section class="stage prep">
+        <div class="kicker">Stage 3</div>
+        <div class="title">Model/Data/Probe Preparation</div>
+        <div class="subbox">
+          <h4>Training data prep</h4>
+          <ul>
+            <li><code>DataHelper/utils.py</code> CSV → numpy</li>
+            <li><code>get_dataloader(...)</code> or <code>SpecialDataLoader</code></li>
+          </ul>
+        </div>
+        <div class="subbox">
+          <h4>Probe prep</h4>
+          <ul>
+            <li><code>DataHelper/Probe.py</code> rebuilds probe parquet</li>
+            <li>sources: exemplar, ratio, missing_feature, onehot</li>
+            <li>outputs tensor + metadata + index JSON</li>
+          </ul>
+        </div>
+        <div class="subbox">
+          <h4>Model setup</h4>
+          <ul>
+            <li><code>Model/NeuralNetwork.py</code>: 2F→H→2F</li>
+            <li><code>Model/StandardModel.py</code>: Adam/SGD + BCEWithLogitsLoss</li>
+            <li>initial probe pass captured at epoch 0</li>
+          </ul>
+        </div>
+      </section>
 
-    <rect class="box prep" x="700" y="220" width="350" height="370"/>
-    <text class="t" x="715" y="250">3) Model/Data/Probe Preparation</text>
-    <text class="s" x="715" y="272">Training data prep (DataHelper/utils.py):</text>
-    <text class="s" x="730" y="290">• csv_training_data_to_numpy(...)</text>
-    <text class="s" x="730" y="308">• get_dataloader(...) or SpecialDataLoader</text>
-    <text class="s" x="715" y="332">Probe prep (DataHelper/Probe.py):</text>
-    <text class="s" x="730" y="350">• rebuilds probe parquet from sources</text>
-    <text class="s" x="730" y="368">• supports exemplar / ratio / missing_feature / onehot</text>
-    <text class="s" x="730" y="386">• outputs probe tensor + metadata + index json</text>
-    <text class="s" x="715" y="410">Reference matrix prep:</text>
-    <text class="s" x="730" y="428">• DriverUtils/RMutils.py gets modular/lattice RMs</text>
-    <text class="s" x="715" y="452">Model setup (Model/):</text>
-    <text class="s" x="730" y="470">• NeuralNetwork.py: Linear(2F→H), ReLU, Linear(H→2F)</text>
-    <text class="s" x="730" y="488">• StandardModel.py picks Adam or SGD</text>
-    <text class="s" x="730" y="506">• initializes probe pass at epoch 0</text>
-    <text class="s" x="730" y="524">  (hidden + sigmoid(output) + initial loss slot)</text>
+      <section class="stage train">
+        <div class="kicker">Stage 4</div>
+        <div class="title">Training Loop</div>
+        <div class="subbox">
+          <h4>Loop hierarchy</h4>
+          <ul>
+            <li>for each hidden-layer size × learning rate</li>
+            <li>for each model replica</li>
+            <li>for each epoch: forward → loss → backward → optimizer step</li>
+          </ul>
+        </div>
+        <div class="subbox">
+          <h4>Captured each epoch</h4>
+          <ul>
+            <li>loss scalar</li>
+            <li>probe hidden activations</li>
+            <li>probe output activations (sigmoid)</li>
+          </ul>
+        </div>
+      </section>
 
-    <rect class="box train" x="1110" y="300" width="300" height="210"/>
-    <text class="t" x="1125" y="330">4) Training Loop</text>
-    <text class="s" x="1125" y="352">For each (HLS, LR):</text>
-    <text class="s" x="1140" y="370">for i in range(num_models):</text>
-    <text class="s" x="1155" y="388">for epoch in range(num_epochs):</text>
-    <text class="s" x="1170" y="406">forward → loss → backward → step</text>
-    <text class="s" x="1170" y="424">then probe hidden/output capture</text>
-    <text class="s" x="1125" y="446">records per-model arrays:</text>
-    <text class="s" x="1140" y="464">losses[E], hidden[E,P,H], output[E,P,O]</text>
+      <section class="stage store">
+        <div class="kicker">Stage 5</div>
+        <div class="title">Activation Persistence</div>
+        <div class="subbox">
+          <h4>Zarr writer</h4>
+          <ul>
+            <li><code>DriverUtils/Zarr.py</code></li>
+            <li>writes <code>loss[M,E]</code>, <code>hidden[M,E,P,H]</code>, <code>output[M,E,P,O]</code></li>
+            <li>to <code>ActivationData/.../activations.zarr</code></li>
+          </ul>
+        </div>
+      </section>
 
-    <rect class="box train" x="1470" y="300" width="260" height="210"/>
-    <text class="t" x="1485" y="330">5) Activation Storage</text>
-    <text class="s" x="1485" y="352">DriverUtils/Zarr.py</text>
-    <text class="s" x="1485" y="370">build_zarr_from_results(...)</text>
-    <text class="s" x="1485" y="388">writes datasets:</text>
-    <text class="s" x="1500" y="406">loss[M,E]</text>
-    <text class="s" x="1500" y="424">hidden[M,E,P,H]</text>
-    <text class="s" x="1500" y="442">output[M,E,P,O]</text>
-    <text class="s" x="1485" y="464">ActivationData/.../activations.zarr</text>
+      <section class="stage eval">
+        <div class="kicker">Stage 6</div>
+        <div class="title">Evaluation / Analysis</div>
+        <div class="subbox">
+          <h4>Evaluator selection</h4>
+          <ul>
+            <li>driven by <code>Output/schema/dependencies.py</code></li>
+            <li>Correlation, MatrixCorrelation, WB Correlation</li>
+            <li>K95 (PCA), RatioTest, MFA, Loss</li>
+          </ul>
+        </div>
+        <div class="subbox">
+          <h4>Saved artifacts</h4>
+          <ul>
+            <li><code>AnalysisData/*.npz</code> with raw + stats</li>
+            <li><code>Statistics/StatHelper.py</code>: mean/std/se/CI</li>
+            <li><code>Eval/SigE.py</code>: <code>sige.npz</code>, <code>wb-sige.npz</code></li>
+          </ul>
+        </div>
+      </section>
 
-    <rect class="box eval" x="1110" y="580" width="360" height="250"/>
-    <text class="t" x="1125" y="610">6) Evaluation (Eval/*)</text>
-    <text class="s" x="1125" y="632">dependency-driven evaluator selection from</text>
-    <text class="s" x="1125" y="650">Output/schema/dependencies.py</text>
-    <text class="s" x="1125" y="674">Core evaluators:</text>
-    <text class="s" x="1140" y="692">• Correlation / MatrixCorrelation / WithinVsBetweenCorrelation</text>
-    <text class="s" x="1140" y="710">• K95 (PCA) / RatioTest / MFA / Loss</text>
-    <text class="s" x="1125" y="734">Statistics/StatHelper.py computes</text>
-    <text class="s" x="1140" y="752">mean/std/se/CI over models</text>
-    <text class="s" x="1125" y="776">Saved per evaluator: AnalysisData/*.npz</text>
-    <text class="s" x="1140" y="794">raw + summary stats + optional metadata</text>
+      <section class="stage out">
+        <div class="kicker">Stage 7</div>
+        <div class="title">Output Generation</div>
+        <div class="subbox">
+          <h4>Plot pipeline</h4>
+          <ul>
+            <li><code>Output/*.py</code> generates OutputSpec structures</li>
+            <li><code>Output/schema/PlotOutput.py</code> renders figures</li>
+            <li><code>DriverUtils/Organize.py</code> groups outputs by name</li>
+          </ul>
+        </div>
+        <div class="subbox">
+          <h4>Optional offshoot</h4>
+          <ul>
+            <li><code>DriverUtils/TabularExport.py</code> builds regression tables</li>
+          </ul>
+        </div>
+      </section>
+    </div>
 
-    <rect class="box eval" x="1510" y="580" width="220" height="250"/>
-    <text class="t" x="1525" y="610">6a) Sig Epoch</text>
-    <text class="s" x="1525" y="632">Eval/SigE.py</text>
-    <text class="s" x="1525" y="650">if config asks for "sig" or</text>
-    <text class="s" x="1525" y="668">"wb-sig": compute epoch masks</text>
-    <text class="s" x="1525" y="690">write:</text>
-    <text class="s" x="1540" y="708">sige.npz</text>
-    <text class="s" x="1540" y="726">wb-sige.npz</text>
+    <div class="offshoots">
+      <aside class="off">
+        <h3>Repository structure branch</h3>
+        <ul>
+          <li><code>lab_tests/DriverUtils</code>: orchestration, metadata, zarr I/O</li>
+          <li><code>lab_tests/Model</code>: network + training wrapper</li>
+          <li><code>lab_tests/DataHelper</code>: data/probe conversion + loaders</li>
+          <li><code>lab_tests/Eval</code>, <code>lab_tests/Output</code>, <code>lab_tests/Statistics</code></li>
+        </ul>
+      </aside>
 
-    <rect class="box out" x="1760" y="300" width="170" height="530"/>
-    <text class="t" x="1772" y="330">7) Output</text>
-    <text class="s" x="1772" y="352">Output/*.py modules</text>
-    <text class="s" x="1772" y="370">build OutputSpec(s)</text>
-    <text class="s" x="1772" y="394">Plot renderer:</text>
-    <text class="s" x="1772" y="412">Output/schema/</text>
-    <text class="s" x="1772" y="430">PlotOutput.py</text>
-    <text class="s" x="1772" y="454">Writes figures into:</text>
-    <text class="s" x="1772" y="472">Output/&lt;training&gt;_hls*_lr*</text>
-    <text class="s" x="1772" y="496">then organizes grouped</text>
-    <text class="s" x="1772" y="514">graphs by name</text>
-    <text class="s" x="1772" y="538">(DriverUtils/Organize.py)</text>
-    <text class="s" x="1772" y="564">Optional tabular branch:</text>
-    <text class="s" x="1772" y="582">DriverUtils/</text>
-    <text class="s" x="1772" y="600">TabularExport.py</text>
+      <aside class="off">
+        <h3>Data assets branch</h3>
+        <ul>
+          <li><code>lab_tests/data/Training</code>: train CSVs</li>
+          <li><code>lab_tests/data/ReferenceMatrices</code>: modular/lattice refs</li>
+          <li><code>lab_tests/data/Exemplar</code>, <code>Ratio</code>, <code>MissingFeature</code> for probe sources</li>
+          <li><code>lab_tests/Data/Probes</code>: generated probe parquet/index outputs</li>
+        </ul>
+      </aside>
 
-    <rect class="box side" x="320" y="70" width="320" height="170"/>
-    <text class="t" x="335" y="100">Repository Areas (structural map)</text>
-    <text class="s" x="335" y="122">lab_tests/DriverUtils: orchestration + persistence + metadata</text>
-    <text class="s" x="335" y="140">lab_tests/Model: NN definition + train wrapper</text>
-    <text class="s" x="335" y="158">lab_tests/DataHelper: CSV/parquet/probe/data loaders</text>
-    <text class="s" x="335" y="176">lab_tests/Eval: analysis transforms on activation tensors</text>
-    <text class="s" x="335" y="194">lab_tests/Output: chart specs + rendering</text>
-    <text class="s" x="335" y="212">lab_tests/Statistics: aggregation helpers</text>
+      <aside class="off">
+        <h3>Reproducibility branch</h3>
+        <ul>
+          <li><code>DriverUtils/RunMetadata.py</code> logs stage status + timestamps</li>
+          <li>records git branch/commit and stage-specific details</li>
+          <li>applies to activation_data, analysis_data, output stages</li>
+        </ul>
+      </aside>
+    </div>
 
-    <rect class="box meta" x="1470" y="70" width="460" height="170"/>
-    <text class="t" x="1485" y="100">Cross-cutting metadata + reproducibility offshoot</text>
-    <text class="s" x="1485" y="122">DriverUtils/RunMetadata.py writes stage metadata with:</text>
-    <text class="s" x="1500" y="140">• started/finished UTC timestamps, status</text>
-    <text class="s" x="1500" y="158">• git branch/commit, config path, stage details</text>
-    <text class="s" x="1485" y="182">Generated for activation_data, analysis_data, output stages</text>
-    <text class="s" x="1485" y="204">Supports reproducibility/debugging without changing core flow</text>
-
-    <path class="arrow" d="M260 405 L320 405"/>
-    <path class="arrow" d="M640 405 L700 405"/>
-    <path class="arrow" d="M1050 405 L1110 405"/>
-    <path class="arrow" d="M1410 405 L1470 405"/>
-    <path class="arrow" d="M1730 405 L1760 405"/>
-
-    <path class="arrow" d="M1290 510 L1290 580"/>
-    <path class="arrow" d="M1470 705 L1510 705"/>
-    <path class="arrow" d="M1730 705 L1760 705"/>
-
-    <path class="arrow soft" d="M640 150 L800 220"/>
-    <path class="arrow soft" d="M1040 150 L1470 150"/>
-  </svg>
+    <div class="legend">
+      <span class="pill">Bold top border = major phase</span>
+      <span class="pill">Nested sub-boxes = grouped details</span>
+      <span class="pill">Bottom panels = lower-priority contextual branches</span>
+    </div>
+  </div>
 </body>
 </html>
