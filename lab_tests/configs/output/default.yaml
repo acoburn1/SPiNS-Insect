@@ -33,15 +33,6 @@ AllModelsSCurve:
   group: true
   per_epoch: true
   epochs: sig
-K95Bars:
-  present: true
-  group: true
-  per_epoch: true
-  epochs: sig
-K95OverEpochs:
-  present: true
-  group: true
-  per_epoch: false
 K95-HLS:
   present: true
   per_epoch: false
@@ -97,4 +88,3 @@ SeriesMFA:
   present: true
   group: true
   per_epoch: false
-  

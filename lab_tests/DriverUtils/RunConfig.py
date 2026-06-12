@@ -8,6 +8,7 @@ from DataHelper.Probe import build_probe
 import time
 import os
 import json
+import sys
 from pathlib import Path
 from Model.StandardModel import StandardModel
 import DriverUtils.Visual as Visual
@@ -54,6 +55,7 @@ class RunConfig:
         self.eval_epochs = self.training_epochs + 1
         self.num_models = self.m_cfg['num_models']
         self.adam = self.m_cfg.get('adam', True)
+        self.relu = self.m_cfg.get('relu', True)
         
         self.X_probe, self.probe_metadata, self.probe_index = build_probe(self.p_cfg)
 
@@ -120,6 +122,7 @@ class RunConfig:
                             learning_rate=LR,
                             loss_fn=nn.BCEWithLogitsLoss(),
                             adam=self.adam,
+                            relu=self.relu,
                         )
 
                         result = model.train_eval(
@@ -288,6 +291,15 @@ class RunConfig:
 
         stage_started = utc_now_iso()
         stage_success = False
+        failure_count = 0
+
+        def report_failure(output_name: str, context: str, exc: Exception):
+            nonlocal failure_count
+            failure_count += 1
+            print(
+                f"Output failed: {output_name} ({context}): {type(exc).__name__}: {exc}",
+                file=sys.stderr,
+            )
 
         try:
             grouped_output_names: set[str] = set()
@@ -296,8 +308,13 @@ class RunConfig:
                 os.makedirs(self.output_dir, exist_ok=True)
                 if self.visual:
                     Visual.status(f"Saving {fn.name} output to {self.output_dir} ...")
-                specs = fn.generate_output(cfgs[fn], self.analysis_dir)
                 output_name = self._output_name_for_cfg(fn.name, cfgs[fn])
+                try:
+                    specs = fn.generate_output(cfgs[fn], self.analysis_dir)
+                except Exception as exc:
+                    report_failure(fn.name, "hyperparameter output", exc)
+                    continue
+
                 for spec in specs:
                     plot_output(spec, f"{self.output_dir}/{output_name}")
 
@@ -310,16 +327,28 @@ class RunConfig:
                         if self.visual:
                             Visual.status(f"Saving {fn.name} output to {output_dir} ...")
                         output_name = self._output_name_for_cfg(fn.name, cfgs[fn])
+                        try:
+                            specs = fn.generate_output(cfgs[fn], analysis_dir)
+                        except Exception as exc:
+                            report_failure(fn.name, f"HLS={HLS}, LR={LR}", exc)
+                            continue
+
                         if cfgs[fn].get("group", False):
                             grouped_output_names.add(output_name)
-                        specs = fn.generate_output(cfgs[fn], analysis_dir)
+
                         for spec in specs:
                             plot_output(spec, f"{output_dir}/{output_name}")
 
             if self.visual:
                 Visual.status(f"Organizing files ...")
             group_graphs_by_name(Path(self.output_dir).parent, grouped_output_names)
-            stage_success = True
+
+            stage_success = failure_count == 0
+            if failure_count:
+                print(
+                    f"Output generation completed with {failure_count} failure(s).",
+                    file=sys.stderr,
+                )
         finally:
             write_stage_metadata(
                 result_dir=self.result_dir,
@@ -346,18 +375,19 @@ class RunConfig:
 
     def save_configuration(self):
         os.makedirs(self.result_dir, exist_ok=True)
-        if not os.path.exists(f"{self.result_dir}/config.json"):
-            cfg = {
-                "data_config": self.d_cfg,
-                "model_config": self.m_cfg,
-                "probe_config": self.p_cfg,
-                "generated_at_utc": utc_now_iso(),
-                "git_branch": git_branch(),
-                "git_commit": git_commit(),
-            }
+        cfg = {
+            "data_config": self.d_cfg,
+            "model_config": self.m_cfg,
+            "output_config": self.o_cfg,
+            "probe_config": self.p_cfg,
+            "directory_config": self.dir_cfg,
+            "generated_at_utc": utc_now_iso(),
+            "git_branch": git_branch(),
+            "git_commit": git_commit(),
+        }
 
-            with open(f"{self.result_dir}/config.json", "w") as f:
-                json.dump(cfg, f, indent=2)
+        with open(f"{self.result_dir}/config.json", "w") as f:
+            json.dump(cfg, f, indent=2)
 
 
     @staticmethod

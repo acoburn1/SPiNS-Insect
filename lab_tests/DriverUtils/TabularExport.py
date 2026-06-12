@@ -22,7 +22,7 @@ def export_regression_tables(analysis_dir: str, output_dir: str) -> None:
     _export_sig_mode(analysis_dir, os.path.join(sig_dir, "sige.csv"), corr_mode="standard")
     _export_sig_mode(analysis_dir, os.path.join(sig_dir, "wb-sige.csv"), corr_mode="wb")
     _export_range_mode(analysis_dir, os.path.join(range_dir, "standard"), corr_mode="standard", step=5)
-    _export_range_mode(analysis_dir, os.path.join(range_dir, "wb"), corr_mode="standard", step=5)
+    _export_range_mode(analysis_dir, os.path.join(range_dir, "wb"), corr_mode="wb", step=5)
     _export_sig_masks(analysis_dir, os.path.join(sig_dir, "tabular_masks"))
 
 

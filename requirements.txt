@@ -6,3 +6,4 @@ zarr
 xarray
 scipy
 tqdm
+pyarrow

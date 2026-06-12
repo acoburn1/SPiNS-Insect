@@ -9,3 +9,4 @@ learning_rate:
   step: 0.005
 num_epochs: 120
 num_models: 50
+relu: true

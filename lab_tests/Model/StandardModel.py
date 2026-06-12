@@ -10,9 +10,9 @@ from functools import partial
 import DriverUtils.Visual as Visual
 
 class StandardModel:
-    def __init__(self, num_features, hidden_layer_size, batch_size, num_epochs, learning_rate, loss_fn, adam: bool = True, device=None):
+    def __init__(self, num_features, hidden_layer_size, batch_size, num_epochs, learning_rate, loss_fn, adam: bool = True, relu: bool = True, device=None):
         self.device = device or torch.device("cpu")
-        self.model = NeuralNetwork(num_features, hidden_layer_size).to(self.device)
+        self.model = NeuralNetwork(num_features, hidden_layer_size, relu=relu).to(self.device)
         self.num_features = num_features
         self.hidden_layer_size = hidden_layer_size
         self.batch_size = batch_size

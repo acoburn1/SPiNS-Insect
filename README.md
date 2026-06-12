@@ -1,126 +1,85 @@
-AI-generated overview (to be replaced with fuller manual docs).  
-working summary: https://docs.google.com/document/d/1QnrTfTMwoMHdTw7BSiUTkRQp3Au_E98HAMIwpIvE99o/edit?usp=sharing   
+# SPiNS Insect
 
-# SPiNS Insect: Category Learning Pipeline
+Neural-network modeling pipeline for training category-learning models, evaluating saved activations, and generating analysis plots.
 
-This repository trains neural-network models on category-learning tasks, records model activations over training, computes analysis metrics, and renders publication-style plots from those saved analysis artifacts.
+See [GUIDE.md](GUIDE.md) for a complete repository guide.
 
----
+## Quick start
 
-## End-to-end flow
+Install the dependencies from the repository root:
 
-```text
-Train model(s)
-  -> save hidden/output activations (Zarr)
-  -> run evaluators on saved activations
-  -> save analysis outputs (.npz)
-  -> generate plots from analysis outputs
+```powershell
+pip install -r requirements.txt
 ```
 
-The important design choice is that plotting is driven by saved analysis files, not by re-running training.
+Run the program from `lab_tests/`. The default data, configuration, and result paths depend on this working directory.
 
----
-
-## Repository layout (high-level)
-
-```text
-lab_tests/
-  program.py                 # CLI entrypoint
-  DriverUtils/               # run orchestration + helpers
-  Model/                     # network definitions + training wrapper
-  DataHelper/                # training/probe data loading + conversion
-  Eval/                      # analysis/evaluator modules
-  Output/                    # output specs + plotting entry points
-  Statistics/                # shared stats utilities
-  configs/
-    data/
-    model/
-    output/
-    probe/
-    directory/
+```powershell
+cd lab_tests
+python program.py --all
 ```
 
-Input data is expected under configured data directories (see `configs/directory/*.yaml`), and run artifacts are written under the configured results directory.
+`--all` runs the three primary stages in order:
 
----
+1. Train model ensembles and save activations.
+2. Evaluate the saved activations.
+3. Generate plots from the saved analysis data.
 
-## What each stage produces
+The default model configuration runs 50 models for 120 epochs. Use a smaller model configuration for a short test run.
 
-### 1) Training
-For each requested hidden-layer size and learning-rate pair:
-- train `num_models` models
-- track per-epoch loss
-- collect probe hidden/output activations each epoch
+## Running individual stages
 
-### 2) Activation storage
-Activation/loss tensors are stored in Zarr for efficient slicing in downstream evaluators.
-
-### 3) Evaluation
-Enabled evaluators load activation slices and produce `.npz` analysis files (typically including `raw`, `mean`, `std`, `se`, confidence intervals, and `n`).
-
-### 4) Output generation
-Output modules read analysis `.npz` files and emit plots.  
-Some outputs are per-run; others aggregate across hyperparameter sweeps.
-
----
-
-## Running the pipeline
-
-From `lab_tests/`, run:
-
-```bash
+```powershell
 python program.py --train
 python program.py --evaluate
 python program.py --graph
 ```
 
-Or run all enabled stages:
+Evaluation requires matching training results, and graph generation requires matching evaluation results. Use the same data, model, and probe configurations across these stages.
 
-```bash
-python program.py --all
+Specialized tabular exports can be generated separately:
+
+```powershell
+python program.py --tabular
 ```
 
-Note: Running these commands with the `-v` flag enables a progress display during execution (visual mode).  
+Add `--visual` or `-v` to display the resolved configuration and progress. Visual mode asks for confirmation before running.
 
-Use specific configs when needed:
+## Selecting configurations
 
-```bash
-python program.py \
-  --data-config <name-or-path> \
-  --model-config <name-or-path> \
-  --output-config <name-or-path> \
-  --probe-config <name-or-path> \
-  --directory-config <name-or-path>
+If no configuration options are provided, each configuration group uses its `default.yaml`.
+
+```powershell
+python program.py --all `
+  --data-config default `
+  --model-config hls20 `
+  --output-config default `
+  --probe-config default `
+  --directory-config default
 ```
 
-If you pass a bare config name, it resolves to `configs/<type>/<name>.yaml`.
+A bare name such as `hls20` resolves to `configs/model/hls20.yaml`. A direct YAML path may also be supplied.
 
----
+Configuration groups are stored under:
 
-## Key configuration files
+```text
+lab_tests/configs/
+  data/         Training dataset and regime
+  model/        Architecture and training hyperparameters
+  output/       Evaluators and plots
+  probe/        Probe composition
+  directory/    Data and result locations
+```
 
-- `configs/data/*`: dataset/trial settings
-- `configs/model/*`: model/training sweep settings
-- `configs/probe/*`: probe composition settings (exemplar/ratio/onehot)
-- `configs/output/*`: which evaluators/outputs are enabled
-- `configs/directory/*`: training/reference/results directories
+## Results
 
----
+With the default directory configuration, results are written under `lab_tests/Results/`:
 
-## Outputs and metadata
+```text
+ActivationData/   Saved activations and losses
+AnalysisData/     Evaluator results
+Output/           Generated plots
+RunMetadata/      Stage status and run metadata
+```
 
-Run outputs are organized under the configured `results` root, typically into:
-- `ActivationData/`
-- `AnalysisData/`
-- `Output/`
-- `RunMetadata/`
-
-Stage metadata includes timestamps, git info, stage status, and stage-specific details to support reproducibility/debugging.
-
----
-
-## Development notes
-
-- Keep evaluator/output contracts stable (`Eval/Protocol.py`, `Output/Protocol.py`).
-- Add new outputs by wiring dependencies in `Output/schema/dependencies.py` and adding corresponding config entries.
-- Prefer consuming saved analysis artifacts rather than recomputing training outputs in plot code.
+Saved intermediate results allow evaluation and graph generation to be rerun without retraining.

@@ -46,8 +46,6 @@ dependencies = {
     "AllModels33OverEpochs": Dep([RatioTestEvaluator], AllModels33OverEpochsOutput),
     "SCurve": Dep([RatioTestEvaluator], SCurveOutput),
     "AllModelsSCurve": Dep([RatioTestEvaluator], AllModelsSCurveOutput),
-    "K95Bars": Dep([K95Evaluator], None),
-    "K95OverEpochs": Dep([K95Evaluator], None),
     "K95-HLS": Dep([K95Evaluator], K95HLSOutput),
     "Correlation-HLS": Dep([CorrelationEvaluator], CorrelationHLSOutput),
     "Epochs-HLSwK95Heatmap": Dep([K95Evaluator], EpochsHLSwK95HeatmapOutput),
@@ -68,14 +66,16 @@ def get_dependencies(o_cfg):
     """
     d_obj = DependenciesObject()
 
+    unknown = sorted(set(o_cfg) - set(dependencies))
+    if unknown:
+        raise ValueError(f"Unknown output configuration key(s): {unknown}")
+
     evaluator_map: dict[type[Evaluator], Evaluator] = {}
     output_map: dict[type[Output], Output] = {}
 
     for key, subcfg in o_cfg.items():
         if subcfg.get("present", False):
-            dep = dependencies.get(key)
-            if dep is None:
-                continue
+            dep = dependencies[key]
 
             for ev_cls in dep.evaluators:
                 if ev_cls not in evaluator_map:

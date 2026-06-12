@@ -31,6 +31,7 @@ class SigEHLSOutput:
             xs = []
             ys = []
             hls_values = []
+            max_epoch = 0
 
             for run in lr_runs:
                 hls = run["hls"]
@@ -38,6 +39,7 @@ class SigEHLSOutput:
 
                 if sig_mask.ndim != 2:
                     raise ValueError(f"Expected sige results shape (M, E), got {sig_mask.shape}")
+                max_epoch = max(max_epoch, sig_mask.shape[1] - 1)
 
                 first_sig = first_sig_epochs(run["analysis_dir"], sig_mask.shape[0], sig_mask.shape[1], mode=sig_mode)
 
@@ -64,7 +66,7 @@ class SigEHLSOutput:
                     x_ticks=[float(h) for h in hls_values],
                     x_ticklabels=[str(h) for h in hls_values],
                     x_lim=[min(hls_values) - 0.6, max(hls_values) + 0.6],
-                    y_lim=[0.0, 120.0],
+                    y_lim=[0.0, float(max_epoch)],
                     grid=True,
                     legend_loc="best",
                     legend_ncol=1,
