@@ -11,7 +11,7 @@
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <Name>SPiNS_Insect</Name>
-    <RootNamespace>lab_tests</RootNamespace>
+    <RootNamespace>SPiNS_Insect</RootNamespace>
     <SuppressConfigureTestFrameworkPrompt>true</SuppressConfigureTestFrameworkPrompt>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
     <CommandLineArguments>python program.py -g -v -m "hls20"</CommandLineArguments>

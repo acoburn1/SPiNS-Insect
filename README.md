@@ -12,10 +12,10 @@ Install the dependencies from the repository root:
 pip install -r requirements.txt
 ```
 
-Run the program from `lab_tests/`. The default data, configuration, and result paths depend on this working directory.
+Run the program from `spins-insect/`. The default data, configuration, and result paths depend on this working directory.
 
 ```powershell
-cd lab_tests
+cd spins-insect
 python program.py --all
 ```
 
@@ -63,7 +63,7 @@ A bare name such as `hls20` resolves to `configs/model/hls20.yaml`. A direct YAM
 Configuration groups are stored under:
 
 ```text
-lab_tests/configs/
+spins-insect/configs/
   data/         Training dataset and regime
   model/        Architecture and training hyperparameters
   output/       Evaluators and plots
@@ -73,7 +73,7 @@ lab_tests/configs/
 
 ## Results
 
-With the default directory configuration, results are written under `lab_tests/Results/`:
+With the default directory configuration, results are written under `spins-insect/Results/`:
 
 ```text
 ActivationData/   Saved activations and losses

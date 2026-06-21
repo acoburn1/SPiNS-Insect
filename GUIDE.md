@@ -1,6 +1,6 @@
 # SPiNS Insect: Full Guide
 
-The following is a complete usage guide for the category learning pipeline. Contact `acoburn1@binghamton.edu` for questions about the repository.
+The following is a complete usage guide for the category learning pipeline. Contact `abrahamcoburn@gmail.com` for questions about the repository.
 
 ---
 
@@ -62,7 +62,7 @@ The following is a complete usage guide for the category learning pipeline. Cont
 ### Layout
 
 ```text
-lab_tests/       
+spins-insect/       
   configs/                  # Configuration folders / files (.yaml)
     data/                     # For configuring training data
     directory/                # For configuring location of data / results
@@ -156,14 +156,14 @@ The main dependencies are NumPy, PyTorch, pandas, SciPy, Matplotlib, Zarr, tqdm,
 
 ### Working directory
 
-Run the program from `lab_tests/`:
+Run the program from `spins-insect/`:
 
 ```powershell
-cd lab_tests
+cd spins-insect
 python program.py --all
 ```
 
-Several default paths are relative to `lab_tests/`, including `Data/`, `configs/`, and `Results/`. Running `program.py` from the repository root will not resolve those paths correctly without custom configuration paths.
+Several default paths are relative to `spins-insect/`, including `Data/`, `configs/`, and `Results/`. Running `program.py` from the repository root will not resolve those paths correctly without custom configuration paths.
 
 ### Configuration files
 

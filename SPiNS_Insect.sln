@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
 VisualStudioVersion = 18.4.11513.90 insiders
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "SPiNS_Insect", "lab_tests\SPiNS_Insect.pyproj", "{AA902EBC-FEAA-4DD9-9BDE-17FE7BF34FBD}"
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "SPiNS_Insect", "spins-insect\SPiNS_Insect.pyproj", "{AA902EBC-FEAA-4DD9-9BDE-17FE7BF34FBD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
