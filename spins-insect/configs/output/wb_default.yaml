@@ -3,6 +3,7 @@ SeriesCorrelation:
   group: true
   per_epoch: false
   corr_type: wb
+  export_data: true
 MatrixCorrelation:
   present: false
   group: false
@@ -16,18 +17,23 @@ RatioOverEpochs:
   present: true
   group: true
   per_epoch: false
-  avg: false
-  sets: [lat-core, mod-core, no-core, both-core, both-core-whole, both-wrong]
+  avg: true
+  sets: [no-core, both-core]
+  export_data: true
 AllModels33OverEpochs:
   present: true
   group: true
   per_epoch: false
 SCurve:
   present: true
-  group: true
+  group: false
   per_epoch: true
-  epochs: wb-sig
-  sets: [lat-core, mod-core, no-core, both-core, both-core-whole, both-wrong]
+  epochs: range
+  range:
+    start: 0
+    stop: 200
+    step: 10
+  sets: [no-core, both-core]
 AllModelsSCurve:
   present: true
   group: true
@@ -84,3 +90,10 @@ SeriesK95:
   present: true
   group: true
   per_epoch: false
+GeneralizationBiasHeatmap:
+  present: true
+  range: [5, 100]
+  sets: [no-core, both-core]
+  scurve_sets: [no-core, both-core]
+  epoch_map: true
+  export_data: true

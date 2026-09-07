@@ -1,0 +1,7 @@
+GeneralizationBiasHeatmap:
+  present: true
+  range: [5, 100]
+  sets: [no-core, both-core]
+  scurve_sets: [no-core, both-core]
+  epoch_map: true
+  export_data: true

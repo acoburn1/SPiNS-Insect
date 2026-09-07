@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib import colors, cm
+from matplotlib import colors
 from Output.schema.OutputSpec import OutputSpec, PlotKind, YAxis, Aspect
 
 
@@ -244,8 +244,29 @@ def plot_output(spec: OutputSpec, save_dir: str) -> str:
                 pos_name=spec.matrix_cmap_pos,
                 center_color=spec.matrix_center_color,
             )
+        elif spec.matrix_cmap is not None:
+            imshow_kwargs["cmap"] = spec.matrix_cmap
 
         im = ax1.imshow(mat, **imshow_kwargs)
+
+        if spec.matrix_annotations is not None:
+            annotations = np.asarray(spec.matrix_annotations, dtype=object)
+            if annotations.shape != mat.shape:
+                raise ValueError(
+                    f"matrix_annotations shape {annotations.shape} does not match matrix shape {mat.shape}."
+                )
+            for (row, column), annotation in np.ndenumerate(annotations):
+                if not str(annotation):
+                    continue
+                ax1.text(
+                    column,
+                    row,
+                    str(annotation),
+                    ha="center",
+                    va="center",
+                    color="white",
+                    fontsize=10,
+                )
 
         if spec.matrix_colorbar:
             fig.colorbar(im, ax=ax1)
@@ -280,19 +301,15 @@ def _build_split_cmap(vmin, split, vmax, neg_name="Blues", pos_name="Reds", cent
 
     split_pos = (split - vmin) / (vmax - vmin)
 
-    neg_n = max(2, int(round(n * split_pos)))
-    pos_n = max(2, n - neg_n)
-
-    neg_base = cm.get_cmap(neg_name)
-    pos_base = cm.get_cmap(pos_name)
-
+    neg_base = plt.get_cmap(neg_name)
+    pos_base = plt.get_cmap(pos_name)
     center_rgba = colors.to_rgba(center_color)
-
-    neg_colors = neg_base(np.linspace(1.0, 0.15, neg_n))
-    pos_colors = pos_base(np.linspace(0.15, 1.0, pos_n))
-
-    neg_colors[-1] = center_rgba
-    pos_colors[0] = center_rgba
-
-    all_colors = np.vstack([neg_colors, pos_colors])
-    return colors.ListedColormap(all_colors, name="split_abs_cmap")
+    return colors.LinearSegmentedColormap.from_list(
+        "split_abs_cmap",
+        [
+            (0.0, neg_base(1.0)),
+            (split_pos, center_rgba),
+            (1.0, pos_base(1.0)),
+        ],
+        N=n,
+    )

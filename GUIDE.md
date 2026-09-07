@@ -205,11 +205,13 @@ A bare name is resolved as `configs/<group>/<name>.yaml`. If no option is suppli
 |---|---|
 | `num_features` | Number of features in each category. Input and output dimensions are twice this value. |
 | `hidden_layer_range` | Inclusive `start`, `end`, and `step` values for hidden-layer size. |
-| `learning_rate` | Inclusive `start`, `end`, and `step` values for learning rate. |
+| `learning_rate` | Either inclusive `start`, `end`, and `step` values or an explicit `set` list. |
 | `num_epochs` | Number of training epochs. Saved data contains one additional epoch for initialization. |
 | `num_models` | Number of independently initialized models per hyperparameter pair. |
 | `adam` | Uses Adam when true or omitted, and SGD when false. |
 | `relu` | Applies ReLU after the hidden linear layer when true or omitted. Uses a linear hidden representation when false. |
+| `initialization` | Uses PyTorch's default linear-layer initialization when `default` or omitted. `xavier` uses Xavier-uniform weights and zero biases. |
+| `loss` | Uses `bce` when omitted. `bce_output_sum` sums BCE over output features and averages over trials. `sigmoid_sse` applies sigmoid to the logits, sums half-squared error over output features, and averages over trials. |
 
 Every hidden-layer-size and learning-rate combination is run separately.
 
@@ -234,6 +236,7 @@ SeriesCorrelation:
 - `range`: inclusive `start`, `stop`, and `step`
 - `sets`: selected ratio-trial set labels
 - `group`: whether graphs should be copied into cross-run grouping directories
+- `export_data`: whether a supporting output class should save its plotted series as CSV
 - Plot labels, dimensions, bounds, and display options supported by the output class
 
 Every top-level output key must be registered in `Output/schema/dependencies.py`. Unknown or misspelled keys raise a configuration error before any stage runs.
@@ -454,7 +457,9 @@ The current network in `Model/NeuralNetwork.py` is:
 | Hidden | Fully connected layer, optionally followed by ReLU | `hidden_layer_size` |
 | Output | Fully connected layer producing logits | `2 * num_features` |
 
-The model is trained as an autoencoder: each training input is paired with its target feature vector. `StandardModel` uses `BCEWithLogitsLoss` during training and applies a sigmoid only when collecting probe output activations.
+The model is trained as an autoencoder: each training input is paired with its target feature vector. The default `bce` loss uses the mean of `BCEWithLogitsLoss` over trials and output features. `bce_output_sum` sums BCE over output features and averages over trials. The alternative `sigmoid_sse` loss applies sigmoid to the logits, sums half-squared error over output features, and averages over trials. Probe output activations are always passed through sigmoid.
+
+Linear layers use PyTorch's default initialization unless `initialization: xavier` is selected. Xavier initialization applies Xavier-uniform weights and zero biases to both the encoder and decoder.
 
 Adam is used by default. Set `adam: false` in the model configuration to use SGD.
 
@@ -729,6 +734,8 @@ Classes with `hyperd = True` receive the base analysis path and discover sibling
 Classes with `hyperd = False` run once for every hidden-size/learning-rate pair and read that pair's analysis directory.
 
 For each returned `OutputSpec`, `plot_output()` creates the target directory and saves the figure.
+
+When `export_data: true`, output classes that support data export also save `*_models.csv` and `*_summary.csv` files beside their figures. Model files contain every model's value at every epoch. Summary files contain the finite sample size, mean, standard deviation, standard error, and 95% confidence interval at every epoch. `SeriesCorrelation` exports separate hidden-only and hidden-plus-output tables using the configured `corr_type`. `RatioOverEpochs` exports either separate configured sets or their average according to `sets` and `avg`.
 
 If an output class raises an exception while generating its `OutputSpec` objects, that output is reported to standard error and skipped so the remaining output classes can run. Plotting and graph-grouping exceptions are not caught and stop the output stage.
 

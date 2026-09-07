@@ -115,7 +115,9 @@ class OutputSpec:
     # matrix-specific options
     matrix_vmin: Optional[float] = None
     matrix_vmax: Optional[float] = None
+    matrix_annotations: Optional[List[List[str]]] = None
     matrix_split: Optional[float] = None
+    matrix_cmap: Optional[str] = None
     matrix_cmap_neg: str = "Blues"
     matrix_cmap_pos: str = "Greens"
     matrix_center_color: str = "white"

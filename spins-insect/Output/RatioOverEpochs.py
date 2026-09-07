@@ -2,6 +2,9 @@ import numpy as np
 from Output.schema.OutputSpec import *
 from Statistics.StatHelper import stats_over_models
 from Output.utils import (
+    export_epoch_series_csv,
+    filename_safe_token,
+    hyperparameters_from_analysis_dir,
     load_ratio_test_bundle,
     resolve_requested_set_indices,
     selected_sets_suffix,
@@ -128,3 +131,48 @@ class RatioOverEpochsOutput:
         )
 
         return [spec]
+
+    def export_data(self, sub_cfg: dict, analysis_dir: str, output_dir: str) -> list[str]:
+        bundle = load_ratio_test_bundle(analysis_dir)
+        raw = bundle["raw"]
+        ratio_labels = bundle["ratio_labels"]
+        set_labels = bundle["set_labels"]
+        ratio_name = str(sub_cfg.get("ratio", "3:3"))
+        if ratio_name not in ratio_labels:
+            raise ValueError(f"Requested ratio '{ratio_name}' not found. Available: {ratio_labels}")
+
+        r_idx = ratio_labels.index(ratio_name)
+        requested = resolve_requested_set_indices(sub_cfg, set_labels)
+        valid_indices = set(valid_set_indices_for_ratio(raw, r_idx))
+        selected_labels = [set_labels[i] for i in requested if i in valid_indices]
+
+        specs = self.generate_output(sub_cfg, analysis_dir)
+        if bool(sub_cfg.get("avg", False)):
+            selected = [i for i in requested if i in valid_indices]
+            series_data = {
+                "avg_modular_preference": np.nanmean(
+                    raw[:, :, r_idx, selected],
+                    axis=2,
+                )
+            }
+        else:
+            series_data = {
+                f"modular_preference_{filename_safe_token(set_labels[i])}": raw[:, :, r_idx, i]
+                for i in requested
+                if i in valid_indices
+            }
+
+        hls, learning_rate, model_id_prefix = hyperparameters_from_analysis_dir(analysis_dir)
+        return export_epoch_series_csv(
+            specs[0].figure_id,
+            series_data,
+            output_dir,
+            metadata={
+                "hls": hls,
+                "learning_rate": learning_rate,
+                "ratio": ratio_name,
+                "set_aggregation": "average" if bool(sub_cfg.get("avg", False)) else "separate",
+                "selected_sets": "all" if sub_cfg.get("sets") is None else "|".join(selected_labels),
+            },
+            model_id_prefix=model_id_prefix,
+        )

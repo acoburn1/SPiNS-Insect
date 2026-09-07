@@ -3,6 +3,7 @@ SeriesCorrelation:
   group: true
   per_epoch: false
   corr_type: standard
+  export_data: true
 MatrixCorrelation:
   present: false
   group: false
@@ -18,6 +19,7 @@ RatioOverEpochs:
   per_epoch: false
   avg: false
   sets: [lat-core, mod-core, no-core, both-core, both-core-whole, both-wrong]
+  export_data: true
 AllModels33OverEpochs:
   present: true
   group: true

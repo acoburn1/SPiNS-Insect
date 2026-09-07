@@ -23,6 +23,7 @@ from Output.K95DiffCorrelationDiff import K95DiffCorrelationDiffOutput
 from Output.K95DiffGeneralization import K95DiffGeneralizationOutput
 from Output.SeriesK95 import SeriesK95Output
 from Output.SeriesMFA import SeriesMFA
+from Output.GeneralizationBiasHeatmap import GeneralizationBiasHeatmapOutput
 
 @dataclass
 class Dep:
@@ -56,6 +57,7 @@ dependencies = {
     "K95DiffGeneralization": Dep([K95Evaluator, RatioTestEvaluator], K95DiffGeneralizationOutput),
     "SeriesK95": Dep([K95Evaluator], SeriesK95Output),
     "SeriesMFA": Dep([MFA], SeriesMFA),
+    "GeneralizationBiasHeatmap": Dep([RatioTestEvaluator], GeneralizationBiasHeatmapOutput),
 }
 
 

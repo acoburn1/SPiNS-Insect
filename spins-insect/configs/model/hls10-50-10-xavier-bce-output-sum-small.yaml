@@ -1,0 +1,13 @@
+num_features: 11
+hidden_layer_range:
+  start: 10
+  end: 50
+  step: 10
+learning_rate:
+  set: [0.05, 0.1, 0.15, 0.2, 0.25]
+num_epochs: 200
+num_models: 100
+adam: false
+relu: false
+initialization: xavier
+loss: bce_output_sum

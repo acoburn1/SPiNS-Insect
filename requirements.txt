@@ -2,7 +2,7 @@ numpy
 torch
 matplotlib
 pandas
-zarr
+zarr>=2,<3
 xarray
 scipy
 tqdm

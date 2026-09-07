@@ -46,16 +46,19 @@ class RunConfig:
             self.m_cfg['hidden_layer_range']['start'], 
             self.m_cfg['hidden_layer_range']['end'] + self.m_cfg['hidden_layer_range']['step'], 
             self.m_cfg['hidden_layer_range']['step'])
-        self.learning_rate_range = self._decimal_inclusive_range(
-            self.m_cfg['learning_rate']['start'],
-            self.m_cfg['learning_rate']['end'],
-            self.m_cfg['learning_rate']['step'],
-        )
+        self.learning_rate_range = self._range_or_set(self.m_cfg['learning_rate'], "learning_rate")
         self.training_epochs = self.m_cfg['num_epochs']
         self.eval_epochs = self.training_epochs + 1
         self.num_models = self.m_cfg['num_models']
         self.adam = self.m_cfg.get('adam', True)
         self.relu = self.m_cfg.get('relu', True)
+        self.initialization = self.m_cfg.get('initialization', 'default')
+        self.loss = self.m_cfg.get('loss', 'bce')
+
+        if self.initialization not in {'default', 'xavier'}:
+            raise ValueError(f"Unsupported initialization: {self.initialization}")
+        if self.loss not in {'bce', 'bce_output_sum', 'sigmoid_sse'}:
+            raise ValueError(f"Unsupported loss: {self.loss}")
         
         self.X_probe, self.probe_metadata, self.probe_index = build_probe(self.p_cfg)
 
@@ -120,9 +123,10 @@ class RunConfig:
                             batch_size=self.num_total_trials,
                             num_epochs=self.training_epochs,
                             learning_rate=LR,
-                            loss_fn=nn.BCEWithLogitsLoss(),
+                            loss_fn=self._build_loss_fn(),
                             adam=self.adam,
                             relu=self.relu,
+                            initialization=self.initialization,
                         )
 
                         result = model.train_eval(
@@ -318,6 +322,24 @@ class RunConfig:
                 for spec in specs:
                     plot_output(spec, f"{self.output_dir}/{output_name}")
 
+                if cfgs[fn].get("export_data", False):
+                    export_fn = getattr(fn, "export_data", None)
+                    if not callable(export_fn):
+                        report_failure(
+                            fn.name,
+                            "hyperparameter data export",
+                            ValueError(f"{fn.name} does not support data export."),
+                        )
+                    else:
+                        try:
+                            export_fn(
+                                cfgs[fn],
+                                self.analysis_dir,
+                                f"{self.output_dir}/{output_name}",
+                            )
+                        except Exception as exc:
+                            report_failure(fn.name, "hyperparameter data export", exc)
+
             for HLS in self.hidden_layer_range:
                 for LR in self.learning_rate_range:
                     output_dir = self._add_suffix(self.output_dir, HLS, LR)
@@ -338,6 +360,24 @@ class RunConfig:
 
                         for spec in specs:
                             plot_output(spec, f"{output_dir}/{output_name}")
+
+                        if cfgs[fn].get("export_data", False):
+                            export_fn = getattr(fn, "export_data", None)
+                            if not callable(export_fn):
+                                report_failure(
+                                    fn.name,
+                                    f"HLS={HLS}, LR={LR} data export",
+                                    ValueError(f"{fn.name} does not support data export."),
+                                )
+                            else:
+                                try:
+                                    export_fn(
+                                        cfgs[fn],
+                                        analysis_dir,
+                                        f"{output_dir}/{output_name}",
+                                    )
+                                except Exception as exc:
+                                    report_failure(fn.name, f"HLS={HLS}, LR={LR} data export", exc)
 
             if self.visual:
                 Visual.status(f"Organizing files ...")
@@ -403,6 +443,40 @@ class RunConfig:
             current += step_d
 
         return np.array(values, dtype=np.float64)
+
+    @classmethod
+    def _range_or_set(cls, spec: dict, name: str) -> np.ndarray:
+        if 'set' not in spec:
+            return cls._decimal_inclusive_range(spec['start'], spec['end'], spec['step'])
+
+        if any(key in spec for key in ('start', 'end', 'step')):
+            raise ValueError(f"{name} must use either set or start/end/step, not both")
+
+        values = spec['set']
+        if not isinstance(values, list) or not values:
+            raise ValueError(f"{name}.set must be a non-empty list")
+
+        result = np.array(values, dtype=np.float64)
+        if not np.all(np.isfinite(result)) or np.any(result <= 0):
+            raise ValueError(f"{name}.set values must be finite and greater than zero")
+        return result
+
+    def _build_loss_fn(self):
+        if self.loss == 'bce':
+            return nn.BCEWithLogitsLoss()
+        if self.loss == 'bce_output_sum':
+            return self._bce_output_sum_loss
+        return self._sigmoid_sse_loss
+
+    @staticmethod
+    def _bce_output_sum_loss(logits, targets):
+        errors = nn.functional.binary_cross_entropy_with_logits(logits, targets, reduction='none')
+        return errors.sum(dim=-1).mean()
+
+    @staticmethod
+    def _sigmoid_sse_loss(logits, targets):
+        errors = logits.sigmoid() - targets
+        return 0.5 * errors.square().sum(dim=-1).mean()
 
     @staticmethod
     def _add_suffix(d: str, hls: int, lr: float) -> str:

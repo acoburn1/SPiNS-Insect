@@ -1,7 +1,9 @@
+import csv
 import os
 import re
 import numpy as np
 from scipy.stats import linregress
+from Statistics.StatHelper import stats_over_models
 
 
 def load_mean_ci(path: str) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -10,6 +12,115 @@ def load_mean_ci(path: str) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     ci_lo = np.asarray(data["ci_lo"], dtype=np.float64)
     ci_hi = np.asarray(data["ci_hi"], dtype=np.float64)
     return mean, ci_lo, ci_hi
+
+
+def export_epoch_series_csv(
+    figure_id: str,
+    series_data: dict[str, np.ndarray],
+    output_dir: str,
+    *,
+    metadata: dict[str, object] | None = None,
+    model_id_prefix: str = "",
+) -> list[str]:
+    os.makedirs(output_dir, exist_ok=True)
+    metadata = metadata or {}
+    reserved = {"model_id", "epoch"}
+    for name in series_data:
+        reserved.add(name)
+        reserved.update(
+            f"{name}_{suffix}"
+            for suffix in ("n", "mean", "std", "se", "ci_lower", "ci_upper")
+        )
+    overlap = reserved.intersection(metadata)
+    if overlap:
+        raise ValueError(f"CSV metadata uses reserved field(s): {sorted(overlap)}")
+    if not series_data:
+        raise ValueError(f"No series data provided for '{figure_id}'.")
+
+    shape = None
+    arrays = {}
+    for label, values in series_data.items():
+        array = np.asarray(values, dtype=np.float64)
+        if array.ndim != 2:
+            raise ValueError(f"Series '{label}' must have shape (models, epochs), got {array.shape}.")
+        if shape is None:
+            shape = array.shape
+        elif array.shape != shape:
+            raise ValueError(f"Series '{label}' has shape {array.shape}; expected {shape}.")
+        arrays[label] = array
+
+    models_path = os.path.join(output_dir, f"{figure_id}_models.csv")
+    model_fields = [
+        *metadata.keys(),
+        "model_id",
+        "epoch",
+        *arrays.keys(),
+    ]
+    with open(models_path, "w", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(file, fieldnames=model_fields)
+        writer.writeheader()
+        n_models, n_epochs = shape
+        for model_i in range(n_models):
+            for epoch in range(n_epochs):
+                writer.writerow(
+                    {
+                        **metadata,
+                        "model_id": f"{model_id_prefix}m{model_i + 1:03d}",
+                        "epoch": epoch,
+                        **{
+                            name: _csv_number(array[model_i, epoch])
+                            for name, array in arrays.items()
+                        },
+                    }
+                )
+
+    summary_path = os.path.join(output_dir, f"{figure_id}_summary.csv")
+    summary_fields = [
+        *metadata.keys(),
+        "epoch",
+        *[
+            f"{name}_{suffix}"
+            for name in arrays
+            for suffix in ("n", "mean", "std", "se", "ci_lower", "ci_upper")
+        ],
+    ]
+    series_stats = {name: stats_over_models(array) for name, array in arrays.items()}
+    with open(summary_path, "w", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(file, fieldnames=summary_fields)
+        writer.writeheader()
+        for epoch in range(n_epochs):
+            row = {**metadata, "epoch": epoch}
+            for name, stats in series_stats.items():
+                row.update(
+                    {
+                        f"{name}_n": int(stats["n"][epoch]),
+                        f"{name}_mean": _csv_number(stats["mean"][epoch]),
+                        f"{name}_std": _csv_number(stats["std"][epoch]),
+                        f"{name}_se": _csv_number(stats["se"][epoch]),
+                        f"{name}_ci_lower": _csv_number(stats["ci_lo"][epoch]),
+                        f"{name}_ci_upper": _csv_number(stats["ci_hi"][epoch]),
+                    }
+                )
+            writer.writerow(row)
+
+    return [models_path, summary_path]
+
+
+def _csv_number(value) -> str:
+    value = float(value)
+    return "NaN" if not np.isfinite(value) else f"{value:.10g}"
+
+
+def hyperparameters_from_analysis_dir(analysis_dir: str) -> tuple[int, float, str]:
+    name = os.path.basename(analysis_dir.rstrip("/\\"))
+    match = re.search(r"_hls(\d+)_lr([A-Za-z0-9p\-]+)$", name)
+    if match is None:
+        raise ValueError(f"Could not parse HLS and learning rate from analysis directory: {analysis_dir}")
+
+    hls = int(match.group(1))
+    learning_rate = _parse_lr_token(match.group(2))
+    model_id_prefix = f"hls{hls}_lr{match.group(2)}_"
+    return hls, learning_rate, model_id_prefix
 
 
 def load_ratio_test_bundle(analysis_dir: str) -> dict[str, np.ndarray | list[str]]:

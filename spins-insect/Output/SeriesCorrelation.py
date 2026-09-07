@@ -1,7 +1,12 @@
 import os
 import numpy as np
 from Output.schema.OutputSpec import *
-from Output.utils import load_mean_ci
+from Output.utils import (
+    export_epoch_series_csv,
+    hyperparameters_from_analysis_dir,
+    load_correlation_raw,
+    load_mean_ci,
+)
 import copy
 
 class SeriesCorrelationOutput:
@@ -116,6 +121,60 @@ class SeriesCorrelationOutput:
         )
 
         return [spec_h, spec_all]
+
+    def export_data(self, sub_cfg: dict, analysis_dir: str, output_dir: str) -> list[str]:
+        corr_type = str(sub_cfg.get("corr_type", "standard")).lower()
+        corr_raw = load_correlation_raw(analysis_dir, corr_type=corr_type)
+        loss_raw = np.asarray(
+            np.load(os.path.join(analysis_dir, "Loss.npz"))["raw"],
+            dtype=np.float64,
+        )
+
+        if corr_type == "standard":
+            h_mod = corr_raw[:, :, 0, 0, 0]
+            h_lat = corr_raw[:, :, 0, 1, 0]
+            o_mod = corr_raw[:, :, 1, 0, 0]
+            o_lat = corr_raw[:, :, 1, 1, 0]
+        else:
+            h_mod = corr_raw[:, :, 0, 0]
+            h_lat = corr_raw[:, :, 0, 1]
+            o_mod = corr_raw[:, :, 1, 0]
+            o_lat = corr_raw[:, :, 1, 1]
+
+        specs = self.generate_output(sub_cfg, analysis_dir)
+        hidden_series = {
+            "mod_hidden_corr": h_mod,
+            "lat_hidden_corr": h_lat,
+            "loss": loss_raw,
+        }
+        all_series = {
+            **hidden_series,
+            "mod_output_corr": o_mod,
+            "lat_output_corr": o_lat,
+        }
+        hls, learning_rate, model_id_prefix = hyperparameters_from_analysis_dir(analysis_dir)
+        metadata = {
+            "hls": hls,
+            "learning_rate": learning_rate,
+            "correlation_type": corr_type,
+        }
+        paths = export_epoch_series_csv(
+            specs[0].figure_id,
+            hidden_series,
+            output_dir,
+            metadata=metadata,
+            model_id_prefix=model_id_prefix,
+        )
+        paths.extend(
+            export_epoch_series_csv(
+                specs[1].figure_id,
+                all_series,
+                output_dir,
+                metadata=metadata,
+                model_id_prefix=model_id_prefix,
+            )
+        )
+        return paths
 
 
 def _make_line(

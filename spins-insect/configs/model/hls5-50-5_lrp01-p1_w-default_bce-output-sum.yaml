@@ -1,0 +1,15 @@
+num_features: 11
+hidden_layer_range:
+  start: 5
+  end: 50
+  step: 5
+learning_rate:
+  start: 0.01
+  end: 0.1
+  step: 0.01
+num_epochs: 200
+num_models: 100
+adam: false
+relu: false
+initialization: default
+loss: bce_output_sum

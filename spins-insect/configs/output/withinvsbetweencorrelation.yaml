@@ -3,3 +3,4 @@ SeriesCorrelation:
   group: true
   per_epoch: false
   corr_type: wb
+  export_data: true
